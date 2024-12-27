@@ -1,3 +1,5 @@
+**THIS BEARLY WORKS**
+![under construction](under-construction.png)
 # Guitar Pedal 
 
 Using:
@@ -10,9 +12,8 @@ Using:
 * Download the latest [PatchboxOS](https://blokas.io/patchbox-os/) from [here](https://dl.blokas.io/)
   - Install it on a Raspberry PI
   - Do not need to select any modules in the setup
-* Run `sudo apt install modep-mod-ui `
 * Clone this repository
-* Run the command: `./setup.shd`
+* Run the command: `./setup.sh`
 * Push the button once to activate the pedals
 * Push it twice to activate the wireless hot-spot and [`modep-mod-ui`](https://blokas.io/modep/)
 
