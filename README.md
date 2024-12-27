@@ -8,14 +8,11 @@ Using:
 ## Setup
 
 * Download the latest [PatchboxOS](https://blokas.io/patchbox-os/) from [here](https://dl.blokas.io/)
-* Unzip the image to an uncompressed image file.  Say: `patchbox.img`
-* Run the command: `./setup.sh patchbox.img`
-* Use `patchbox.img` to boot a Raspberry PI equiped with a PiSound card
-* Once set up, log in as `patch`
-* Run `~patch/120Pedal/initialise_pi.sh`
-
-## Using
-
-
-
+  - Install it on a Raspberry PI
+  - Do not need to select any modules in the setup
+* Run `sudo apt install modep-mod-ui `
+* Clone this repository
+* Run the command: `./setup.shd`
+* Push the button once to activate the pedals
+* Push it twice to activate the wireless hot-spot and [`modep-mod-ui`](https://blokas.io/modep/)
 
