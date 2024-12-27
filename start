@@ -1,0 +1,49 @@
+#!/bin/bash
+echo  "120Pedal: run" >&2
+source One20Pedal.sh
+
+## The name of the MIDI pedal.  This is passed to ${PEDAL}
+PEDAL_NAME=SINCO
+
+## The tools
+MODHOST=${One20PedalHome}/mod-host/mod-host
+GETSIMS=${One20PedalHome}/getPedalBoardCommands.sh
+SETSIMS=${One20PedalHome}/setPedalBoardCommon.sh
+PEDAL=${One20PedalHome}/midi_drver
+TUNER=/usr/bin/gxtuner
+TOOLS=("$MODHOST" "$GETSIMS" "$PEDAL" "$TUNER")
+for TOOL in "${TOOLS[@]}"; do
+    if [ ! -x "$TOOL" ]; then
+	echo $TOOL is not executable
+	exit -1
+    fi
+done
+
+## Shut down modep and start 120Proof
+sudo systemctl stop modep-mod-ui
+sudo systemctl stop modep-mod-host
+sudo killall mod-host
+
+## Start 120Proof: mod-host first
+echo ' *Start mod-host : ' $MODHOST
+${MODHOST}
+echo ' *Get simulators'
+`${GETSIMS}`
+echo ' *Set simulators'
+`${SETSIMS}`
+echo ' * Done!'
+
+pkill -f ${PEDAL}
+${PEDAL} ${PEDAL_NAME} &
+echo "120Proof 3 Pedal PID $(pgrep midi_driver)"
+
+if [ ! `pgrep -f ${TUNER}` ] ; then
+    echo "120Proof start ${TUNER}"
+    /usr/bin/gxtuner&
+    # (${TUNER} 2>&1) >/dev/null &
+else
+    echo "120Proof  ${TUNER} already running"
+fi
+sleep 3
+jack_connect "system:capture_1" "gxtuner:in_0" 
+

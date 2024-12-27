@@ -1,0 +1,13 @@
+#!/bin/sh
+echo "120Pedal: stop" >&2
+source One20Pedal.sh
+
+if [  `pgrep -f ${PEDAL}` ] ; then
+    echo " * Kill ${PEDAL}"
+    pkill -f ${PEDAL}
+fi
+sudo killall mod-host
+sudo systemctl stop modep-mod-host
+sudo systemctl stop modep-mod-ui
+sleep 1
+sudo systemctl start modep-mod-ui
