@@ -6,10 +6,8 @@ Home_DEV=$(readlink -f $(dirname "${BASH_SOURCE[0]}"))
 
 echo " * Get necessary packages"
 apt update
-apt install -y libjack-dev libasound2-dev libjack-jackd2-dev pkg-config  gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libasound2-dev gcc-aarch64-linux-gnu  modep-mod-ui gxtuner podman curl
-
-RUSTUP!!
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+apt install -y  libasound2-dev libjack-jackd2-dev pkg-config  gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libasound2-dev gcc-aarch64-linux-gnu  modep-mod-ui gxtuner podman curl libcurl4-openssl-dev
+apt install -y libjack-dev
 
 echo " * Set up PiSound button "
 cat <<EOF  > /usr/local/etc/pisound.conf
@@ -87,11 +85,16 @@ systemctl --user daemon-reload
 systemctl --user enable gxtuner.service
 systemctl --user start gxtuner.service
 
+su - patch
+
 cd ${One20PedalHome}
 git clone https://github.com/worikgh/mod-host.git
 cd mod-host
 make -j `nproc`
 cd ${One20PedalHome}
 
+#RUSTUP!!
+curl https://sh.rustup.rs -sSf | sh -s -- -y
+source $HOME/.profile
 cd midi_driver
 cargo build --release
