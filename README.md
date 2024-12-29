@@ -12,6 +12,8 @@ Using:
 * Download the latest [PatchboxOS](https://blokas.io/patchbox-os/) from [here](https://dl.blokas.io/)
   - Install it on a Raspberry PI
   - Do not need to select any modules in the setup
+  
+* Install Git
 * Clone this repository
 * Run the command: `./setup.sh`
 * Push the button once to activate the pedals
