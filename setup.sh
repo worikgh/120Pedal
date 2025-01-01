@@ -3,11 +3,15 @@
 set -e
 source One20Pedal.sh
 Home_DEV=$(readlink -f $(dirname "${BASH_SOURCE[0]}"))
-
-echo " * Get necessary packages"
+echo " * Purge chromium-browser "
+sudo apt purge -y chromium-browser
+echo " * Update packages"
 sudo apt update
+
 echo " * Upgrade all packages"
 sudo apt full-upgrade -y
+
+echo " * Get necessary packages"
 sudo apt install -y  libasound2-dev libjack-jackd2-dev pkg-config  gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libasound2-dev gcc-aarch64-linux-gnu  modep-mod-ui gxtuner podman curl libcurl4-openssl-dev liblilv-dev libreadline-dev
 # sudo apt install -y libjack-dev
 
@@ -55,7 +59,7 @@ EOF
 chmod a+x $SYSTEMD_DIR/gxtuner.service
 
 echo " * Start script gxturner"
-echo <<EOF > $SYSTEMD_DIR/start_gxtuner
+cat <<EOF > $SYSTEMD_DIR/start_gxtuner
 #!/bin/bash
 /usr/bin/gxtuner
 EOF
