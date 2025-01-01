@@ -1,5 +1,7 @@
 #!/bin/bash
 echo  "120Pedal: run" >&2
+PWD=`pwd`
+echo "* PWD $PWD"
 source One20Pedal.sh
 
 ## The name of the MIDI pedal.  This is passed to ${PEDAL}

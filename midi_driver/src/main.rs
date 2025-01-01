@@ -10,9 +10,6 @@ mod midi;
 mod pedals_available;
 use crate::midi::MidiData;
 
-// use subprocess::Communicator;
-// use subprocess::Popen;
-// use subprocess::PopenConfig;
 fn main() -> Result<(), Box<dyn Error>> {
     let card: String = args().nth(1).unwrap();
     run(card).unwrap();
