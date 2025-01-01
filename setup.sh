@@ -53,7 +53,6 @@ WantedBy=default.target
 EOF
 
 chmod a+x $SYSTEMD_DIR/gxtuner.service
-chown patch:patch $SYSTEMD_DIR/gxtuner.service
 
 echo " * Start script gxturner"
 echo <<EOF > $SYSTEMD_DIR/start_gxtuner
@@ -82,6 +81,7 @@ curl https://sh.rustup.rs -sSf | sh -s -- -y
 source $HOME/.profile
 cd ${One20PedalHome}
 cd midi_driver
+
 echo " * Build midi-driver"
 cargo build --release
 
