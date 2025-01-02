@@ -94,6 +94,7 @@ cd midi_driver
 
 echo " * Build midi-driver"
 cargo build --release
-
+cd ${One20PedalHome}
+ln -s midi_driver/target/release/midi_driver .
 echo " * Finished"
 
