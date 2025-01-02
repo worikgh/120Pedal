@@ -73,8 +73,14 @@ systemctl --user start gxtuner.service
 echo " * Fetch mod-host source"
 
 cd ${One20PedalHome}
-git clone https://github.com/worikgh/mod-host.git
-cd mod-host
+if [ ! -d mod-host ] ; then
+    git clone https://github.com/worikgh/mod-host.git
+    cd mod-host
+else
+    cd mod-host
+    git pull
+fi
+
 echo " * Make mod-host"
 make -j `nproc`
 cd ${One20PedalHome}
