@@ -1,9 +1,9 @@
 #!/bin/bash
 echo  "120Pedal: run" >&2
-PWD=`pwd`
-echo "* PWD $PWD"
+SCRIPT_DIR=$(dirname "$0")
+echo " * SCRIPT_DIR $SCRIPT_DIR"
 source One20Pedal.sh
-
+echo " * One20PedalHome $One20PedalHome"
 ## The name of the MIDI pedal.  This is passed to ${PEDAL}
 PEDAL_NAME=SINCO
 
