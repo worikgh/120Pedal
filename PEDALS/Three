@@ -1,0 +1,2 @@
+effect_12:outputl system:playback_1
+alsa_in:capture_1 effect_11:in

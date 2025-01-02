@@ -1,0 +1,3 @@
+system:capture_1 effect_9:in
+system:capture_2 effect_9:in
+effect_8:out system:playback_1
