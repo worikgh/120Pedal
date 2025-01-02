@@ -11,7 +11,7 @@ PEDAL_NAME=SINCO
 MODHOST=${One20PedalHome}/mod-host/mod-host
 GETSIMS=${One20PedalHome}/getPedalBoardCommands.sh
 SETSIMS=${One20PedalHome}/setPedalBoardCommon.sh
-PEDAL=${One20PedalHome}/midi_drver.exe
+PEDAL=${One20PedalHome}/midi_driver.exe
 TUNER=/usr/bin/gxtuner
 TOOLS=("$MODHOST" "$GETSIMS" "$PEDAL" "$TUNER")
 for TOOL in "${TOOLS[@]}"; do
