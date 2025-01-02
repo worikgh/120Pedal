@@ -3,7 +3,7 @@
 
 //! The pedals are found using the environment variable
 //! `Home120Proof`.  That points to a directory under which there is
-//! `pedal/PEDALS` directory.
+//! `PEDALS` directory.
 
 //! There are four pedals to match the four buttons on the MIDI foot
 //! switch I am using.  One day this will be parameterised.  The
@@ -22,7 +22,7 @@ use std::io::Lines;
 pub fn get_pipes_from_file(file_name: &str) -> Result<Vec<(String, String)>, Box<dyn Error>> {
     match vars().find(|x| x.0 == "Home120Proof") {
         Some(s) => {
-            let file_name: String = format!("{}/pedal/PEDALS/{file_name}", s.1);
+            let file_name: String = format!("{}/PEDALS/{file_name}", s.1);
             println!("File name: {file_name}");
             let file = File::open(file_name)?;
             let buf: Lines<BufReader<File>> = BufReader::new(file).lines();
