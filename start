@@ -36,7 +36,7 @@ echo ' *Set simulators'
 echo ' * Done!'
 
 pkill -f ${PEDAL}
-${PEDAL} ${PEDAL_NAME} &
+Home120Proof=${One20PedalHome}  ${PEDAL} ${PEDAL_NAME} &
 echo "120Proof 3 Pedal PID $(pgrep midi_driver)"
 
 if [ ! `pgrep -f ${TUNER}` ] ; then
