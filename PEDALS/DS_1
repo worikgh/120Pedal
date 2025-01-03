@@ -1,2 +1,0 @@
-effect_5:Out1 system:playback_1
-alsa_in:capture_1 effect_5:In
