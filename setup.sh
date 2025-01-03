@@ -32,7 +32,7 @@ if [[ $ALL_INSTALLED -eq 0 ]] ; then
     fi
 fi
 
-if curl  -I  ${ARCHIVE} >/dev/null | grep "200 OK" >/dev/null; then
+if curl  -I  ${ARCHIVE} >/dev/null ; then
     echo " * Check if any packages need to be updated"
     if [ $(apt list --upgradable 2>/dev/null|wc -l) != 0 ] ; then
 	echo " * Upgrade packages"
