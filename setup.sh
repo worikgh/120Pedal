@@ -23,7 +23,7 @@ done
 
 if [[ $ALL_INSTALLED -eq 0 ]] ; then
     echo " * Install missing packages (${ARCHIVE})"
-    if curl  -I  ${ARCHIVE} 2>/dev/null | grep "200 OK" >/dev/null; then
+    if curl  -sI  "${ARCHIVE}" 2>/dev/null >/dev/null; then
 	sudo apt update -y
 	sudo apt install -y  ${PACKAGES}
     else
