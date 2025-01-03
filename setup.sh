@@ -2,11 +2,20 @@
 
 set -e
 source One20Pedal.sh
-Home_DEV=$(readlink -f $(dirname "${BASH_SOURCE[0]}"))
-echo " * Purge chromium-browser "
-sudo apt purge -y chromium-browser
-echo " * Update packages"
-sudo apt update
+HOME_DIR=$(readlink -f $(dirname "${BASH_SOURCE[0]}"))
+
+echo " * Test if archives available"
+ARCHIVE=$(grep  '^deb ' /etc/apt/sources.list | cut -d ' ' -f 2 | head -n 1)
+if [ -n "$ARCHIVE" ]; then
+    echo " * What system is this?  There are no apt sources.  Must run on Debian"
+    exit -1
+fi
+if curl -I ${ARCHIVE} >/dev/null 2>&1; then
+    if [ $(apt list --upgradable 2>/dev/null|wc -l) != 0 ] ; then
+	echo " * Upgrade packages"
+	sudo apt update -y
+    fi
+fi
 
 echo " * Upgrade all packages"
 sudo apt full-upgrade -y
@@ -94,7 +103,23 @@ cd midi_driver
 
 echo " * Build midi-driver"
 cargo build --release
-cd ${One20PedalHome}
-ln -s ${One20PedalHome}/midi_driver/target/release/midi_driver ${One20PedalHome}/midi_driver.exe
+MIDI_DRIVER_LINK=${One20PedalHome}/midi_driver.exe
+MIDI_DRIVER=${One20PedalHome}/midi_driver/target/release/midi_driver
+if [ ! -x ${MIDI_DRIVER} ] ; then
+    echo " ** Failed to create executable: ${MIDI_DRIVER}"
+    exit -1
+fi
+
+echo " * Create link to midi-driver"
+if [ -e ${MIDI_DRIVER_LINK} ] ; then
+    if [ ! -L ${MIDI_DRIVER_LINK} -o $(readlink -f ${MIDI_DRIVER_LINK}) != ${MIDI_DRIVER} ] ; then
+	rm ${MIDI_DRIVER_LINK}
+    fi
+fi
+if [ ! -e ${MIDI_DRIVER_LINK} ] ; then
+    ln -s ${MIDI_DRIVER} ${MIDI_DRIVER_LINK}
+fi
+
+
 echo " * Finished"
 
