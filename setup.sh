@@ -1,28 +1,43 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 set -e
 source One20Pedal.sh
-HOME_DIR=$(readlink -f $(dirname "${BASH_SOURCE[0]}"))
 
 echo " * Test if archives available"
 ARCHIVE=$(grep  '^deb ' /etc/apt/sources.list | cut -d ' ' -f 2 | head -n 1)
-if [ -n "$ARCHIVE" ]; then
+if [ ! -n "$ARCHIVE" ]; then
     echo " * What system is this?  There are no apt sources.  Must run on Debian"
     exit -1
 fi
-if curl -I ${ARCHIVE} >/dev/null 2>&1; then
-    if [ $(apt list --upgradable 2>/dev/null|wc -l) != 0 ] ; then
-	echo " * Upgrade packages"
+
+# PACKAGES=("libasound2-dev" "libjack-jackd2-dev" "pkg-config" "gcc-arm-linux-gnueabihf" "g++-arm-linux-gnueabihf" "gcc-aarch64-linux-gnu" "modep-mod-ui" "gxtuner" "podman" "curl" "libcurl4-openssl-dev" "liblilv-dev" "libreadline-dev")
+PACKAGES=("libasound2-dev" "libjack-jackd2-dev" "pkg-config" "gcc-arm-linux-gnueabihf" "g++-arm-linux-gnueabihf" "gcc-aarch64-linux-gnu" "modep-mod-ui" "gxtuner" "curl" "libcurl4-openssl-dev" "liblilv-dev" "libreadline-dev")
+ALL_INSTALLED=1
+for package in "${PACKAGES[@]}"; do
+    if [[ ! $(dpkg -l | grep -qw "$package") ]]; then
+	ALL_INSTALLED=0
+	break
+    fi
+done
+
+if [[ $ALL_INSTALLED -eq 0 ]] ; then
+    if curl  -I  ${ARCHIVE} >/dev/null | grep "200 OK" >/dev/null; then
 	sudo apt update -y
+	sudo apt install -y  ${PACKAGES}
+    else
+	echo " ** Some packages missing and cannot reach archive **"
+	exit -1
     fi
 fi
 
-echo " * Upgrade all packages"
-sudo apt full-upgrade -y
-
-echo " * Get necessary packages"
-sudo apt install -y  libasound2-dev libjack-jackd2-dev pkg-config  gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libasound2-dev gcc-aarch64-linux-gnu  modep-mod-ui gxtuner podman curl libcurl4-openssl-dev liblilv-dev libreadline-dev
-# sudo apt install -y libjack-dev
+echo " * Check if any packages need to be updated"
+if curl  -I  ${ARCHIVE} >/dev/null | grep "200 OK" >/dev/null; then
+    if [ $(apt list --upgradable 2>/dev/null|wc -l) != 0 ] ; then
+	echo " * Upgrade packages"
+	sudo apt update -y
+	sudo apt full-upgrade -y
+    fi
+fi
 
 echo " * Set up PiSound button "
 sudo cp system_files/pisound.conf /usr/local/etc/pisound.conf
