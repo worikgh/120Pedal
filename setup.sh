@@ -16,6 +16,7 @@ echo " * Test if all required packages installed"
 ALL_INSTALLED=1
 for package in "${PACKAGES[@]}"; do
     if [[ ! $(dpkg -l | grep -qw "$package") ]]; then
+	echo " ** Package ${package} is missing "
 	ALL_INSTALLED=0
 	break
     fi
