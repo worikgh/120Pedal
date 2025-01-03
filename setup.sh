@@ -12,6 +12,7 @@ fi
 
 # PACKAGES=("libasound2-dev" "libjack-jackd2-dev" "pkg-config" "gcc-arm-linux-gnueabihf" "g++-arm-linux-gnueabihf" "gcc-aarch64-linux-gnu" "modep-mod-ui" "gxtuner" "podman" "curl" "libcurl4-openssl-dev" "liblilv-dev" "libreadline-dev")
 PACKAGES=("libasound2-dev" "libjack-jackd2-dev" "pkg-config" "gcc-arm-linux-gnueabihf" "g++-arm-linux-gnueabihf" "gcc-aarch64-linux-gnu" "modep-mod-ui" "gxtuner" "curl" "libcurl4-openssl-dev" "liblilv-dev" "libreadline-dev")
+echo " * Test if all required packages installed"
 ALL_INSTALLED=1
 for package in "${PACKAGES[@]}"; do
     if [[ ! $(dpkg -l | grep -qw "$package") ]]; then
@@ -21,7 +22,8 @@ for package in "${PACKAGES[@]}"; do
 done
 
 if [[ $ALL_INSTALLED -eq 0 ]] ; then
-    if curl  -I  ${ARCHIVE} >/dev/null | grep "200 OK" >/dev/null; then
+    echo " * Install missing packages"
+    if curl  -I  ${ARCHIVE} 2>/dev/null | grep "200 OK" >/dev/null; then
 	sudo apt update -y
 	sudo apt install -y  ${PACKAGES}
     else
@@ -30,8 +32,8 @@ if [[ $ALL_INSTALLED -eq 0 ]] ; then
     fi
 fi
 
-echo " * Check if any packages need to be updated"
 if curl  -I  ${ARCHIVE} >/dev/null | grep "200 OK" >/dev/null; then
+    echo " * Check if any packages need to be updated"
     if [ $(apt list --upgradable 2>/dev/null|wc -l) != 0 ] ; then
 	echo " * Upgrade packages"
 	sudo apt update -y
