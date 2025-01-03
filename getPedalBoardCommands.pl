@@ -31,7 +31,7 @@ grep {$_ !~ /manifest.ttl$/}
 grep{/\.ttl$/}
 `find $modep_pedal_dir -type f`;
 
-## Each effect is uniquely identified bu `$index`  
+## Each effect is uniquely identified bu `$index`
 my $index = 1;
 
 my @add = ();
@@ -66,7 +66,7 @@ foreach my $fn (@fn){
     }
     $jack_activation{$board_name} = $ex{jack_activation_pipes};
     push(@jack_init, @{$ex{jack_internal_pipes}});
-    
+
     # foreach my $k (sort keys %number_name){
     # 	my $v = $number_name{$k};
     # 	print "$k => $v\n";
@@ -143,17 +143,17 @@ sub process_lv2_turtle( $$ ) {
     ## We need to get the instructions needed to initialise this
     ## effect and turn it on.
 
-    ## Need: 
+    ## Need:
 
     ## add <lv2_uri> <instance_number> Record what instance number
-    ## goes with what effect so it can be communicated to the user.  
+    ## goes with what effect so it can be communicated to the user.
 
     ## param_set <instance_number> <param_symbol> <param_value>
     ## Set up the effect in the way it was saved from mod-ui
 
     ## Triples and their meanings
     ## predicate == "lv2:prototype" => subject is an effect, objecty is the URL.
-    ## ......... <DS1> lv2:prototype <http://moddevices.com/plugins/mod-devel/DS1> 
+    ## ......... <DS1> lv2:prototype <http://moddevices.com/plugins/mod-devel/DS1>
     ## _________ Use for the "add" command
     ## predicate == ingen:arc => object names a Jack connection.
     ## .........   "<> ingen:arc _:b1"
@@ -164,7 +164,7 @@ sub process_lv2_turtle( $$ ) {
 
     ## predicate == ingen:tail => subject is a Jack connection, object is where it starts
     ## predicate == ingen:head => subject is a Jack connection, object is where it ends
-    ## .........  "_b2 ingen:tail <bitta/output>" 
+    ## .........  "_b2 ingen:tail <bitta/output>"
     ## .........  "_b1 ingen:head <playback_1>
     ## predicate == a  => subject is of type object
     ## .........  <DS1/In> a lv2:AudioPort
@@ -176,11 +176,11 @@ sub process_lv2_turtle( $$ ) {
     ## .........  <bitta/drywet> ingen:value 1.000000
     ## _________  Use for the "param" command
 
-    ## .........  
-    ## .........  
+    ## .........
+    ## .........
 
     ## Each effect is setup in this hash.
-    ## Indexed by the name	
+    ## Indexed by the name
     my %effects = ();
 
     ## The internal pipes between the effects that make up the pedal
@@ -192,7 +192,7 @@ sub process_lv2_turtle( $$ ) {
     ## chain that makes up the pedal board.  (TODO: What about MIDI
     ## LV2 effects?)
     my @activation_jack_pipes = ();
-    
+
     ## each entry om @line is a triple as text.  Convert into an
     ## array of arrays, each with three elements: subject, predicate,
     ## object
@@ -208,7 +208,7 @@ sub process_lv2_turtle( $$ ) {
     # To map numbers names
     my %name_number = ();
     my %number_name = ();
-    
+
     foreach my $prototype (@prototypes){
         my ($name, $predicate, $uri) = @$prototype;
 
@@ -218,7 +218,7 @@ sub process_lv2_turtle( $$ ) {
 
         $predicate eq "lv2:prototype" or die "Error in prototypes: $predicate";
 
-        ## Initialise the effect hash 
+        ## Initialise the effect hash
         $effects{$name} = {};
         $effects{$name}->{param} = [];
         $effects{$name}->{add} = "add $uri $index";
@@ -237,9 +237,9 @@ sub process_lv2_turtle( $$ ) {
         ## Filter for the ports wanted and get the name/port from
         ## inside the angle brackets
         my $raw = shift or die;
-        $raw =~ /^([a-z0-9_]+\/[a-z0-9_\:]+)$/i or 
+        $raw =~ /^([a-z0-9_]+\/[a-z0-9_\:]+)$/i or
             # Not a name/port
-            return undef; 
+            return undef;
         return $1;
     };
 
@@ -269,7 +269,7 @@ sub process_lv2_turtle( $$ ) {
     # ## Set up the `param set` commands in effects
     foreach my $port (keys %control_port_values){
         my $value = $control_port_values{$port};
-        $port =~ /([a-z_0-9]+)\/([\:a-z0-9_]+)/i or 
+        $port =~ /([a-z_0-9]+)\/([\:a-z0-9_]+)/i or
             die "Badly formed port: $port";
         my $name = $1;
         my $port = $2;
@@ -282,15 +282,15 @@ sub process_lv2_turtle( $$ ) {
     ## Build jack connections
     my @jack_pipes = grep{
         $_->[1] =~ /^ingen:tail$/ or
-        $_->[1] =~ /^ingen:head$/ 
+        $_->[1] =~ /^ingen:head$/
     }@triples;
 
     # There are two sorts of pipe: Internal pipes between effects, and
     # to output, are created at startup.  Activation pipes, pipes from
-    # input (capture_N) to first effect in chain 
+    # input (capture_N) to first effect in chain
     my @jack_internal_pipes = ();
     my @jack_activation_pipes = ();
-    
+
     foreach my $pipe (@jack_pipes){
         # `$pipe` is the name of the pipe.  The subject of the triple
 
@@ -321,7 +321,7 @@ sub process_lv2_turtle( $$ ) {
         scalar @head == 1 or  die "Pipe is bad";
 
         # Activation connections are connected to system:capture_N
-        if($tail[0]->[2] =~ /^capture_\d+$/ and 
+        if($tail[0]->[2] =~ /^capture_\d+$/ and
 	       $head[0]->[2] =~ /^playback_\d+$/){
             ## A connection directly from capture to playback
             push(@jack_activation_pipes, "$tail[0]->[2]:$head[0]->[2]");
@@ -363,7 +363,7 @@ sub process_lv2_turtle( $$ ) {
 	%d = map{$_ => 1} @{$effects{$name}->{param}};
 	@{$effects{$name}->{param}} = keys %d;
     }
-    
+
     my %result = (
         "effects" => \%effects,
         "index" => $index,
@@ -373,5 +373,73 @@ sub process_lv2_turtle( $$ ) {
         "pedal_board_name" => $pedal_board_name
         );
     return %result;
-    
+
+}
+## Read a ttl, Turtle, document
+## Return an array of triples (RDF)
+sub read_turtle( $ ){
+    my $fn = shift or die "Pass a Turtle file to process";
+    open(my $fh, $fn) or die "$!: $fn";
+    my @lines = map{chomp; $_} grep {$_ !~ /^\s*#/} <$fh>;
+
+    ## Create prefixs
+    my %prefix_lines = map{
+        /^\@prefix (\S*):\s+<(\S*)>\s*\.$/;
+        defined($1) or die "Prefix undefined: $_";
+        defined($2) or die "Prefix subject undefined: $_";
+        $1 => $2
+    } grep{/^\@prefix /} @lines;
+    @lines = grep {$_ !~ /^\@prefix /} @lines;
+    my @result = ();
+
+    ## Turtle is broken up by '.'
+    my $input = join("", @lines);
+
+    my @input = split(' \.', $input);
+    ## Process the ";"
+    my @semi_colon_processed = ();
+    foreach my $statement  (@input) {
+        if($statement =~ /\s;\s/){
+            ## There is a ' ; ' on this line
+            ## The ; symbol may be used to repeat the subject of of triples that vary only in predicate and object RDF terms.semi_colon_processed
+
+            $statement =~ s/^\s*(\S+)\s+(\S+)\s+([^;]*[^;\s])\s+;// or die $statement;
+            my ($subject, $predicate, $object) = ($1, $2, $3);
+            # if($object =~ /\s/){
+            #     ## Must be a quoted string
+            #     $object =~ /"(.+)"$/ or die $object;
+            # }
+            # push(@semi_colon_processed, "$subject $predicate $object");
+            ## This next line will break if and predicate or object
+            ## has an embedded ';'
+            while(1){
+		my @objects = split(/\s,\s/, $object);
+		for my $o (@objects){
+		    push(@semi_colon_processed, "$subject $predicate $o");
+		}
+                $statement =~ s/^\s*(\S+)\s+([^;]*[^;\s])\s*;?// or last;
+                ($predicate, $object) = ($1, $2);
+            }
+
+        }else{
+            push(@semi_colon_processed, $statement);
+        }
+    }
+
+    ## Process ' , '
+    my @comma_processed = ();
+    foreach my $semi (@semi_colon_processed){
+        if($semi =~ / , /){
+            $semi =~ s/^(\S+)\s+(\S+)\s+(\S+)\s+,//;
+            my($subject, $predicate, $object) = ($1, $2, $3);
+            push(@comma_processed, "$subject $predicate $object");
+            my @objects = split(' , ', $semi);
+            foreach $object (@objects){
+                push(@comma_processed, "$subject $predicate $object");
+            }
+        }else{
+            push(@comma_processed, $semi);
+        }
+    }
+    return @comma_processed;
 }
