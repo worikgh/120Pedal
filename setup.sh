@@ -114,7 +114,7 @@ cd ${One20PedalHome}
 
 #RUSTUP!!
 echo " * Update Rust"
-curl https://sh.rustup.rs -sSf | sh -s -- -y
+curl https://sh.rustup.rs -sSf | sh -s -- -y 2>&1 > /dev/null
 source $HOME/.profile
 cd ${One20PedalHome}
 cd midi_driver
