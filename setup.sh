@@ -139,5 +139,15 @@ if [ ! -e ${MIDI_DRIVER_LINK} ] ; then
 fi
 
 
+echo " * Set up links for pedal"
+echo " ** This is for a 4 boolean pedals."
+# In the future make this adjustable, and allow variable pedals (0-127)
+
+PEDALDIR=${One20Home}/PEDALS
+PEDALDEFS=$("$PEDALDIR")
+for FILE in "${PEDALDEF[@]}"; do
+    echo File: "$FILE"
+done
+
 echo " * Finished"
 
