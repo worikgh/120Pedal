@@ -2,5 +2,6 @@
 
 set -e
 
-source One20Pedal.sh
-perl setPedalBoardCommon.pl
+DIR=$(dirname $0)
+source "${DIR}/One20Pedal.sh"
+perl "${DIR}/setPedalBoardCommon.pl"

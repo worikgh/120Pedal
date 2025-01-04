@@ -158,15 +158,10 @@ if [ -n ${PEDALLINKS} ] ; then
     fi
 
     echo " * Creating arbitrary links for the pedals"
-    echo " ** ${PEDALDIR}/${PEDALDEFS[3]} "
     ln -s ${PEDALDIR}/${PEDALDEFS[0]} ${PEDALDIR}/A
     ln -s ${PEDALDIR}/${PEDALDEFS[1]} ${PEDALDIR}/B
     ln -s ${PEDALDIR}/${PEDALDEFS[2]} ${PEDALDIR}/C
     ln -s ${PEDALDIR}/${PEDALDEFS[3]} ${PEDALDIR}/D
 fi
-PEDALLINKS=$(find "${PEDALDIR}" -type l -exec basename {} \;)
-for FILE in "${PEDALLINKS[@]}"; do
-    echo Pedal: "$FILE"
-done
 
 echo " * Finished"
