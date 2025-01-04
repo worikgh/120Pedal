@@ -151,14 +151,14 @@ echo " ** PEDALLINKS ${PEDALLINKS}"
 if [ -n ${PEDALLINKS} ] ; then
     echo " * Get pedal definitions from mod-ui"
     ${One20PedalHome}/getPedalBoardCommands.sh
-    PEDALDEFS=$(find "${PEDALDIR}" -type f -not -name Initialise -exec basename {} \;)
+    IFS=$'\n' read -d '' -r -a PEDALDEFS < <(find "${PEDALDIR}" -type f -not -name Initialise -exec basename {} \; && printf '\0')
     if [  ${#PEDALDEFS[@]} == 0 ] ; then
 	echo " * Use mod-ui to define some pedals"
 	exit -1
     fi
 
     echo " * Creating arbitrary links for the pedals"
-    echo " ** ${PEDALDIR}/${PEDALDEFS[3]} ${PEDALDIR}/D"
+    echo " ** ${PEDALDIR}/${PEDALDEFS[3]} "
     ln -s ${PEDALDIR}/${PEDALDEFS[0]} ${PEDALDIR}/A
     ln -s ${PEDALDIR}/$PEDALDEFS[1] ${PEDALDIR}/B
     ln -s ${PEDALDIR}/$PEDALDEFS[2] ${PEDALDIR}/C
