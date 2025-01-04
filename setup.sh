@@ -140,16 +140,15 @@ fi
 
 
 echo " * Set up links for pedal"
-echo " ** This is for a 4 boolean pedals."
+echo " ** This is for 4 boolean pedals."
 # In the future make this adjustable, and allow variable pedals (0-127)
 
 PEDALDIR=${One20PedalHome}/PEDALS
 # One file `Initialise` is created to declare all the Jackd pipes for
 # the pedals.  It is not a pedal
 PEDALDEFS=$(find "${PEDALDIR}" -type f -not -name Initialise)
+echo " ** PEDALDEFS: ${PEDALDEFS}"
 for FILE in "${PEDALDEF[@]}"; do
     echo File: "$FILE"
 done
-
 echo " * Finished"
-
