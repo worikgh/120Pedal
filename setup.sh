@@ -147,8 +147,7 @@ PEDALDIR=${One20PedalHome}/PEDALS
 # One file `Initialise` is created to declare all the Jackd pipes for
 # the pedals.  It is not a pedal
 PEDALDEFS=$(find "${PEDALDIR}" -type f -not -name Initialise)
-echo " ** PEDALDEFS: ${PEDALDEFS}"
-for FILE in "${PEDALDEF[@]}"; do
+for FILE in "${PEDALDEFS[@]}"; do
     echo File: "$FILE"
 done
 echo " * Finished"
