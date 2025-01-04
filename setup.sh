@@ -25,8 +25,8 @@ done
 if [[ $ALL_INSTALLED -eq 0 ]] ; then
     echo " * Install missing packages (${ARCHIVE})"
     if curl  -sI  "${ARCHIVE}" 2>/dev/null >/dev/null; then
-	sudo apt update -y
-	sudo apt install -y  ${PACKAGES}
+	sudo apt update -y 2>&1 >/dev/null
+	sudo apt install -y  ${PACKAGES} 2>&1 >/dev/null
     else
 	echo " ** Some packages missing and cannot reach archive **"
 	exit -1
@@ -114,13 +114,13 @@ cd ${One20PedalHome}
 
 #RUSTUP!!
 echo " * Update Rust"
-curl https://sh.rustup.rs -sSf | sh -s -- -y 2>&1 > /dev/null
+curl https://sh.rustup.rs -sSf  2>/dev/null | sh -s -- -y 2>&1 > /dev/null
 source $HOME/.profile
 cd ${One20PedalHome}
 cd midi_driver
 
 echo " * Build midi-driver"
-cargo build --release
+cargo build --release  2>&1 >/dev/null
 MIDI_DRIVER_LINK=${One20PedalHome}/midi_driver.exe
 MIDI_DRIVER=${One20PedalHome}/midi_driver/target/release/midi_driver
 if [ ! -x ${MIDI_DRIVER} ] ; then
