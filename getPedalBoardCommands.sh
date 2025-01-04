@@ -3,4 +3,4 @@
 set -e
 DIR=$(dirname $0)
 source "${DIR}/One20Pedal.sh"
-perl getPedalBoardCommands.pl
+perl "${DIR}/getPedalBoardCommands.pl"
