@@ -1,6 +1,6 @@
 #!/bin/bash
 
 set -e
-
-source One20Pedal.sh
+DIR=$(dirname $0)
+source "${DIR}/One20Pedal.sh"
 perl getPedalBoardCommands.pl
