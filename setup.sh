@@ -144,7 +144,7 @@ echo " ** This is for a 4 boolean pedals."
 # In the future make this adjustable, and allow variable pedals (0-127)
 
 PEDALDIR=${One20PedalHome}/PEDALS
-PEDALDEFS=$("$PEDALDIR")
+PEDALDEFS=$("$PEDALDIR/*")
 for FILE in "${PEDALDEF[@]}"; do
     echo File: "$FILE"
 done
