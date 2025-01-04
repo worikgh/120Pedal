@@ -162,7 +162,7 @@ if [ ! -n ${PEDALLINKS} ] ; then
     ln -s ${PEDALDIR}/$PEDALDEFS[2] ${PEDALDIR}/C
     ln -s ${PEDALDIR}/$PEDALDEFS[3] ${PEDALDIR}/D
 fi
-PEDALLINKS=$(find "${PEDALDIR}" -type l --exec basename {} \;)
+PEDALLINKS=$(find "${PEDALDIR}" -type l -exec basename {} \;)
 for FILE in "${PEDALLINKS[@]}"; do
     echo Pedal: "$FILE"
 done
