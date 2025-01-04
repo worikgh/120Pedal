@@ -148,7 +148,7 @@ PEDALDIR=${One20PedalHome}/PEDALS
 # the pedals.  It is not a pedal
 IFS=$'\n' read -d '' -r -a PEDALLINKS < <(find "${PEDALDIR}" -type l -exec basename {} \; && printf '\0')
 
-if [ ! -n ${PEDALLINKS} ] ; then
+if [ ${#PEDALLINKS[@]} -eq 0 ] ; then
     echo " * Get pedal definitions from mod-ui"
     ${One20PedalHome}/getPedalBoardCommands.sh
     IFS=$'\n' read -d '' -r -a PEDALDEFS < <(find "${PEDALDIR}" -type f -not -name Initialise -exec basename {} \; && printf '\0')
