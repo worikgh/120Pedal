@@ -10,8 +10,8 @@ if [ ! -n "$ARCHIVE" ]; then
     exit -1
 fi
 
-# PACKAGES=("libasound2-dev" "libjack-jackd2-dev" "pkg-config" "gcc-arm-linux-gnueabihf" "g++-arm-linux-gnueabihf" "gcc-aarch64-linux-gnu" "modep-mod-ui" "gxtuner" "podman" "curl" "libcurl4-openssl-dev" "liblilv-dev" "libreadline-dev")
-PACKAGES=("libasound2-dev" "libjack-jackd2-dev" "pkg-config" "gcc-arm-linux-gnueabihf" "g++-arm-linux-gnueabihf" "gcc-aarch64-linux-gnu" "modep-mod-ui" "gxtuner" "curl" "libcurl4-openssl-dev" "liblilv-dev" "libreadline-dev")
+# PACKAGES=("libasound2-dev" "libjack-jackd2-dev" "pkg-config" "gcc-arm-linux-gnueabihf" "g++-arm-linux-gnueabihf" "modep-mod-ui" "gxtuner" "podman" "curl" "libcurl4-openssl-dev" "liblilv-dev" "libreadline-dev")
+PACKAGES=("libasound2-dev" "libjack-jackd2-dev" "pkg-config" "gcc-arm-linux-gnueabihf" "g++-arm-linux-gnueabihf" "modep-mod-ui" "gxtuner" "curl" "libcurl4-openssl-dev" "liblilv-dev" "libreadline-dev")
 echo " * Test if all required packages installed"
 ALL_INSTALLED=1
 for package in "${PACKAGES[@]}"; do
