@@ -37,8 +37,8 @@ if curl  -sI "${ARCHIVE}"  >/dev/null ; then
     echo " * Check if any packages need to be updated"
     if [ $(apt list --upgradable 2>/dev/null|wc -l) != 0 ] ; then
 	echo " * Upgrade packages"
-	sudo apt update -y
-	sudo apt full-upgrade -y
+	sudo apt update -y 2>&1 >/dev/null
+	sudo apt full-upgrade -y 2>&1 >/dev/null
     fi
 fi
 
@@ -143,7 +143,7 @@ echo " * Set up links for pedal"
 echo " ** This is for a 4 boolean pedals."
 # In the future make this adjustable, and allow variable pedals (0-127)
 
-PEDALDIR=${One20Home}/PEDALS
+PEDALDIR=${One20PedalHome}/PEDALS
 PEDALDEFS=$("$PEDALDIR")
 for FILE in "${PEDALDEF[@]}"; do
     echo File: "$FILE"
