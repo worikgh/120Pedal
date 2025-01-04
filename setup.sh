@@ -150,7 +150,7 @@ PEDALLINKS=$(find "${PEDALDIR}" -type l --exec basename {} \;)
 if [ ! -n ${PEDALLINKS} ] ; then
     echo " * Get pedal definitions from mod-ui"
     ${One20PedalHome}/getPedalBoardCommands.sh
-    PEDALDEFS=$(find "${PEDALDIR}" -type f -not -name Initialise --exec basename {} \;)
+    PEDALDEFS=$(find "${PEDALDIR}" -type f -not -name Initialise -exec basename {} \;)
     if [  ${#PEDALDEFS[@]} == 0 ] ; then
 	echo " * Use mod-ui to define some pedals"
 	exit -1
