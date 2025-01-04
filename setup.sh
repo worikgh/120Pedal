@@ -146,8 +146,8 @@ echo " ** This is for 4 boolean pedals."
 PEDALDIR=${One20PedalHome}/PEDALS
 # One file `Initialise` is created to declare all the Jackd pipes for
 # the pedals.  It is not a pedal
-PEDALLINKS=$(find "${PEDALDIR}" -type l -exec basename {} \;)
-echo " ** PEDALLINKS ${PEDALLINKS}"
+IFS=$'\n' read -d '' -r -a PEDALLINKS < <(find "${PEDALDIR}" -type l -exec basename {} \; && printf '\0')
+
 if [ -n ${PEDALLINKS} ] ; then
     echo " * Get pedal definitions from mod-ui"
     ${One20PedalHome}/getPedalBoardCommands.sh
