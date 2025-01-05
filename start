@@ -34,7 +34,7 @@ if ! ${MODHOST} -p ${MODHOST_PORT}; then
 fi
 
 echo ' * Get simulators'
-f ! ${GETSIMS}; then
+if ! ${GETSIMS}; then
   echo "Failed to get simulators"
   exit 1
 fi
