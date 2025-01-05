@@ -28,7 +28,7 @@ sudo killall mod-host
 
 ## Start 120Proof: mod-host first
 echo ' *Start mod-host : ' $MODHOST
-${MODHOST}
+$(${MODHOST} -p $MODHOST_PORT)
 echo ' *Get simulators'
 `${GETSIMS}`
 echo ' *Set simulators'
