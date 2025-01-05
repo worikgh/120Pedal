@@ -33,6 +33,11 @@ if ! ${MODHOST} -p ${MODHOST_PORT}; then
   exit 1
 fi
 
+while ! nc -z localhost "${MODHOST_PORT}"; do
+    echo " * Waiting for ${MODHOST_PORT} to become availale"
+    sleep 1
+done
+
 echo ' * Get simulators'
 if ! ${GETSIMS}; then
   echo "Failed to get simulators"
