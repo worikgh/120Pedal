@@ -34,6 +34,10 @@ if ! ${MODHOST} -p ${MODHOST_PORT}; then
 fi
 
 while ! nc -z localhost "${MODHOST_PORT}"; do
+    if ! pgrep -f ${MODHOST} ; then
+	echo " ** Error: ${MODHOST} did not start "
+	exit -1
+    fi
     echo " * Waiting for ${MODHOST_PORT} to become availale"
     sleep 1
 done
