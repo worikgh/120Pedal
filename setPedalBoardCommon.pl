@@ -6,6 +6,7 @@ use IO::Socket::INET;
 ## written by `getPedalBoardCommands.pl`
 
 my $pedal_dir = $ENV{PEDAL_DIR};
+print STDERR " * Initialise the pedal definitions"
 -d $pedal_dir or die "'$pedal_dir' not a directory";
 my $initialise_fn = "$pedal_dir/Initialise";
 #-r $initialise_fn or die "$!: '$initialise_fn'";
@@ -16,7 +17,7 @@ my @param = grep{s/^mh //} map{chomp ; $_} grep {/^mh param_set /} @config;
 my @jack_initial = grep{s/^jack //} map{chomp ; $_} grep {/^jack /} @config; 
 close $fh or die $!;
 
-## Set up the effects, and the arameters
+## Set up the effects, and the parameters
 my @mh_commands = ();
 push(@mh_commands, @add);
 push(@mh_commands, @param);
