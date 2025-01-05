@@ -27,11 +27,20 @@ sudo systemctl stop modep-mod-host
 sudo killall mod-host
 
 ## Start 120Proof: mod-host first
-echo ' *Start mod-host : ' $MODHOST
-$(${MODHOST} -p $MODHOST_PORT)
-echo ' *Get simulators'
-`${GETSIMS}`
-echo ' *Set simulators'
+echo " * Start mod-host :  ${MODHOST} -p ${MODHOST_PORT} "
+if ! ${MODHOST} -p ${MODHOST_PORT}; then
+  echo "Failed to start mod-host"
+  exit 1
+fi
+
+echo ' * Get simulators'
+f ! ${GETSIMS}; then
+  echo "Failed to get simulators"
+  exit 1
+fi
+
+echo ' * Set simulators'
+
 `${SETSIMS}`
 echo ' * Done!'
 
