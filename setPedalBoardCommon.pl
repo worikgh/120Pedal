@@ -6,7 +6,7 @@ use IO::Socket::INET;
 ## written by `getPedalBoardCommands.pl`
 
 my $pedal_dir = $ENV{PEDAL_DIR};
-print STDERR " * Initialise the pedal definitions"
+print STDERR " * Initialise the pedal definitions";
 -d $pedal_dir or die "'$pedal_dir' not a directory";
 my $initialise_fn = "$pedal_dir/Initialise";
 #-r $initialise_fn or die "$!: '$initialise_fn'";
