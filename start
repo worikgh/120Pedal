@@ -4,6 +4,10 @@ SCRIPT_DIR=$(dirname "$0")
 echo " * SCRIPT_DIR $SCRIPT_DIR"
 source ${SCRIPT_DIR}/One20Pedal.sh
 echo " * One20PedalHome $One20PedalHome"
+
+# Without this, Jckd will not run
+export JACK_PROMISCUOUS_SERVER=jack
+
 ## The name of the MIDI pedal.  This is passed to ${PEDAL}
 PEDAL_NAME=SINCO
 
