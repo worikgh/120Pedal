@@ -1,9 +1,9 @@
 //!  Handle the MIDI connections
 use std::error;
 // use std::fmt;
+use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
-
 #[derive(Default)]
 pub struct MidiData {
     pub connection_cache: Vec<(String, String)>,
@@ -22,20 +22,28 @@ pub struct MidiData {
 // impl error::Error for MidiError {}
 pub struct Midi {
     pub name: String,
+    translate_table: HashMap<u8, u8>,
 }
 
 impl Midi {
-    pub fn new(name: String) -> Result<Self, Box<dyn error::Error>> {
-        Ok(Midi { name })
+    pub fn new(
+        name: String,
+        translate_table: HashMap<u8, u8>,
+    ) -> Result<Self, Box<dyn error::Error>> {
+        Ok(Midi {
+            name,
+            translate_table,
+        })
     }
 
     pub fn run(
         &self,
         mut f: impl FnMut(&[u8], &mut MidiData) + Send + 'static,
     ) -> Result<(), Box<dyn error::Error>> {
+
         // TODO: Should allow name to be controlled fom command line.
         // May be more than one pedal in use.
-        let this_name = "120Proof_pedal".to_string();
+        let this_name = "120Pedal".to_string();
         let midi_in = midir::MidiInput::new(this_name.as_str())?;
         for (index, port) in midi_in.ports().iter().enumerate() {
             // Each available input port.
@@ -54,26 +62,14 @@ impl Midi {
                             .unwrap()
                             .clone();
 
+                        let translate_table = self.translate_table.clone();
                         let connect = midi_in.connect(
                             &this_port,
                             format!("{}-in", this_name).as_str(),
                             move |_a, b, connection_cache| {
-                                let c = if b[1] > 3 && b[1] <= 7 {
-                                    b[1] - 4
-                                } else if b[1] > 7 && b[1] <= 11 {
-                                    b[1] - 8
-                                } else if b[1] > 11 && b[1] <= 15 {
-                                    b[1] - 12
-                                } else if b[1] > 15 && b[1] <= 19 {
-                                    b[1] - 16
-                                } else if b[1] > 19 && b[1] <= 23 {
-                                    b[1] - 20
-                                } else if b[1] > 23 && b[1] <= 27 {
-                                    b[1] - 24
-                                } else if b[1] > 27 && b[1] <= 31 {
-                                    b[1] - 28
-                                } else {
-                                    b[1]
+                                let c = match translate_table.get(&b[1]) {
+                                    Some(&d) => d,
+                                    None => b[1],
                                 };
                                 println!("MIDI in {:?}/{c}", &b);
 

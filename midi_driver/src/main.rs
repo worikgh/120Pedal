@@ -1,3 +1,5 @@
+use midi_translate::MidiTranslate;
+
 use crate::jack_connections::JackConnections;
 use crate::midi::Midi;
 use crate::pedals_available::get_pipes_from_file;
@@ -7,12 +9,14 @@ use std::thread;
 use std::time::Duration;
 mod jack_connections;
 mod midi;
+mod midi_translate;
 mod pedals_available;
 use crate::midi::MidiData;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let card: String = args().nth(1).unwrap();
-    run(card).unwrap();
+    let cfg_file: String = args().nth(1).unwrap();
+    let midi_translate = MidiTranslate::new(&cfg_file);
+    run(midi_translate).unwrap();
     loop {
         thread::sleep(Duration::from_secs(1));
     }
@@ -66,8 +70,9 @@ fn handle_midi_real(
     Ok(())
 }
 
-fn run(name: String) -> Result<(), Box<(dyn std::error::Error + 'static)>> {
-    let midi = Midi::new(name)?;
+fn run(midi_translate: MidiTranslate) -> Result<(), Box<(dyn std::error::Error + 'static)>> {
+    let name = midi_translate.name;
+    let midi = Midi::new(name, midi_translate.table)?;
     midi.run(handle_midi)
 }
 
