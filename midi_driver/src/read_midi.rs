@@ -1,13 +1,11 @@
 use std::env;
 use std::error::Error;
+use std::io::{self, Write};
 use std::thread;
 use std::time::Duration;
 mod midi;
-// mod pedals_available;
-// use crate::midi::MidiData;
 
 fn main() -> Result<(), Box<dyn Error>> {
-
     let name = env::args().nth(1).unwrap();
 
     let this_name = "120Pedal".to_string();
@@ -33,10 +31,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                         &this_port,
                         format!("{}-in", this_name).as_str(),
                         move |_a, b, _| {
-			    println!("{} {} {}", &b[0], &b[1], &b[2]);
+                            io::stdout()
+                                .write_all(b)
+                                .unwrap_or_else(|e| panic!("Cannot write to stdout: {}", e));
                             eprintln!("MIDI in {:?}", &b);
                         },
-                        (), //MidiData::default())},
+                        (),
                     );
                     match connect {
                         Ok(_) => {
@@ -57,12 +57,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut coin = false;
     loop {
-	if coin {
-	    eprint!("\rtick");
-	}else{
-	    eprint!("\rtock");
-	}
-	coin = !coin;
-	thread::sleep(Duration::from_secs(1));
+        if coin {
+            eprint!("\rtick");
+        } else {
+            eprint!("\rtock");
+        }
+        coin = !coin;
+        thread::sleep(Duration::from_secs(1));
     }
 }
