@@ -3,15 +3,19 @@ name = "midi_driver"
 version = "0.1.0"
 edition = "2021"
 
-# [[bin]]
-# ## Read a MIDI device and output the triples
-# name = "read_midi"
-# path = "src/read_midi.rs"
+[[bin]]
+## Read a MIDI device and output the triples
+name = "read_midi"
+path = "src/read_midi.rs"
 
 # [[bin]]
 # ## Read the tripples and translate them
 # name = "translate"
-# path = "translate.rs"
+# path = "src/translate.rs"
+
+[[bin]]
+name="main"
+path="src/main.rs"
 
 [dependencies]
 alsa = "0.7.0"

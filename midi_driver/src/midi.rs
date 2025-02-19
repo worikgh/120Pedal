@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
 #[derive(Default)]
+#[allow(dead_code)]
 pub struct MidiData {
     pub connection_cache: Vec<(String, String)>,
     pub last: u8,
@@ -20,11 +21,13 @@ pub struct MidiData {
 //     }
 // }
 // impl error::Error for MidiError {}
+#[allow(dead_code)]
 pub struct Midi {
     pub name: String,
     translate_table: HashMap<u8, u8>,
 }
 
+#[allow(dead_code)]
 impl Midi {
     pub fn new(
         name: String,
