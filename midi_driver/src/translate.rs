@@ -10,27 +10,20 @@ use crate::midi_status::MidiStatus;
 /// Build the table to translate MIDI inputs.
 /// Transposes "Note On" and "Note Off" notes
 fn make_table(description: &str) -> Result<HashMap<u8, u8>, Box<dyn Error>> {
-    // let mut result = HashMap::new();
-    // return result;
-    Ok(description
-        .split("\n")
-        .collect::<Vec<&str>>()
-        .iter()
-        .filter(|&s| s.len() > 1 && &s[0..2] == "t ")
-        .map(|&s| {
+    description
+        .lines()
+        .filter(|&s| s.starts_with("t "))
+        .map(|s| {
             let parts: Vec<&str> = s[2..].split_whitespace().collect();
             if parts.len() != 2 {
-                panic!("Invalid translation line: {parts:?}");
+                return Err(format!("Invalid translation line: {}", s).into());
             }
-            let k = parts[0]
-                .parse::<u8>()
-                .unwrap_or_else(|e| panic!("{e:?}: Invalid key: {}", parts[0]));
-            let v = parts[1]
-                .parse::<u8>()
-                .unwrap_or_else(|e| panic!("{e:?}: Invalid value: {}", parts[1]));
-            (k, v)
+            let k = parts[0].parse::<u8>()?;
+
+            let v = parts[1].parse::<u8>()?;
+            Ok((k, v))
         })
-        .collect())
+        .collect()
 }
 fn main() -> Result<(), Box<dyn Error>> {
     let cfg_file_name = env::args().nth(1).unwrap();
@@ -68,13 +61,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                 if byte & 0x80 == 0x80 {
                     // Status byte:
                     status = MidiStatus::from_byte(byte);
-                    if !working.is_empty() {
+
+		    // When a status byte arrives flush the buffer
+		    if !working.is_empty() {
                         write_working(&working);
                         working.truncate(0);
                     }
+
+		    // Put the status byte in the buffer
                     working.push(byte);
                     continue;
+
                 } else {
+		    // Data byte
                     match status.as_ref() {
                         Some(MidiStatus::NoteOn(_)) | Some(MidiStatus::NoteOff(_)) => {
                             match working.len() % 2 {
