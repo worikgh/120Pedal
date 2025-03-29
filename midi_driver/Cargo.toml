@@ -6,7 +6,7 @@ edition = "2021"
 [[bin]]
 ## Read a MIDI device and output the triples
 name = "read_midi"
-path = "src/read_midi.rs"
+path = "src/midi_read.rs"
 
 [[bin]]
 ## Read the tripples and translate them
