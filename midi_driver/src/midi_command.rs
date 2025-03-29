@@ -11,18 +11,26 @@ fn run_command(_command: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn make_table(description: &str) -> Result<HashMap<u8, String>, Box<dyn Error>> {
-    description
+fn make_table(description: &str) -> Result<(HashMap<u8, String>, u8), Box<dyn Error>> {
+    let mut r1 = HashMap::new();
+    let lines:Vec<&str> = description
+        .lines().collect();
+    for s in lines.iter() {
+	if !s.starts_with("x "){
+	    continue;
+	}
+        let (byte, command) = s[2..]
+            .split_once(' ')
+            .ok_or(format!("Line '{}' has invalid format", s))?;
+	let byte:u8 = byte.parse()?;
+	r1.insert(byte, command.to_string());
+    }
+    let channel = description
         .lines()
-        .filter(|s| s.starts_with("c "))
-        .map(|s| {
-            let (byte, command) = s
-                .split_once(' ')
-                .ok_or(format!("Line '{}' has invalid format", s))?;
-            let byte = byte.parse::<u8>()?;
-            Ok((byte, command.to_string()))
-        })
-        .collect()
+        .rev() // If more than one, use last
+        .find(|s| s.starts_with("c ")).unwrap_or("0");
+    let channel:u8 = channel.parse()?;
+    Ok((r1, channel))
 }
 fn main() -> Result<(), Box<dyn Error>> {
     let cfg_file_name = env::args().nth(1).unwrap();
@@ -31,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or_else(|e| panic!("{e:?}: Could not open file: {cfg_file_name}"));
     file.read_to_string(&mut s)
         .expect("Could not read file contents");
-    let command_table: HashMap<u8, String> = make_table(&s)?;
+    let (command_table, channel): (HashMap<u8, String>, u8) = make_table(&s)?;
     let status: Option<MidiStatus> = None;
     // Read stdin a byte at a time
     let mut buffer = [0u8; 1];
@@ -51,9 +59,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             Err(e) => return Err(Box::new(e)),
             Ok(_) => {
                 let byte = buffer[0];
-                if byte & 0x80 == 0x80 {
-                    // Status byte:
-                    if let Some(MidiStatus::NoteOn(_)) = MidiStatus::from_byte(byte) {
+                if byte & 0x80 == (0x80|channel) {
+                    // Status byte on this channel:
+                    if let Some(MidiStatus::NoteOn(_)) = MidiStatus::from_byte(byte){
                         // Only status that is important is NoteOn
                         counter = 0;
                     }
