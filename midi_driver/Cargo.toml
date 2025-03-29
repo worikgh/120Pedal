@@ -8,10 +8,15 @@ edition = "2021"
 name = "read_midi"
 path = "src/read_midi.rs"
 
-# [[bin]]
-# ## Read the tripples and translate them
-# name = "translate"
-# path = "src/translate.rs"
+[[bin]]
+## Read the tripples and translate them
+name = "translate_midi"
+path = "src/translate.rs"
+
+[[bin]]
+## Run programmes in response to MIDI signals on stdin
+name = "command_midi"
+path="src/command.rs"
 
 [[bin]]
 name="main"
