@@ -95,3 +95,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     Ok(())
 }
+
+#[allow(dead_code)]
+trait Translator {}
