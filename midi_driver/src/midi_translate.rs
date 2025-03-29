@@ -34,12 +34,8 @@ impl MidiTranslate {
 
         // The contents of the configuration file as a vector
         let contents: Vec<&str> = {
-            // let mut file = File::open(cfg_file).expect(&format!("Could not open file: {}", cfg_file));
-            // file.read_to_string(&mut s)
-            // 	.expect("Could not read file contents from: {cfg_file}");
-            // s.split("\n").collect::<Vec<&str>>()
-            let mut file =
-                File::open(cfg_file).unwrap_or_else(|e|panic!("{e:?}: Could not open file: {cfg_file}"));
+            let mut file = File::open(cfg_file)
+                .unwrap_or_else(|e| panic!("{e:?}: Could not open file: {cfg_file}"));
             file.read_to_string(&mut s)
                 .expect("Could not read file contents");
             s.split('\n').collect()
@@ -66,12 +62,11 @@ impl MidiTranslate {
 
         // Get the name.  There must be exactly one
         let name: String = {
-	    let name_vec:Vec<&str> = contents
-		.iter()
-		.filter(|&s| s.len() > 1 && &s[0..5] == "name ")
-		.copied().collect();
-		// .map(|&s| s)
-		// .collect();
+            let name_vec: Vec<&str> = contents
+                .iter()
+                .filter(|&s| s.len() > 1 && &s[0..5] == "name ")
+                .copied()
+                .collect();
             if name_vec.len() != 1 {
                 panic!(
                     "There must be exactly one `name` configuration.  There are {}",

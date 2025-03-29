@@ -1,30 +1,35 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum MidiStatus {
-    NoteOff(u8),          // 0x80..=0x8F
-    NoteOn(u8),           // 0x90..=0x9F
+    // Channel specific messages
+    ChannelAftertouch(u8),    // 0xD0..=0xDF
+    ControlChange(u8),        // 0xB0..=0xBF
+    NoteOff(u8),              // 0x80..=0x8F
+    NoteOn(u8),               // 0x90..=0x9F
+    PitchBend(u8),            // 0xE0..=0xEF
     PolyphonicAftertouch(u8), // 0xA0..=0xAF
-    ControlChange(u8),    // 0xB0..=0xBF
-    ProgramChange(u8),    // 0xC0..=0xCF
-    ChannelAftertouch(u8), // 0xD0..=0xDF
-    PitchBend(u8),        // 0xE0..=0xEF
-    SystemExclusive,      // 0xF0
-    TimeCodeQuarterFrame, // 0xF1
+    ProgramChange(u8),        // 0xC0..=0xCF
+
+    // Channel independant messages
+    ActiveSensing,        // 0xFE
+    Continue,             // 0xFB
+    EndOfExclusive,       // 0xF7
+    Reset,                // 0xFF
     SongPositionPointer,  // 0xF2
     SongSelect,           // 0xF3
+    Start,                // 0xFA
+    Stop,                 // 0xFC
+    SystemExclusive,      // 0xF0
+    TimeCodeQuarterFrame, // 0xF1
+    TimingClock,          // 0xF8
+    TuneRequest,          // 0xF6
     Undefined1,           // 0xF4
     Undefined2,           // 0xF5
-    TuneRequest,          // 0xF6
-    EndOfExclusive,       // 0xF7
-    TimingClock,          // 0xF8
     Undefined3,           // 0xF9
-    Start,                // 0xFA
-    Continue,             // 0xFB
-    Stop,                 // 0xFC
     Undefined4,           // 0xFD
-    ActiveSensing,        // 0xFE
-    Reset,                // 0xFF
 }
 
+#[allow(dead_code)]
 impl MidiStatus {
     pub fn from_byte(byte: u8) -> Option<Self> {
         match byte {
