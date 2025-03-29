@@ -62,18 +62,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                     // Status byte:
                     status = MidiStatus::from_byte(byte);
 
-		    // When a status byte arrives flush the buffer
-		    if !working.is_empty() {
+                    // When a status byte arrives flush the buffer
+                    if !working.is_empty() {
                         write_working(&working);
                         working.truncate(0);
                     }
 
-		    // Put the status byte in the buffer
+                    // Put the status byte in the buffer
                     working.push(byte);
                     continue;
-
                 } else {
-		    // Data byte
+                    // Data byte
                     match status.as_ref() {
                         Some(MidiStatus::NoteOn(_)) | Some(MidiStatus::NoteOff(_)) => {
                             match working.len() % 2 {
