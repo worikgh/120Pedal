@@ -45,9 +45,16 @@ Consumers read on `stdin` and affect the world.  `command_midi` runs  commands i
 
 ### Configuration File
 
-The configuration file consists of lines of the form: "c n s"
-* `c` the character 'c'
-* `n` A MIDI note to translate, an integer in 0..127
-* `s` A command to run if the noteon message containing `n` is received.
-  * `s` must be a executable command
-  * No arguments are provided for
+The configuration file consists of two sorts of lines:
+
+1. lines of the form: "x n s"
+  * `x` the character 'x'
+  * `n` A MIDI note to translate, an integer in 0..127
+  * `s` A command to run if the noteon message containing `n` is received.
+    * `s` must be a executable command
+    * No arguments are provided for
+2. one or more lines of the form: "c n"
+  * `c` the character 'c'
+  * `n` the channel to monitor
+    * If defined more than once the last definition is used
+	* If missing defaults to 0
