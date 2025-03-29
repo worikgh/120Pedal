@@ -7,8 +7,12 @@ use std::io;
 use std::io::Read;
 mod midi_status;
 use crate::midi_status::MidiStatus;
-fn run_command(_command: &str) -> Result<(), Box<dyn Error>> {
-    Ok(())
+use std::process::Child;
+use std::process::Command;
+fn run_command(_command: &str) -> Result<Child, Box<dyn Error>> {
+    let child = Command::new("my_program").spawn().expect("Failed to start");
+    // Do other work here...
+    Ok(child)
 }
 
 fn make_table(description: &str) -> Result<HashMap<u8, String>, Box<dyn Error>> {
@@ -41,6 +45,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Count bytes in stream to identify note bytes
     let mut counter: u32 = 0;
 
+    // Hold the children run in response to a command
+    let mut children: HashMap<String, Vec<Child>> = HashMap::new();
     loop {
         match handle.read(&mut buffer) {
             Ok(0) =>
@@ -64,9 +70,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                         counter += 1;
                         if counter % 2 == 1 {
                             // This is an odd byte it is a note, so may be a command
-                            if let Some(command) = command_table.get(&byte) {
-                                run_command(command)?;
-                            }
+			    if let Some(command) = command_table.get(&byte) {
+				let child = run_command(command)?;
+				children.entry(command.to_string())
+				    .or_default()  // Creates empty Vec if key doesn't exist
+				    .push(child);   // Appends the new child
+			    }
                         }
                     }
                 };
