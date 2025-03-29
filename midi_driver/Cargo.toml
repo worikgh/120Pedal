@@ -16,7 +16,7 @@ path = "src/translate.rs"
 [[bin]]
 ## Run programmes in response to MIDI signals on stdin
 name = "command_midi"
-path="src/command.rs"
+path="src/midi_command.rs"
 
 [[bin]]
 name="main"
