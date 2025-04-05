@@ -19,9 +19,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let this_name = THIS_MIDI_NAME.to_string();
     let midi_in = midir::MidiInput::new(THIS_MIDI_NAME)?;
 
-    let this_port = get_midi_port(&name, &midi_in)?;
-
-    let connect = midi_in.connect(
+    let this_port: MidiInputPort = get_midi_port(&name, &midi_in)?;
+    let in_port_name = midi_in.port_name(&this_port)?;
+    eprintln!("read_midi:in_port_name: {in_port_name}");
+    let _connect = midi_in.connect(
         &this_port,
         format!("{}-in", this_name).as_str(),
         move |_a, b, _| {
@@ -33,15 +34,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             io::stdout().flush().expect("Failed to flush stdout");
         },
         (),
-    );
-    match connect {
-        Ok(_) => {
-            eprintln!("Created MIDI in");
-            loop {
-                thread::sleep(Duration::from_secs(1));
-            }
-        }
-        Err(err) => Err(format!("Could not connect: {:?}", err).into()),
+    )?;
+    loop {
+        thread::sleep(Duration::from_secs(1));
     }
 }
 
