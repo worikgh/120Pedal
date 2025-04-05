@@ -109,3 +109,86 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[allow(dead_code)]
 trait Translator {}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_make_table_valid_input() {
+        let config = "t 60 62\nt 64 65\n# comment line\nt 67 69\n";
+        let table = make_table(config).unwrap();
+
+        assert_eq!(table.len(), 3);
+        assert_eq!(table.get(&60), Some(&62));
+        assert_eq!(table.get(&64), Some(&65));
+        assert_eq!(table.get(&67), Some(&69));
+        assert_eq!(table.get(&0), None); // Not in table
+    }
+
+    #[test]
+    fn test_make_table_empty_input() {
+        let config = "";
+        let table = make_table(config).unwrap();
+        assert!(table.is_empty());
+    }
+
+    #[test]
+    fn test_make_table_with_comments() {
+        let config = "# This is a comment\nt 60 62\n# Another comment\nt 64 65\n";
+        let table = make_table(config).unwrap();
+
+        assert_eq!(table.len(), 2);
+        assert_eq!(table.get(&60), Some(&62));
+        assert_eq!(table.get(&64), Some(&65));
+    }
+
+    #[test]
+    fn test_make_table_with_hex_values() {
+        let config = "t 60 0x2\nt 11 0xc2\n";
+        let table = make_table(config).unwrap();
+
+        assert_eq!(table.len(), 2);
+        assert_eq!(table.get(&60), Some(&2));
+        assert_eq!(table.get(&11), Some(&0xc2));
+    }
+    #[test]
+    fn test_make_table_with_hex_keys() {
+        let config = "t 0x60 20\nt 0x11 2\n";
+        let table = make_table(config).unwrap();
+
+        assert_eq!(table.len(), 2);
+        assert_eq!(table.get(&0x60), Some(&20));
+        assert_eq!(table.get(&0x11), Some(&2));
+    }
+
+    #[test]
+    fn test_make_table_with_hex() {
+        let config = "t 0x0x60 0x20\nt 0x11 0x02\n";
+        let table = make_table(config).unwrap();
+
+        assert_eq!(table.len(), 2);
+        assert_eq!(table.get(&0x60), Some(&0x20));
+        assert_eq!(table.get(&0x11), Some(&2));
+    }
+
+    #[test]
+    fn test_make_table_invalid_line_format() {
+        let config = "t 60 62\nt 64\n";
+        let result = make_table(config);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_make_table_non_numeric_input() {
+        let config = "t 60 62\nt sixty four\n";
+        let result = make_table(config);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_make_table_out_of_range_values() {
+        let config = "t 60 900\n"; // 200 is > 127
+        let result = make_table(config);
+        assert!(result.is_err());
+    }
+}
