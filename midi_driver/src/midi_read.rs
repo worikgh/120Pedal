@@ -30,6 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             io::stdout()
                 .write_all(b)
                 .unwrap_or_else(|e| panic!("Cannot write to stdout: {}", e));
+            io::stdout().flush().expect("Failed to flush stdout");
         },
         (),
     );
