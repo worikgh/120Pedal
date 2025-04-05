@@ -14,15 +14,19 @@ bin: `read_midi`
 
 Producers open a MIDI device and write MIDI to `stdout`
 
-`read_midi` takes one argument: The name of the MIDI input port.  This does not have to be the full name.  The first port where the passed name is a part of the port's name will be used.
+Arguments:
+	* `--list` List the MIDI ports that can be connected to then exit
+	* The name of the MIDI input port.  This does not have to be the full name.  The first port where the passed name is a part of the port's name will be used.
 
 ## Translator: Translate MIDI
 src: `src/translate.rs`
 bin: `translate_midi`
 
-Translators read MIDI on `stdin` and write MIDI on `stdout`.  For noteon and noteoff messages the note is translated using a lookup table, and the transformed noteon or noteoff message is written to  `stdout`
+Translators read MIDI on `stdin` and write MIDI on `stdout`.
 
-All other MIDI messages are passed through
+For noteon and noteoff messages the note is translated using a lookup table, and the transformed noteon or noteoff message is written to  `stdout`
+
+All other MIDI messages are passed through.
 
 `translate_midi` takes one argument: The name of a configuration file.
 
