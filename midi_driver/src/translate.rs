@@ -1,12 +1,24 @@
 //! Reads a stream of MIDI data fro mthe stdin
 //! Writes the data on the stdout with Note On and Note Off notes transposed
 use std::collections::HashMap;
+use std::num::ParseIntError;
 use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io::{self, Read, Write};
 mod midi_status;
 use crate::midi_status::MidiStatus;
+
+/// Helper function for reading `u8` from `&str`.  Hex in prefixed
+/// with "0x", else decimal
+fn str_u8(inp:&str) -> Result<u8, ParseIntError> {
+    if inp.len() > 1 && &inp[..2] == "0x" {
+	u8::from_str_radix(inp.trim_start_matches("0x"), 16)
+    }else{
+	inp.parse::<u8>()
+    }
+}
+
 /// Build the table to translate MIDI inputs.
 /// Transposes "Note On" and "Note Off" notes
 fn make_table(description: &str) -> Result<HashMap<u8, u8>, Box<dyn Error>> {
@@ -18,13 +30,13 @@ fn make_table(description: &str) -> Result<HashMap<u8, u8>, Box<dyn Error>> {
             if parts.len() != 2 {
                 return Err(format!("Invalid translation line: {}", s).into());
             }
-            let k = parts[0].parse::<u8>()?;
-
-            let v = parts[1].parse::<u8>()?;
+            let k = str_u8(parts[0])?;
+            let v = str_u8( parts[1])?;
             Ok((k, v))
         })
         .collect()
 }
+
 fn main() -> Result<(), Box<dyn Error>> {
     let cfg_file_name = env::args().nth(1).unwrap();
     // The contents of the configuration file as a `String`
