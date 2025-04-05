@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let connect = midi_in.connect(
         &this_port,
         format!("{}-in", this_name).as_str(),
-        move |_, b, _| {
+        move |_a, b, _| {
             // The meat of this programme.  Simply write all data from
             // MIDI to stdout
             io::stdout()

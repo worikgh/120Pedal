@@ -43,7 +43,6 @@ impl Midi {
         &self,
         mut f: impl FnMut(&[u8], &mut MidiData) + Send + 'static,
     ) -> Result<(), Box<dyn error::Error>> {
-
         // TODO: Should allow name to be controlled fom command line.
         // May be more than one pedal in use.
         let this_name = "120Pedal".to_string();

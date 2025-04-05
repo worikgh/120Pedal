@@ -13,23 +13,23 @@ fn run_command(_command: &str) -> Result<(), Box<dyn Error>> {
 
 fn make_table(description: &str) -> Result<(HashMap<u8, String>, u8), Box<dyn Error>> {
     let mut r1 = HashMap::new();
-    let lines:Vec<&str> = description
-        .lines().collect();
+    let lines: Vec<&str> = description.lines().collect();
     for s in lines.iter() {
-	if !s.starts_with("x "){
-	    continue;
-	}
+        if !s.starts_with("x ") {
+            continue;
+        }
         let (byte, command) = s[2..]
             .split_once(' ')
             .ok_or(format!("Line '{}' has invalid format", s))?;
-	let byte:u8 = byte.parse()?;
-	r1.insert(byte, command.to_string());
+        let byte: u8 = byte.parse()?;
+        r1.insert(byte, command.to_string());
     }
     let channel = description
         .lines()
         .rev() // If more than one, use last
-        .find(|s| s.starts_with("c ")).unwrap_or("0");
-    let channel:u8 = channel.parse()?;
+        .find(|s| s.starts_with("c "))
+        .unwrap_or("0");
+    let channel: u8 = channel.parse()?;
     Ok((r1, channel))
 }
 fn main() -> Result<(), Box<dyn Error>> {
@@ -59,9 +59,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             Err(e) => return Err(Box::new(e)),
             Ok(_) => {
                 let byte = buffer[0];
-                if byte & 0x80 == (0x80|channel) {
+                if byte & 0x80 == (0x80 | channel) {
                     // Status byte on this channel:
-                    if let Some(MidiStatus::NoteOn(_)) = MidiStatus::from_byte(byte){
+                    if let Some(MidiStatus::NoteOn(_)) = MidiStatus::from_byte(byte) {
                         // Only status that is important is NoteOn
                         counter = 0;
                     }
