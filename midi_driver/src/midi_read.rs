@@ -21,34 +21,34 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .short('l')
                 .long("list")
                 .help("List devices")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .arg(
             Arg::new("port")
                 .help("The input MIDI port)")
-                .index(1)  // Positional argument at index 1
-                .value_parser(clap::value_parser!(String))
+                .index(1) // Positional argument at index 1
+                .value_parser(clap::value_parser!(String)),
         )
         .get_matches();
-    let list:bool = *matches.get_one::<bool>("list").unwrap_or(&false);
+    let list: bool = *matches.get_one::<bool>("list").unwrap_or(&false);
 
     // Create the port for MIDI input
     let this_name = THIS_MIDI_NAME.to_string();
     let midi_in = midir::MidiInput::new(THIS_MIDI_NAME)?;
     if list {
-	for mp in midi_in
-            .ports()
-            .iter() {
-		eprintln!(
-                    "{}",
-                    midi_in
-			.port_name(mp)
-			.unwrap_or("Failed to get a port's name".to_string())
-		);
-	    }
-	return Ok(())
+        for mp in midi_in.ports().iter() {
+            eprintln!(
+                "{}",
+                midi_in
+                    .port_name(mp)
+                    .unwrap_or("Failed to get a port's name".to_string())
+            );
+        }
+        return Ok(());
     }
-    let name = matches.get_one::<String>("port").expect("Must pass port name");
+    let name = matches
+        .get_one::<String>("port")
+        .expect("Must pass port name");
     let this_port: MidiInputPort = get_midi_port(name, &midi_in)?;
     let in_port_name = midi_in.port_name(&this_port)?;
     eprintln!("read_midi:in_port_name: {in_port_name}");
