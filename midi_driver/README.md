@@ -6,7 +6,6 @@ Process MIDI using three types of object
 2. Translators. Here `translate_midi`
 3. Consumers. Here `command_midi`
 
-
 ## Producer: Read MIDI
 
 src: `src/read.rs`
@@ -24,18 +23,22 @@ bin: `translate_midi`
 
 Translators read MIDI on `stdin` and write MIDI on `stdout`.
 
-For noteon and noteoff messages the note is translated using a lookup table, and the transformed noteon or noteoff message is written to  `stdout`
+Messages are translated using a set of rules described in the configuration file.
 
-All other MIDI messages are passed through.
+Any message that is not affected by a rule is passed through uncchanges
 
-`translate_midi` takes one argument: The name of a configuration file.
+`translate_midi` takes one argument: The name of the configuration file.
+
+The translation process does not effect System Exclusive (SysEx) messages
 
 ### Configuration File
 
-The configuration file consists of lines of the form: "t n m"
+The configuration file consists of lines of the form: "t s x n m"
 * `t` the character 't'
-* `n` A MIDI note to translate, an integer in 0..127
-* `m` A MIDI note to output, if `n` received, in 0..127
+* `s` is the 4-bit status nibble  0..15 or 0x00 to 0xff.  The type of message the rule applies to
+* `x` is in [0,1] the byte to affect.
+* `n` A MIDI to translate, an integer in 0..127 or 0x00..0x7f
+* `m` A MIDI to output, if `n` received, in 0..127 or 0x00..0x7f
 
 Any line starting with "t "" must be of this form otherwise `translate_midi` will panic.
 
