@@ -219,7 +219,7 @@ t 0x0c 0 0 1
     }
 
     fn to_hex(bytes: &[u8]) -> String {
-	bytes.iter().map(|b| format!("{:02x}", b)).collect()
+        bytes.iter().map(|b| format!("{:02x}", b)).collect()
     }
 
     // Integration test for the main processing logic
@@ -236,7 +236,7 @@ t 0x0c 0 0 1
         let test_cases = vec![
             // Note On message (status 0x90, note 0x3C, velocity 0x40)
             // Should be translated to (status 0x90, note 0x40, velocity 0x3C)
-            (vec![0x90, 0x3C, 0x40], vec![0x90, 0x40, 0x40,]),
+            (vec![0x90, 0x3C, 0x40], vec![0x90, 0x40, 0x40]),
             // Note On message with different values that shouldn't be translated
             (vec![0x90, 0x3D, 0x41], vec![0x90, 0x3D, 0x41]),
             // Different status byte (0x80) shouldn't be translated
@@ -249,7 +249,7 @@ t 0x0c 0 0 1
         ];
 
         for (input, expected) in test_cases {
-	    eprintln!("input:{} expected:{}", to_hex(&input),to_hex(&expected),);
+            eprintln!("input:{} expected:{}", to_hex(&input), to_hex(&expected),);
             let mut working = Vec::new();
             let mut status = None;
             let mut output = Vec::new();
@@ -278,7 +278,7 @@ t 0x0c 0 0 1
                 }
             }
 
-	    assert_eq!(to_hex(&output), to_hex(&expected));
+            assert_eq!(to_hex(&output), to_hex(&expected));
         }
     }
 
