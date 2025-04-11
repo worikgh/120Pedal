@@ -33,14 +33,21 @@ The translation process does not effect System Exclusive (SysEx) messages
 
 ### Configuration File
 
-The configuration file consists of lines of the form: "t s x n m"
+There are two types of rule:
+
+1. Translate. The configuration line of the form: "t s x n m"
 * `t` the character 't'
 * `s` is the 4-bit status nibble  0..15 or 0x00 to 0xff.  The type of message the rule applies to
 * `x` is in [0,1] the byte to affect.
 * `n` A MIDI to translate, an integer in 0..127 or 0x00..0x7f
 * `m` A MIDI to output, if `n` received, in 0..127 or 0x00..0x7f
+2. Channel Change.  Set the channel the MIDI is output on.  Lines of the form "c [+-]N"
+* `c` the character 'c'
+* `[+-]` Either character '+', '-' or nothing
+* `N` A number in [0,16]
+  * If there is a '+' or '-' `N` is a delta and is added (or subtracted) from the channel.  If the channel goes below 1 or greater than 16 there is an error.
+  * If there is no '+' or '-' then `N` must be in  [1, 16] and is the channel to set on utput
 
-Any line starting with "t "" must be of this form otherwise `translate_midi` will panic.
 
 All other lines are ignored
 
