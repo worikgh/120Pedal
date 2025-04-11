@@ -3,11 +3,28 @@
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
+//use std::fmt::Write as OtherWrite;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::num::ParseIntError;
 mod midi_status;
 use crate::midi_status::MidiStatus;
+use std::fmt;
+
+#[derive(Debug)]
+enum TranslateError {
+    InvalidChannel(u8),
+}
+
+impl fmt::Display for TranslateError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            TranslateError::InvalidChannel(c) => write!(f, "Invalid channel: {c}"),
+        }
+    }
+}
+
+impl std::error::Error for TranslateError {}
 
 /// Helper function for reading `u8` from `&str`.  Hex in prefixed
 /// with "0x", else decimal
@@ -19,16 +36,72 @@ fn str_u8(inp: &str) -> Result<u8, ParseIntError> {
     }
 }
 
-/// Make a key for the translation table.  Combine the 4 bits of status with the index in the message (0 or 1) in the MSB and put the value to translate in the LSB of the key
+/// Make a key for the translation table.  Combine the 4 bits of
+/// status with the index in the message (0 or 1) in the MSB and put
+/// the value to translate in the LSB of the key
 fn make_key(s: u8, x: u8, k: u8) -> u16 {
-    eprintln!("make_key({s:x}, {x}, {k},)");
     ((s as u16 | x as u16) << 8) | (k as u16)
 }
+
+#[derive(Debug)]
+enum ChannelOperation {
+    Plus,
+    Minus,
+    Literal,
+}
+
+#[derive(Debug)]
+struct ChannelTranslate {
+    op: ChannelOperation,
+    value: u8,
+}
+
+impl ChannelTranslate {
+    fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
+        let mut chars = s.chars();
+        let first_char = chars.next().ok_or("Empty string")?;
+
+        // Determine operation and remaining part
+        let (op, hex_str) = match first_char {
+            '+' => (ChannelOperation::Plus, chars.as_str()),
+            '-' => (ChannelOperation::Minus, chars.as_str()),
+            _ => (ChannelOperation::Literal, s), // No operator, entire string is the hex digit
+        };
+
+        // Parse hex digit (case-insensitive)
+        match u8::from_str_radix(hex_str, 16) {
+            Ok(value) => Ok(ChannelTranslate { op, value }),
+            Err(e) => Err(Box::new(e)),
+        }
+    }
+}
+
+fn get_channel(description: &str) -> Result<ChannelTranslate, Box<dyn Error>> {
+    let mut f = description.lines().filter(|&s| s.trim().starts_with("c "));
+    if let Some(s) = f.next() {
+        // c +1
+        // c 2
+        let parts: Vec<&str> = s[2..].split_whitespace().collect();
+        if parts.len() != 1 {
+            return Err(format!(
+                "Invalid translation line: {}.  `parts.len()`: {}",
+                s,
+                parts.len()
+            )
+            .into());
+        }
+        // Read the +- and N
+        ChannelTranslate::from_str(parts[0])
+    } else {
+        Err("Invalid translation line".to_string().into())
+    }
+}
+
 /// Build the table to translate MIDI inputs.  Make a HashMap keyed by
 /// the status of the messages to change, the index of the byte
 /// ([0,1]) in the message, and the message itself.  The value is the
 /// message to output in its stead.
-fn make_table(description: &str) -> Result<HashMap<u16, u8>, Box<dyn Error>> {
+fn make_translate_table(description: &str) -> Result<HashMap<u16, u8>, Box<dyn Error>> {
     description
         .lines()
         .filter(|&s| s.trim().starts_with("t "))
@@ -47,7 +120,7 @@ fn make_table(description: &str) -> Result<HashMap<u16, u8>, Box<dyn Error>> {
             let k = str_u8(parts[2])?; // Value to translate
             let v = str_u8(parts[3])?; // Output
             let key = make_key(s, x, k);
-            eprintln!("make_table adding: {s}+{x}+{k} -> {v}");
+
             Ok((key, v))
         })
         .collect()
@@ -61,7 +134,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or_else(|e| panic!("{e:?}: Could not open file: {cfg_file_name}"));
     file.read_to_string(&mut s)
         .expect("Could not read file contents");
-    let translation_table: HashMap<u16, u8> = make_table(&s)?;
+    let translation_table: HashMap<u16, u8> = make_translate_table(&s)?;
+    let channel_translate = get_channel(&s)?;
     let mut status: Option<MidiStatus> = None;
     // Read stdin a byte at a time
     let mut buffer = [0u8; 1];
@@ -71,7 +145,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Working memory for processing MIDI messages
     let mut working: Vec<u8> = Vec::new();
     let write_working = |w: &Vec<u8>| {
-        eprintln!("working: {w:?}");
         io::stdout()
             .write_all(w)
             .unwrap_or_else(|e| panic!("Cannot write to stdout: {}", e));
@@ -95,29 +168,30 @@ fn main() -> Result<(), Box<dyn Error>> {
                     if byte & 0x80 == 0x80 {
                         // Status byte:
                         status = MidiStatus::from_byte(byte);
+
+                        // Check for channel translation
+                        let c1: u8 = byte & 0x0F;
+                        let channel = match channel_translate.op {
+                            ChannelOperation::Literal => channel_translate.value,
+                            ChannelOperation::Minus => c1 - channel_translate.value,
+                            ChannelOperation::Plus => c1 + channel_translate.value,
+                        };
+                        if channel == 0 || channel > 16 {
+                            return Err(Box::new(TranslateError::InvalidChannel(channel)));
+                        }
                         // Put the status byte in the buffer
                         working.push(byte);
                         continue;
                     } else {
                         // Data byte
-                        match working.len() % 2 {
-                            // If there are an odd number of data in
-                            // `working` this is a note and must be
-                            // tranlated, if not it is velocity
-                            0..2 => {
-                                let x = (working.len() % 2) as u8;
-                                let s = status.as_ref().unwrap().to_byte();
-                                let key = make_key(s, x, byte);
-                                let v: u8 = match translation_table.get(&key) {
-                                    Some(v) => *v,
-                                    None => byte,
-                                };
-                                working.push(v)
-                            }
-
-                            // All other bytes just pass through
-                            _ => working.push(byte),
+                        let x = (working.len() % 2) as u8;
+                        let s = status.as_ref().unwrap().to_byte();
+                        let key = make_key(s, x, byte);
+                        let v: u8 = match translation_table.get(&key) {
+                            Some(v) => *v,
+                            None => byte,
                         };
+                        working.push(v)
                     }
                 }
             }
@@ -172,7 +246,7 @@ mod tests {
     #[test]
     fn test_make_table_valid() {
         let input = "t 0x90 0 0x3C 0x40\nt 0x90 1 0x40 0x3C";
-        let result = make_table(input).unwrap();
+        let result = make_translate_table(input).unwrap();
 
         let mut expected = HashMap::new();
         expected.insert(make_key(0x90, 0, 0x3C), 0x40);
@@ -185,15 +259,15 @@ mod tests {
     fn test_make_table_invalid_line() {
         // Missing one field
         let input = "t 0x90 0 0x3C";
-        assert!(make_table(input).is_err());
+        assert!(make_translate_table(input).is_err());
 
         // Invalid number format
         let input = "t 0x90 0 abc 0x40";
-        assert!(make_table(input).is_err());
+        assert!(make_translate_table(input).is_err());
 
         // Invalid line prefix
         let input = "x 0x90 0 0x3C 0x40";
-        let result = make_table(input).unwrap();
+        let result = make_translate_table(input).unwrap();
         assert!(result.is_empty());
     }
 
@@ -210,8 +284,7 @@ t 0x80 1 0x40 0x3C
 t 0x0c 0 0 1
         "#;
 
-        let result = make_table(input).unwrap();
-        eprintln!("{input} -> {result:?}");
+        let result = make_translate_table(input).unwrap();
         assert_eq!(result.len(), 5);
         assert_eq!(result[&make_key(0x90, 0, 0x3C)], 0x40);
         assert_eq!(result[&make_key(0x80, 1, 0x40)], 0x3C);
@@ -219,7 +292,12 @@ t 0x0c 0 0 1
     }
 
     fn to_hex(bytes: &[u8]) -> String {
-        bytes.iter().map(|b| format!("{:02x}", b)).collect()
+        bytes
+            .iter()
+            .fold(String::with_capacity(bytes.len() * 3), |mut s, b| {
+                write!(&mut s, "{:02x} ", b).unwrap();
+                s
+            })
     }
 
     // Integration test for the main processing logic
@@ -249,7 +327,6 @@ t 0x0c 0 0 1
         ];
 
         for (input, expected) in test_cases {
-            eprintln!("input:{} expected:{}", to_hex(&input), to_hex(&expected),);
             let mut working = Vec::new();
             let mut status = None;
             let mut output = Vec::new();
