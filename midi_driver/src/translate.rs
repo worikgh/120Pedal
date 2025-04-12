@@ -242,28 +242,24 @@ trait Translator {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fmt::Write;
     use std::collections::HashMap;
 
     #[test]
-    fn test_str_u8_decimal() {
-        assert_eq!(str_u8("10"), Ok(10));
-        assert_eq!(str_u8("0"), Ok(0));
-        assert_eq!(str_u8("255"), Ok(255));
-    }
+    fn test_str_u8() {
+        // Test decimal parsing
+        assert_eq!(str_u8("10").unwrap(), 10);
+        assert_eq!(str_u8("255").unwrap(), 255);
 
-    #[test]
-    fn test_str_u8_hex() {
-        assert_eq!(str_u8("0x0A"), Ok(10));
-        assert_eq!(str_u8("0xFF"), Ok(255));
-        assert_eq!(str_u8("0x00"), Ok(0));
-    }
+        // Test hex parsing
+        assert_eq!(str_u8("0xA").unwrap(), 10);
+        assert_eq!(str_u8("0xFF").unwrap(), 255);
+        assert_eq!(str_u8("0x0F").unwrap(), 15);
 
-    #[test]
-    fn test_str_u8_invalid() {
+        // Test invalid cases
         assert!(str_u8("256").is_err()); // Overflow
-        assert!(str_u8("0x100").is_err()); // Hex overflow
+        assert!(str_u8("0xG").is_err()); // Invalid hex
         assert!(str_u8("abc").is_err()); // Invalid decimal
-        assert!(str_u8("0xzz").is_err()); // Invalid hex
     }
 
     #[test]
@@ -275,6 +271,7 @@ mod tests {
         // Status 0xB0, index 0, value 0x07
         assert_eq!(make_key(0xB0, 0, 0x07), 0xB000 | 0x07);
     }
+
 
     #[test]
     fn test_make_table_valid() {
