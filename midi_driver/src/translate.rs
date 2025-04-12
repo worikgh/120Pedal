@@ -164,7 +164,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let translation_table: HashMap<u16, u8> = make_translate_table(&s)?;
     let channel_translate = get_channel(&s)?;
-    let mut status: Option<MidiStatus> = None;
+
     // Read stdin a byte at a time
     let mut buffer = [0u8; 1];
     let stdin = io::stdin();
@@ -179,51 +179,56 @@ fn main() -> Result<(), Box<dyn Error>> {
         io::stdout().flush().expect("Failed to flush stdout");
     };
 
+    // Store `status` bytes
+    let mut status: Option<MidiStatus> = None;
+
     loop {
         match handle.read(&mut buffer) {
-            Ok(0) => {
+
+            Err(e) => return Err(Box::new(e)),
+
+	    Ok(0) => {
                 // EOF
                 write_working(&working);
                 break;
             }
-            Err(e) => return Err(Box::new(e)),
-            Ok(n) => {
-                // `buffer` has indeterminate size.  It is at least
-                // `n`.  Beyond `n`, `buffer` is random
-                #[allow(clippy::needless_range_loop)]
-                for i in 0..n {
-                    let byte = buffer[i];
-                    if byte & 0x80 == 0x80 {
-                        // Status byte:
-                        status = MidiStatus::from_byte(byte);
 
-                        // Check for channel translation
-                        let c1: u8 = byte & 0x0F;
-                        let channel = match channel_translate.op {
-                            ChannelOperation::Literal => channel_translate.value,
-                            ChannelOperation::Minus => c1 - channel_translate.value,
-                            ChannelOperation::Plus => c1 + channel_translate.value,
-                        };
-                        if channel == 0 || channel > 16 {
-                            return Err(Box::new(TranslateError::InvalidChannel(channel)));
-                        }
-                        // Put the status byte in the buffer
-                        working.push(byte);
-                        continue;
-                    } else {
-                        // Data byte
-                        let x = (working.len() % 2) as u8;
-                        let s = status.as_ref().unwrap().to_byte();
-                        let key = make_key(s, x, byte);
-                        let v: u8 = match translation_table.get(&key) {
-                            Some(v) => *v,
-                            None => byte,
-                        };
-                        working.push(v)
+	    Ok(1) => {
+                #[allow(clippy::needless_range_loop)]
+                let byte = buffer[0];
+                if byte & 0x80 == 0x80 {
+                    // Status byte:
+                    status = MidiStatus::from_byte(byte);
+
+                    // Check for channel translation
+                    let c1: u8 = byte & 0x0F;
+                    let channel = match channel_translate.op {
+                        ChannelOperation::Literal => channel_translate.value,
+                        ChannelOperation::Minus => c1 - channel_translate.value,
+                        ChannelOperation::Plus => c1 + channel_translate.value,
+                    };
+                    if channel == 0 || channel > 16 {
+                        return Err(Box::new(TranslateError::InvalidChannel(channel)));
                     }
+                    // Put the status byte in the buffer
+                    working.push(byte);
+                    continue;
+                } else {
+                    // Data byte
+                    let x = (working.len() % 2) as u8;
+                    let s = status.as_ref().unwrap().to_byte();
+                    let key = make_key(s, x, byte);
+                    let v: u8 = match translation_table.get(&key) {
+                        Some(v) => *v,
+                        None => byte,
+                    };
+                    working.push(v)
                 }
-            }
-        };
+            },
+
+	    // Cannot happen.  `buffer` is size 1
+	    error => panic!("Invalid read returned: {error:?}"),
+	};
         if !working.is_empty() {
             write_working(&working);
             working.truncate(0);
