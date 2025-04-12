@@ -155,12 +155,13 @@ fn make_translate_table(description: &str) -> Result<HashMap<u16, u8>, Box<dyn E
 
 fn main() -> Result<(), Box<dyn Error>> {
     let cfg_file_name = env::args().nth(1).unwrap();
+
     // The contents of the configuration file as a `String`
     let mut s: String = "".to_string();
-    let mut file = File::open(&cfg_file_name)
-        .unwrap_or_else(|e| panic!("{e:?}: Could not open file: {cfg_file_name}"));
-    file.read_to_string(&mut s)
-        .expect("Could not read file contents");
+    File::open(&cfg_file_name)
+        .unwrap_or_else(|e| panic!("{e:?}: Could not open file: {cfg_file_name}"))
+        .read_to_string(&mut s)?;
+
     let translation_table: HashMap<u16, u8> = make_translate_table(&s)?;
     let channel_translate = get_channel(&s)?;
     let mut status: Option<MidiStatus> = None;
