@@ -3,7 +3,6 @@
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
-//use std::fmt::Write as OtherWrite;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::num::ParseIntError;
@@ -38,25 +37,41 @@ fn str_u8(inp: &str) -> Result<u8, ParseIntError> {
 
 /// Make a key for the translation table.  Combine the 4 bits of
 /// status with the index in the message (0 or 1) in the MSB and put
-/// the value to translate in the LSB of the key
+/// the value to translate in the LSB of the key.
+/// The index is in [0..1] only MIDI messages that have more than two data bytes following are:
+/// * Sysex messages.  This programme does not translate those
+/// * NoteOn/NoteOff: These can be followed by an arbitrary number of
+///   pairs of bytes for note/volume.  So when dealing with data for
+///   these messages only need to know if the byte is at an odd
+///   address (relative to status) which means it is "note", or at an
+///   even address, in which case it is "volume"
 fn make_key(s: u8, x: u8, k: u8) -> u16 {
     ((s as u16 | x as u16) << 8) | (k as u16)
 }
 
 #[derive(Debug)]
-enum ChannelOperation {
-    Plus,
-    Minus,
-    Literal,
-}
-
-#[derive(Debug)]
+/// Describe the way that channel data is translated.
 struct ChannelTranslate {
     op: ChannelOperation,
     value: u8,
 }
 
+#[derive(Debug)]
+/// The channel is either `Literal`, `value` is the new channel or
+/// `Minus` the incoming channel has `value` subtracted or `Plus`
+/// where `value` is added to the incomming channel.  It is perfectly
+/// possible to have an invalid channel.  See
+/// [this error](TranslateError::InvalidChannel)
+enum ChannelOperation {
+    Literal,
+    Minus,
+    Plus,
+}
+
 impl ChannelTranslate {
+    /// Translate a channel definition line from configurtion.  Format
+    /// is: `\[+-\]?[N]` where `N` is a string representation of a
+    /// digit in Hex (Only one digit)
     fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
         let mut chars = s.chars();
         let first_char = chars.next().ok_or("Empty string")?;
@@ -76,10 +91,15 @@ impl ChannelTranslate {
     }
 }
 
+/// Get the channel translation data.
+/// * `description` is the configuration data
+/// * Channel definition lines start with "c "
+/// * See [ChannelTranslate](ChannelTranslate::from_str) for an explanation of the format of channel definition lines
 fn get_channel(description: &str) -> Result<ChannelTranslate, Box<dyn Error>> {
     let mut f = description.lines().filter(|&s| s.trim().starts_with("c "));
     if let Some(s) = f.next() {
         // c +1
+        // c -2
         // c 2
         let parts: Vec<&str> = s[2..].split_whitespace().collect();
         if parts.len() != 1 {
@@ -99,7 +119,7 @@ fn get_channel(description: &str) -> Result<ChannelTranslate, Box<dyn Error>> {
 
 /// Build the table to translate MIDI inputs.  Make a HashMap keyed by
 /// the status of the messages to change, the index of the byte
-/// ([0,1]) in the message, and the message itself.  The value is the
+/// (\[0,1\]) in the message, and the message itself.  The value is the
 /// message to output in its stead.
 fn make_translate_table(description: &str) -> Result<HashMap<u16, u8>, Box<dyn Error>> {
     description
