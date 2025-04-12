@@ -12,18 +12,23 @@ use std::fmt;
 
 #[derive(Debug)]
 enum TranslateError {
+    /// An invalid channel
     InvalidChannel(u8),
+    InvalidChannelDefinition(String),
 }
+
+impl std::error::Error for TranslateError {}
 
 impl fmt::Display for TranslateError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             TranslateError::InvalidChannel(c) => write!(f, "Invalid channel: {c}"),
+            TranslateError::InvalidChannelDefinition(s) => {
+                write!(f, "Invalid channel definition: {s}")
+            }
         }
     }
 }
-
-impl std::error::Error for TranslateError {}
 
 /// Helper function for reading `u8` from `&str`.  Hex in prefixed
 /// with "0x", else decimal
@@ -74,7 +79,9 @@ impl ChannelTranslate {
     /// digit in Hex (Only one digit)
     fn from_str(s: &str) -> Result<Self, Box<dyn Error>> {
         let mut chars = s.chars();
-        let first_char = chars.next().ok_or("Empty string")?;
+        let first_char = chars
+            .next()
+            .ok_or(TranslateError::InvalidChannelDefinition(s.to_string()))?;
 
         // Determine operation and remaining part
         let (op, hex_str) = match first_char {
