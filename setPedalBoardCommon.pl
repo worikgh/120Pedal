@@ -6,15 +6,19 @@ use IO::Socket::INET;
 ## written by `getPedalBoardCommands.pl`
 
 my $pedal_dir = $ENV{PEDAL_DIR};
-print STDERR " * Initialise the pedal definitions";
+if(!defined($pedal_dir)){
+    $pedal_dir = $0;
+    $pedal_dir =~ s/\/[^\/]*$/\/PEDALS/;
+}
 -d $pedal_dir or die "'$pedal_dir' not a directory";
+print STDERR " * Initialise the pedal definitions\n * Pedal Dir: $pedal_dir\n";
 my $initialise_fn = "$pedal_dir/Initialise";
 #-r $initialise_fn or die "$!: '$initialise_fn'";
 open(my $fh, $initialise_fn) or die "$!: $initialise_fn";
 my @config = map{chomp ; $_} <$fh>;
-my @add = grep{s/^mh //} map{chomp ; $_} grep {/^mh add/} @config; 
-my @param = grep{s/^mh //} map{chomp ; $_} grep {/^mh param_set /} @config; 
-my @jack_initial = grep{s/^jack //} map{chomp ; $_} grep {/^jack /} @config; 
+my @add = grep{s/^mh //} map{chomp ; $_} grep {/^mh add/} @config;
+my @param = grep{s/^mh //} map{chomp ; $_} grep {/^mh param_set /} @config;
+my @jack_initial = grep{s/^jack //} map{chomp ; $_} grep {/^jack /} @config;
 close $fh or die $!;
 
 ## Set up the effects, and the parameters
@@ -54,31 +58,31 @@ sub handle_mh_cmd( $$ ) {
 	# If status is a negative number an error has
 	# occurred. The table below shows the number of each
 	# error.
-	
-	# status 	error
-	# -1 	ERR_INSTANCE_INVALID
-	# -2 	ERR_INSTANCE_ALREADY_EXISTS
-	# -3 	ERR_INSTANCE_NON_EXISTS
-	# -4 	ERR_INSTANCE_UNLICENSED
-	# -101 	ERR_LV2_INVALID_URI
-	# -102 	ERR_LV2_INSTANTIATION
-	# -103 	ERR_LV2_INVALID_PARAM_SYMBOL
-	# -104 	ERR_LV2_INVALID_PRESET_URI
-	# -105 	ERR_LV2_CANT_LOAD_STATE
-	# -201 	ERR_JACK_CLIENT_CREATION
-	# -202 	ERR_JACK_CLIENT_ACTIVATION
-	# -203 	ERR_JACK_CLIENT_DEACTIVATION
-	# -204 	ERR_JACK_PORT_REGISTER
-	# -205 	ERR_JACK_PORT_CONNECTION
-	# -206 	ERR_JACK_PORT_DISCONNECTION
-	# -301 	ERR_ASSIGNMENT_ALREADY_EXISTS
-	# -302 	ERR_ASSIGNMENT_INVALID_OP
-	# -303 	ERR_ASSIGNMENT_LIST_FULL
-	# -304 	ERR_ASSIGNMENT_FAILED
-	# -401 	ERR_CONTROL_CHAIN_UNAVAILABLE
-	# -402 	ERR_LINK_UNAVAILABLE
-	# -901 	ERR_MEMORY_ALLOCATION
-	# -902 	ERR_INVALID_OPERATION
+
+	# status	error
+	# -1	ERR_INSTANCE_INVALID
+	# -2	ERR_INSTANCE_ALREADY_EXISTS
+	# -3	ERR_INSTANCE_NON_EXISTS
+	# -4	ERR_INSTANCE_UNLICENSED
+	# -101	ERR_LV2_INVALID_URI
+	# -102	ERR_LV2_INSTANTIATION
+	# -103	ERR_LV2_INVALID_PARAM_SYMBOL
+	# -104	ERR_LV2_INVALID_PRESET_URI
+	# -105	ERR_LV2_CANT_LOAD_STATE
+	# -201	ERR_JACK_CLIENT_CREATION
+	# -202	ERR_JACK_CLIENT_ACTIVATION
+	# -203	ERR_JACK_CLIENT_DEACTIVATION
+	# -204	ERR_JACK_PORT_REGISTER
+	# -205	ERR_JACK_PORT_CONNECTION
+	# -206	ERR_JACK_PORT_DISCONNECTION
+	# -301	ERR_ASSIGNMENT_ALREADY_EXISTS
+	# -302	ERR_ASSIGNMENT_INVALID_OP
+	# -303	ERR_ASSIGNMENT_LIST_FULL
+	# -304	ERR_ASSIGNMENT_FAILED
+	# -401	ERR_CONTROL_CHAIN_UNAVAILABLE
+	# -402	ERR_LINK_UNAVAILABLE
+	# -901	ERR_MEMORY_ALLOCATION
+	# -902	ERR_INVALID_OPERATION
 
 	#     A status zero or positive means that the command was
 	#     executed successfully. In case of the add command,
@@ -95,7 +99,7 @@ sub handle_mh_cmd( $$ ) {
 	print STDERR ">> Unexpected result: $result ";
     }
     return 0;
-}    
+}
 sub mod_host( $ ){
     my $cmds = shift or die;
     my @cmds = @$cmds;
@@ -103,15 +107,15 @@ sub mod_host( $ ){
     my $remote = "localhost";
 
     my $mod_host_port_p = $ENV{MODHOST_PORT};
+    defined($mod_host_port_p) or $mod_host_port_p = 5555;
     my $sock = new IO::Socket::INET( PeerAddr => 'localhost',
-				     PeerPort => $mod_host_port_p, 
+				     PeerPort => $mod_host_port_p,
 				     Proto => 'tcp') or
-	die "$!: Failed to connect to mod-host localhost:$mod_host_port_p ".
-	"lsof -i :$mod_host_port_p: ".`lsof -i :$mod_host_port_p` . ' '; 
+	die "$!: Failed to connect to mod-host localhost:$mod_host_port_p ";
 
     ## Debugging why some effects randomly fail to be added
     my $failed = 0;
-    
+
     foreach my $cmd (@cmds){
 	# warn "Process: \$cmd($cmd) \n";
 	# print STDERR  "mod-host: $cmd\n";
@@ -153,20 +157,20 @@ sub handle_jack_3( $$$ ){
 
     # warn "$cmd ";
     if($cmd eq 'connect'){ ## (\S+)\s+(\S+)\s*$/){
-        ## Commanded to make a connection.  Check first if it exists
-        ## and there is nothing to do
-        if( ! &test_jack_connection($lhs, $rhs)){
-            # print STDERR "connect $1\t$2\n";
-            print `jack_connect '$lhs' '$rhs'`;
-        }
+	## Commanded to make a connection.  Check first if it exists
+	## and there is nothing to do
+	if( ! &test_jack_connection($lhs, $rhs)){
+	    # print STDERR "connect $1\t$2\n";
+	    print `jack_connect '$lhs' '$rhs'`;
+	}
     }elsif($cmd =~ /^disconnect (\S+)\s+(\S+)\s*$/){
-        if(  &test_jack_connection($1, $2)){
-            print `jack_disconnect '$lhs' '$rhs'`;
-        }
+	if(  &test_jack_connection($1, $2)){
+	    print `jack_disconnect '$lhs' '$rhs'`;
+	}
     }
 }
-## Check for a connetion between two ports.  
-sub test_jack_connection( $$ ) { 
+## Check for a connetion between two ports.
+sub test_jack_connection( $$ ) {
     my ($lhs, $rhs) = @_;
     my @jack_lsp = `jack_lsp -c`;
 
@@ -177,19 +181,19 @@ sub test_jack_connection( $$ ) {
     my $result = 0;
     my $state = "";
     foreach my $line (@jack_lsp){
-        chomp $line;
-        if($line =~ /^$lhs$/){
-            $state = $lhs;
-            next;
-        }elsif($line =~ /^\S/){
-            $state = "";
-            next;
-        }elsif($line =~ /^\s+$rhs$/){
-            if($state){
-                return 1;
-                exit;
-            }
-        }
+	chomp $line;
+	if($line =~ /^$lhs$/){
+	    $state = $lhs;
+	    next;
+	}elsif($line =~ /^\S/){
+	    $state = "";
+	    next;
+	}elsif($line =~ /^\s+$rhs$/){
+	    if($state){
+		return 1;
+		exit;
+	    }
+	}
     }
     return 0;
 }
@@ -199,7 +203,7 @@ sub fhbits {
     my @fhlist = @_;
     my $bits = "";
     for my $fh (@fhlist) {
-        vec($bits, fileno($fh), 1) = 1;
+	vec($bits, fileno($fh), 1) = 1;
     }
     return $bits;
 }
