@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 use strict;
-print STDERR "LV2_PATH: $ENV{LV2_PATH}\n";
 my @commands = ();
 
 ## Read the "pedalboard" definitions created by `mod-ui`
@@ -10,8 +9,13 @@ my @commands = ();
 ## * One file for each pedalboard that contains the instructions for
 ##     jackd to make that pedalboard active
 
-## Delete any existing pedal definitions
+## The directory to write pedal definitions to
 my $pedal_dir = $ENV{PEDAL_DIR};
+if(!defined($pedal_dir)){
+    $pedal_dir = $0;
+    $pedal_dir =~ s/\/[^\/]*$/\/PEDALS/;
+    -e $pedal_dir or mkdir $pedal_dir;
+}
 -d $pedal_dir or die "'$pedal_dir' not a directory";
 opendir(my $dir, $pedal_dir) or die "$!: $pedal_dir";
 foreach my $fn (readdir($dir)){
@@ -21,7 +25,8 @@ foreach my $fn (readdir($dir)){
     unlink($path_to_delete) or die "$!: $path_to_delete";
 }
 
-my $modep_pedal_dir = $ENV{MODEP_PEDALS} or die "No MODEP_PEDALS defined";
+my $modep_pedal_dir = $ENV{MODEP_PEDALS};
+defined $modep_pedal_dir or $modep_pedal_dir = '/var/modep/pedalboards';
 -d $modep_pedal_dir or die "'$modep_pedal_dir' not a directory";
 -r $modep_pedal_dir or die "'$modep_pedal_dir' not readable";
 
@@ -66,15 +71,10 @@ foreach my $fn (@fn){
     }
     $jack_activation{$board_name} = $ex{jack_activation_pipes};
     push(@jack_init, @{$ex{jack_internal_pipes}});
-
-    # foreach my $k (sort keys %number_name){
-    # 	my $v = $number_name{$k};
-    # 	print "$k => $v\n";
-    # }
 }
 
 ## Output to pedal files.
-## Output an initialisation file `Initialse` and a filke for each pedal board
+## Output an initialisation file `Initialse` and a file for each pedal board
 
 my $pedal_init_fn = "$pedal_dir/Initialise";
 open(my $initfh, ">$pedal_init_fn") or die "$!";
@@ -375,6 +375,7 @@ sub process_lv2_turtle( $$ ) {
     return %result;
 
 }
+
 ## Read a ttl, Turtle, document
 ## Return an array of triples (RDF)
 sub read_turtle( $ ){
