@@ -1,4 +1,4 @@
-//! Reads a stream of MIDI data fro mthe stdin
+//! Reads a stream of MIDI data from the stdin
 //! Writes the data on the stdout with Note On and Note Off notes transposed
 use std::collections::HashMap;
 use std::env;
