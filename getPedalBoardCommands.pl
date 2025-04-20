@@ -27,7 +27,8 @@ foreach my $fn (readdir($dir)){
 
 my $modep_pedal_dir = $ENV{MODEP_PEDALS};
 defined $modep_pedal_dir or $modep_pedal_dir = '/var/modep/pedalboards';
--d $modep_pedal_dir or die "'$modep_pedal_dir' not a directory";
+-d $modep_pedal_dir or $modep_pedal_dir = "$ENV{HOME}/.pedalboards";
+-d $modep_pedal_dir or die "Cannot find pedalboard directory";
 -r $modep_pedal_dir or die "'$modep_pedal_dir' not readable";
 
 ## Get the pedal board definitions
