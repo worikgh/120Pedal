@@ -19,6 +19,11 @@ name = "command_midi"
 path="src/midi_command.rs"
 
 [[bin]]
+## Edit Jackd pipes in response to MIDI signals on stdin
+name = "jack_midi"
+path="src/midi_jack.rs"
+
+[[bin]]
 ## Dump midi as text
 name = "dump_midi"
 path="src/midi_dump.rs"
