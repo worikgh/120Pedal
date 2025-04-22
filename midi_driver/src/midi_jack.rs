@@ -289,7 +289,7 @@ mod tests {
         #[test]
         fn test_read_byte() {
             let mut data = Cursor::new(vec![0x90u8, 0x40, 0x7F]);
-            let  reader: &mut dyn MidiByteReader = &mut data;
+            let reader: &mut dyn MidiByteReader = &mut data;
 
             assert_eq!(reader.read_byte().unwrap(), Some(0x90));
             assert_eq!(reader.read_byte().unwrap(), Some(0x40));

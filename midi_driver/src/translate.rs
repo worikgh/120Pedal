@@ -184,16 +184,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     loop {
         match handle.read(&mut buffer) {
-
             Err(e) => return Err(Box::new(e)),
 
-	    Ok(0) => {
+            Ok(0) => {
                 // EOF
                 write_working(&working);
                 break;
             }
 
-	    Ok(1) => {
+            Ok(1) => {
                 #[allow(clippy::needless_range_loop)]
                 let byte = buffer[0];
                 if byte & 0x80 == 0x80 {
@@ -224,11 +223,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                     };
                     working.push(v)
                 }
-            },
+            }
 
-	    // Cannot happen.  `buffer` is size 1
-	    error => panic!("Invalid read returned: {error:?}"),
-	};
+            // Cannot happen.  `buffer` is size 1
+            error => panic!("Invalid read returned: {error:?}"),
+        };
         if !working.is_empty() {
             write_working(&working);
             working.truncate(0);
@@ -242,8 +241,8 @@ trait Translator {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fmt::Write;
     use std::collections::HashMap;
+    use std::fmt::Write;
 
     #[test]
     fn test_str_u8() {
@@ -271,7 +270,6 @@ mod tests {
         // Status 0xB0, index 0, value 0x07
         assert_eq!(make_key(0xB0, 0, 0x07), 0xB000 | 0x07);
     }
-
 
     #[test]
     fn test_make_table_valid() {

@@ -50,7 +50,7 @@ fn handle_midi_real(
 
     let pipes: Vec<(String, String)> = get_pipes_from_file(selected_pedal)?;
     for pipe in pipes.iter() {
-        match jack_connetions.make_connection(pipe.0.clone(), pipe.1.clone()) {
+        match jack_connetions.make_connection(pipe.0.as_str(), pipe.1.as_str()) {
             Ok(_) => println!("Connected"),
             Err(err) => println!("Failed: {err}"),
         };
@@ -59,7 +59,7 @@ fn handle_midi_real(
         for pipe in &mut *midi_data.connection_cache {
             let src = pipe.0.clone();
             let dst = pipe.1.clone();
-            match jack_connetions.unmake_connection(src.clone(), dst.clone()) {
+            match jack_connetions.unmake_connection(src.as_str(), dst.as_str()) {
                 Ok(_) => println!("Disconnected {src} {dst}"),
                 Err(err) => println!("Failed: {err} Disconnect  {src} {dst}"),
             };

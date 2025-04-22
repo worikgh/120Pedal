@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     // Data byte
                     stdout.write_all(format!("{byte:x} ").as_bytes())?;
                 }
-		stdout.flush()?;
+                stdout.flush()?;
             }
         }
     }

@@ -6,14 +6,12 @@ pub struct JackConnections {
 }
 
 impl JackConnections {
-    pub fn unmake_connection(&mut self, src: String, dst: String) -> Result<(), Error> {
-        self.client
-            .disconnect_ports_by_name(src.as_str(), dst.as_str())
+    pub fn unmake_connection(&mut self, src: &str, dst: &str) -> Result<(), Error> {
+        self.client.disconnect_ports_by_name(src, dst)
     }
 
-    pub fn make_connection(&mut self, src: String, dst: String) -> Result<(), Error> {
-        self.client
-            .connect_ports_by_name(src.as_str(), dst.as_str())?;
+    pub fn make_connection(&mut self, src: &str, dst: &str) -> Result<(), Error> {
+        self.client.connect_ports_by_name(src, dst)?;
         eprintln!("End: make_connection({}, {})", &src, &dst);
 
         Ok(())
