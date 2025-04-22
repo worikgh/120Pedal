@@ -1,2 +1,3 @@
-midi_driver/Cargo.lock
 midi_driver/target/
+PEDALS/*
+midi_driver/examples/*
