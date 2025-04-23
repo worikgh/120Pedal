@@ -193,7 +193,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             Ok(1) => {
-                #[allow(clippy::needless_range_loop)]
                 let byte = buffer[0];
                 if byte & 0x80 == 0x80 {
                     // Status byte:
@@ -236,8 +235,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[allow(dead_code)]
-trait Translator {}
 #[cfg(test)]
 mod tests {
     use super::*;
