@@ -93,7 +93,7 @@ pub fn make_table(
         }
         let file_name = s[j..].to_string();
 
-        let mut file = File::open(file_name)?;
+        let mut file = File::open(&file_name)?;
         let mut jack_cfg = String::new();
         file.read_to_string(&mut jack_cfg)?;
         let lines = jack_cfg.lines();
