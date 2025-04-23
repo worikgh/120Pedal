@@ -1,11 +1,10 @@
 use clap::{Arg, Command};
 use midir::MidiIO;
+use midir::MidiInputPort;
 use std::error::Error;
 use std::io::{self, Write};
 use std::thread;
 use std::time::Duration;
-//use midir::MidiInput;
-use midir::MidiInputPort;
 mod midi;
 
 const THIS_MIDI_NAME: &str = "120Pedal";
@@ -50,8 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .get_one::<String>("port")
         .expect("Must pass port name");
     let this_port: MidiInputPort = get_midi_port(name, &midi_in)?;
-    let in_port_name = midi_in.port_name(&this_port)?;
-    eprintln!("read_midi:in_port_name: {in_port_name}");
+
     let _connect = midi_in.connect(
         &this_port,
         format!("{}-in", this_name).as_str(),
