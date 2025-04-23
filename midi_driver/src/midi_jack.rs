@@ -134,6 +134,7 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler>(
     let mut effect: Option<u8> = None;
 
     while let Some(byte) = byte_reader.read_byte()? {
+	eprintln!("midi_jack MIDI: {byte:x}  status: {status:?}");
         if byte & 0x80 == 0x80 {
             // status
             if byte & 0x0f == channel {
