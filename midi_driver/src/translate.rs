@@ -102,7 +102,7 @@ impl ChannelTranslate {
 /// * `description` is the configuration data
 /// * Channel definition lines start with "c "
 /// * See [ChannelTranslate](ChannelTranslate::from_str) for an explanation of the format of channel definition lines
-fn get_channel(description: &str) -> Result<ChannelTranslate, Box<dyn Error>> {
+fn get_channel(description: &str) -> Result<Option<ChannelTranslate>, Box<dyn Error>> {
     let mut f = description.lines().filter(|&s| s.trim().starts_with("c "));
     if let Some(s) = f.next() {
         // c +1
@@ -118,9 +118,9 @@ fn get_channel(description: &str) -> Result<ChannelTranslate, Box<dyn Error>> {
             .into());
         }
         // Read the +- and N
-        ChannelTranslate::from_str(parts[0])
+        Ok(Some(ChannelTranslate::from_str(parts[0])?))
     } else {
-        Err("Invalid translation line".to_string().into())
+        Ok(None)
     }
 }
 
@@ -200,14 +200,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                     // Check for channel translation
                     let c1: u8 = byte & 0x0F;
-                    let channel = match channel_translate.op {
-                        ChannelOperation::Literal => channel_translate.value,
-                        ChannelOperation::Minus => c1 - channel_translate.value,
-                        ChannelOperation::Plus => c1 + channel_translate.value,
-                    };
-                    if channel == 0 || channel > 16 {
-                        return Err(Box::new(TranslateError::InvalidChannel(channel)));
-                    }
+		    let channel = if let Some(ref channel_translate) = channel_translate {
+			 match channel_translate.op {
+                            ChannelOperation::Literal => channel_translate.value,
+                            ChannelOperation::Minus => c1 - channel_translate.value,
+                            ChannelOperation::Plus => c1 + channel_translate.value,
+			}
+		    }else{
+			0
+		    };
+		    if channel > 0xf {
+                            return Err(Box::new(TranslateError::InvalidChannel(channel)));
+			}
                     // Put the status byte in the buffer
                     working.push(byte);
                     continue;
