@@ -96,7 +96,7 @@ sub handle_mh_cmd( $$ ) {
 	    return 1;
 	}
     }else{
-	print STDERR ">> Unexpected result: $result ";
+	print STDERR ">> Unexpected result: '$result' \n";
     }
     return 0;
 }
@@ -118,16 +118,18 @@ sub mod_host( $ ){
 
     foreach my $cmd (@cmds){
 	# warn "Process: \$cmd($cmd) \n";
-	# print STDERR  "mod-host: $cmd\n";
 	if(!$failed){
 	    &handle_mh_cmd($sock, $cmd);
+	}else{
+	    die "Process: \$cmd($cmd) \n";
 	}
 	## If command was an `add` check the effects got added
 	if($cmd =~ /^add.+\s(\d+)/){
 	    # print STDERR "$cmd\n";
 	    # warn "Before jack_lsp\n";
 	    my $jack = grep{/effect_$1/} `jack_lsp`;
-	    # warn "after jack_lsp\n";
+	    warn "after jack_lsp\n";
+	    sleep(0.5);
 	    if(!$jack){
 		print STDERR "$cmd: effect_$1 failed\n";
 		$failed = 1;
