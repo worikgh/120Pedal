@@ -12,8 +12,6 @@ impl JackConnections {
 
     pub fn make_connection(&mut self, src: &str, dst: &str) -> Result<(), Error> {
         self.client.connect_ports_by_name(src, dst)?;
-        eprintln!("End: make_connection({}, {})", &src, &dst);
-
         Ok(())
     }
 
