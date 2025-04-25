@@ -1,5 +1,9 @@
-//! Read MIDI on standin.
+//! Read MIDI on stdin.
 //! Make Jack connections
+//! Once configured this programme takes MIDI inputs and edits Jackd
+//! audio connections
+//! The MIDI responded to are Programme Change messages.  The channel
+//! can be optionally set, and defaults to channel 0
 use crate::jack_connections::JackConnections;
 use std::collections::HashMap;
 use std::env;
@@ -25,10 +29,12 @@ pub trait JackConnectionHandler {
 impl JackConnectionHandler for JackConnections {
     // ...
     fn make_jack(&mut self, src: &str, dst: &str) -> Result<(), Box<dyn Error>> {
+	eprintln!("jack_midi: make_jack {src} => {dst}");
         self.make_connection(src, dst)?;
         Ok(())
     }
     fn unmake_jack(&mut self, src: &str, dst: &str) -> Result<(), Box<dyn Error>> {
+	eprintln!("jack_midi: unmake_jack {src} => {dst}");
         self.unmake_connection(src, dst)?;
         Ok(())
     }
@@ -93,7 +99,13 @@ pub fn make_table(
         }
         let file_name = s[j..].to_string();
 
-        let mut file = File::open(&file_name)?;
+        let mut file = match File::open(&file_name) {
+	    Ok(f) => f,
+	    Err(err) => {
+		eprintln!("jack_midi: Failed to open file:{file_name}. Err: {err:?}");
+		return Err(Box::new(err));
+	    }
+	};
         let mut jack_cfg = String::new();
         file.read_to_string(&mut jack_cfg)?;
         let lines = jack_cfg.lines();
@@ -134,7 +146,6 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler>(
     let mut effect: Option<u8> = None;
 
     while let Some(byte) = byte_reader.read_byte()? {
-	eprintln!("midi_jack MIDI: {byte:x}  status: {status:?}");
         if byte & 0x80 == 0x80 {
             // status
             if byte & 0x0f == channel {
@@ -177,7 +188,13 @@ pub fn load_configuration(
     cfg_file_name: &str,
 ) -> Result<(HashMap<u8, Vec<(String, String)>>, u8), Box<dyn Error>> {
     let mut s = String::new();
-    let mut file = File::open(cfg_file_name)?;
+    let mut file = match File::open(cfg_file_name) {
+	Ok(f) => f,
+	Err(err) => {
+	    eprintln!("jack_midi: Error opening configuration: {err:?}");
+	    return Err(Box::new(err));
+	}
+    };
     file.read_to_string(&mut s)?;
     make_table(&s)
 }
