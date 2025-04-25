@@ -147,6 +147,16 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler>(
 
     // Record connections set so can be idempotent
     let mut connected: HashSet<(&str, &str)> = HashSet::new();
+
+    // Ensure that all the connections in `command_table` are disconnected
+    for civ in command_table.iter(){
+	for ci in civ.1.iter() {
+	    if jack_connections.unmake_jack(&ci.0, &ci.1).is_ok(){
+		eprintln!("jack_midi: Disconnected {} => {}", ci.0, ci.1);
+	    }
+	}
+    }
+
     while let Some(byte) = byte_reader.read_byte()? {
         if byte & 0x80 == 0x80 {
             // status
