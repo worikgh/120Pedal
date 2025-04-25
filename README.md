@@ -123,7 +123,7 @@ Then use a web browser to connect to port 8888 `http://<IP of PI>:8888` for the 
 Example SINCO MIDI Pedal
 ---
 
-[SINCO.png]
+![SINCO pedal](SINCO.png)
 
 * `read_midi SINCO` will open the pedal and send MIDI to its standard output.  The first MIDI device where the name is a super string of the argument ("SINCO" in this case) is chosen as the pedal device
 
