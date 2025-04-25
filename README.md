@@ -61,7 +61,7 @@ sudo systemctl enable jackd
 
 ### Setup Mod-host
 
-[LV2](https:lv2plug.in) is a set of royalty-free open standards[2] for music production plug-ins and is very useful.  This pedal can be used without it, but using LV2 is a good idea.
+[LV2](https:lv2plug.in) is a set of royalty-free open standards for music production plug-ins and is very useful.  This pedal can be used without it, but using LV2 is a good idea.
 
 * Clone `https://github.com/worikgh/mod-host.git`
   * `cd mod-host`
