@@ -5,7 +5,7 @@
 //! The MIDI responded to are Programme Change messages.  The channel
 //! can be optionally set, and defaults to channel 0
 use crate::jack_connections::JackConnections;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::error::Error;
 use std::fs::File;
@@ -145,6 +145,8 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler>(
     // The currently selected effect
     let mut effect: Option<u8> = None;
 
+    // Record connections set so can be idempotent
+    let mut connected: HashSet<(&str, &str)> = HashSet::new();
     while let Some(byte) = byte_reader.read_byte()? {
         if byte & 0x80 == 0x80 {
             // status
@@ -160,7 +162,10 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler>(
                 if let Some(jack_pipes) = command_table.get(&byte) {
                     // Have jack connections to establish in `jack_pipes`
                     for jc in jack_pipes.iter() {
-                        jack_connections.make_jack(&jc.0, &jc.1)?;
+                        if !connected.contains(&(&jc.0, &jc.1)) {
+                            jack_connections.make_jack(&jc.0, &jc.1)?;
+                            connected.insert((&jc.0, &jc.1));
+                        }
                     }
                     // If there were old ones disconnect them
                     if let Some(old_jack) = effect {
@@ -171,6 +176,7 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler>(
                             if !jack_pipes.iter().any(|jp| jp.0 == op.0 && jp.1 == op.1) {
                                 // Not in the set just connected so disconnect
                                 jack_connections.unmake_jack(&op.0, &op.1)?;
+                                connected.remove(&(&op.0, &op.1));
                             }
                         }
                     }
