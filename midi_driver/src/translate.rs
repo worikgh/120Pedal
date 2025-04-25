@@ -12,7 +12,6 @@ use std::fmt;
 
 #[derive(Debug)]
 enum TranslateError {
-    /// An invalid channel
     InvalidChannel(u8),
     InvalidChannelDefinition(String),
 }
@@ -30,7 +29,7 @@ impl fmt::Display for TranslateError {
     }
 }
 
-/// Helper function for reading `u8` from `&str`.  Hex in prefixed
+/// Helper function for reading `u8` from `&str`.  Hex if prefixed
 /// with "0x", else decimal
 fn str_u8(inp: &str) -> Result<u8, ParseIntError> {
     if inp.len() > 1 && &inp[..2] == "0x" {
@@ -200,24 +199,24 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                     // Check for channel translation
                     let c1: u8 = byte & 0x0F;
-		    let channel = if let Some(ref channel_translate) = channel_translate {
-			 match channel_translate.op {
+                    let channel = if let Some(ref channel_translate) = channel_translate {
+                        match channel_translate.op {
                             ChannelOperation::Literal => channel_translate.value,
                             ChannelOperation::Minus => c1 - channel_translate.value,
                             ChannelOperation::Plus => c1 + channel_translate.value,
-			}
-		    }else{
-			0
-		    };
-		    if channel > 0xf {
-                            return Err(Box::new(TranslateError::InvalidChannel(channel)));
-			}
+                        }
+                    } else {
+                        0
+                    };
+                    if channel > 0xf {
+                        return Err(Box::new(TranslateError::InvalidChannel(channel)));
+                    }
                     // Put the status byte in the buffer
                     working.push(byte);
                     continue;
                 } else {
                     // Data byte
-                    let x = (working.len() % 2) as u8;
+                    let x = ((working.len() - 1) % 2) as u8;
                     let s = status.as_ref().unwrap().to_byte();
                     let key = make_key(s, x, byte);
                     let v: u8 = match translation_table.get(&key) {

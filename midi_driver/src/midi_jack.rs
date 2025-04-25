@@ -29,12 +29,12 @@ pub trait JackConnectionHandler {
 impl JackConnectionHandler for JackConnections {
     // ...
     fn make_jack(&mut self, src: &str, dst: &str) -> Result<(), Box<dyn Error>> {
-	eprintln!("jack_midi: make_jack {src} => {dst}");
+        eprintln!("jack_midi: make_jack {src} => {dst}");
         self.make_connection(src, dst)?;
         Ok(())
     }
     fn unmake_jack(&mut self, src: &str, dst: &str) -> Result<(), Box<dyn Error>> {
-	eprintln!("jack_midi: unmake_jack {src} => {dst}");
+        eprintln!("jack_midi: unmake_jack {src} => {dst}");
         self.unmake_connection(src, dst)?;
         Ok(())
     }
@@ -100,12 +100,12 @@ pub fn make_table(
         let file_name = s[j..].to_string();
 
         let mut file = match File::open(&file_name) {
-	    Ok(f) => f,
-	    Err(err) => {
-		eprintln!("jack_midi: Failed to open file:{file_name}. Err: {err:?}");
-		return Err(Box::new(err));
-	    }
-	};
+            Ok(f) => f,
+            Err(err) => {
+                eprintln!("jack_midi: Failed to open file:{file_name}. Err: {err:?}");
+                return Err(Box::new(err));
+            }
+        };
         let mut jack_cfg = String::new();
         file.read_to_string(&mut jack_cfg)?;
         let lines = jack_cfg.lines();
@@ -195,11 +195,11 @@ pub fn load_configuration(
 ) -> Result<(HashMap<u8, Vec<(String, String)>>, u8), Box<dyn Error>> {
     let mut s = String::new();
     let mut file = match File::open(cfg_file_name) {
-	Ok(f) => f,
-	Err(err) => {
-	    eprintln!("jack_midi: Error opening configuration: {err:?}");
-	    return Err(Box::new(err));
-	}
+        Ok(f) => f,
+        Err(err) => {
+            eprintln!("jack_midi: Error opening configuration: {err:?}");
+            return Err(Box::new(err));
+        }
     };
     file.read_to_string(&mut s)?;
     make_table(&s)
