@@ -5,16 +5,15 @@
 //! The MIDI responded to are Programme Change messages.  The channel
 //! can be optionally set, and defaults to channel 0
 use crate::jack_connections::JackConnections;
+use crate::midi_status::MidiStatus;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io;
 use std::io::Read;
-
 mod jack_connections;
 mod midi_status;
-use crate::midi_status::MidiStatus;
 
 /// A trait for (un)making Jack connections.
 pub trait JackConnectionHandler {
@@ -149,12 +148,12 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
     let mut connected: HashSet<(&str, &str)> = HashSet::new();
 
     // Ensure that all the connections in `command_table` are disconnected
-    for civ in command_table.iter(){
-	for ci in civ.1.iter() {
-	    if jack_connections.unmake_jack(&ci.0, &ci.1).is_ok(){
-		eprintln!("jack_midi: Disconnected {} => {}", ci.0, ci.1);
-	    }
-	}
+    for civ in command_table.iter() {
+        for ci in civ.1.iter() {
+            if jack_connections.unmake_jack(&ci.0, &ci.1).is_ok() {
+                eprintln!("jack_midi: Disconnected {} => {}", ci.0, ci.1);
+            }
+        }
     }
 
     while let Some(byte) = byte_reader.read_byte()? {
@@ -232,7 +231,6 @@ mod tests {
     use super::*;
     use std::fmt::{Display, Formatter, Result as FmtResult};
     use std::io::Cursor;
-
     // Mock implementation for testing JackConnectionHandler
     #[derive(Debug)]
     struct MockJackConnectionHandler {
@@ -272,7 +270,8 @@ mod tests {
             } else {
                 self.made_connections
                     .push((src.to_string(), dst.to_string()));
-		self.unmade_connections.retain(|c| c != &(src.to_string(), dst.to_string()));
+                self.unmade_connections
+                    .retain(|c| c != &(src.to_string(), dst.to_string()));
                 Ok(())
             }
         }
@@ -288,7 +287,8 @@ mod tests {
             } else {
                 self.unmade_connections
                     .push((src.to_string(), dst.to_string()));
-		self.made_connections.retain(|c| c != &(src.to_string(), dst.to_string()));
+                self.made_connections
+                    .retain(|c| c != &(src.to_string(), dst.to_string()));
                 Ok(())
             }
         }
@@ -401,19 +401,26 @@ mod tests {
             );
             table
         }
-	fn table_connections(input:&HashMap<u8, Vec<(String, String)>>) -> Vec<(String, String)>{
-	    input.values().flatten().cloned().collect()
-	}
+        fn table_connections(input: &HashMap<u8, Vec<(String, String)>>) -> Vec<(String, String)> {
+            input.values().flatten().cloned().collect()
+        }
         #[test]
         fn test_run_with_program_change() {
             let table = create_test_table();
-            let mut mock_jack =
-                MockJackConnectionHandler::new(&table_connections(&table));
+            let mut mock_jack = MockJackConnectionHandler::new(&table_connections(&table));
             let midi_data = vec![
                 0xC0, // Program change on channel 0
                 0x01, // Program number 1
             ];
             let mut reader = Cursor::new(midi_data);
+            eprintln!(
+                "mock_jack.unmade_connections.len(): {}",
+                mock_jack.unmade_connections.len()
+            );
+            eprintln!(
+                "mock_jack.made_connections.len(): {}",
+                mock_jack.made_connections.len()
+            );
 
             run(&mut reader, &table, 0, &mut mock_jack).unwrap();
 
@@ -507,8 +514,8 @@ mod tests {
             let table = create_test_table();
             let mut mock_jack = MockJackConnectionHandler::new(&table_connections(&table));
 
-	    assert_eq!(mock_jack.unmade_connections.len(), 4);
-	    let midi_data = vec![
+            assert_eq!(mock_jack.unmade_connections.len(), 4);
+            let midi_data = vec![
                 0xC0, // Program change on channel 0
                 0x03, // Program number 3 (not in our table)
             ];
