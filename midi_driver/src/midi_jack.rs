@@ -5,7 +5,9 @@
 //! The MIDI responded to are Programme Change messages.  The channel
 //! can be optionally set, and defaults to channel 0
 use crate::jack_connections::JackConnections;
+use crate::midi_byte_reader::MidiByteReader;
 use crate::midi_status::MidiStatus;
+
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::error::Error;
@@ -13,8 +15,8 @@ use std::fs::File;
 use std::io;
 use std::io::Read;
 mod jack_connections;
+mod midi_byte_reader;
 mod midi_status;
-
 /// A trait for (un)making Jack connections.
 pub trait JackConnectionHandler {
     fn make_jack(&mut self, src: &str, dst: &str) -> Result<(), Box<dyn Error>>;
@@ -36,22 +38,6 @@ impl JackConnectionHandler for JackConnections {
         eprintln!("jack_midi: unmake_jack {src} => {dst}");
         self.unmake_connection(src, dst)?;
         Ok(())
-    }
-}
-
-pub trait MidiByteReader {
-    fn read_byte(&mut self) -> Result<Option<u8>, Box<dyn Error>>;
-}
-
-impl<R: Read> MidiByteReader for R {
-    fn read_byte(&mut self) -> Result<Option<u8>, Box<dyn Error>> {
-        let mut buffer = [0u8; 1];
-        match self.read(&mut buffer) {
-            Ok(0) => Ok(None), // EOF
-            Ok(1) => Ok(Some(buffer[0])),
-            Err(e) => Err(Box::new(e)),
-            _ => panic!("Unexpected read size"),
-        }
     }
 }
 
