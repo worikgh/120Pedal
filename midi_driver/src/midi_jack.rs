@@ -133,7 +133,7 @@ pub fn make_table(
     Ok((table, channel))
 }
 
-pub fn run<B: MidiByteReader, J: JackConnectionHandler>(
+pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
     byte_reader: &mut B,
     command_table: &HashMap<u8, Vec<(String, String)>>,
     channel: u8,
@@ -230,34 +230,67 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fmt::{Display, Formatter, Result as FmtResult};
     use std::io::Cursor;
 
     // Mock implementation for testing JackConnectionHandler
+    #[derive(Debug)]
     struct MockJackConnectionHandler {
         made_connections: Vec<(String, String)>,
         unmade_connections: Vec<(String, String)>,
     }
-
+    #[derive(Debug)]
+    struct MockJackError {
+        pub what: String,
+    }
+    impl Display for MockJackError {
+        fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+            write!(f, "MockJackError: {}", self.what)
+        }
+    }
+    impl Error for MockJackError {}
     impl MockJackConnectionHandler {
-        fn new() -> Self {
+        fn new(connections: &Vec<(String, String)>) -> Self {
             MockJackConnectionHandler {
+                // Start with no connections made
                 made_connections: Vec::new(),
-                unmade_connections: Vec::new(),
+                // Start with all connections unmade
+                unmade_connections: connections.clone(),
             }
         }
     }
 
     impl JackConnectionHandler for MockJackConnectionHandler {
         fn make_jack(&mut self, src: &str, dst: &str) -> Result<(), Box<dyn Error>> {
-            self.made_connections
-                .push((src.to_string(), dst.to_string()));
-            Ok(())
+            if self
+                .made_connections
+                .contains(&(src.to_string(), dst.to_string()))
+            {
+                Err(Box::new(MockJackError {
+                    what: format!("({src}, {dst}) is already connected"),
+                }))
+            } else {
+                self.made_connections
+                    .push((src.to_string(), dst.to_string()));
+		self.unmade_connections.retain(|c| c != &(src.to_string(), dst.to_string()));
+                Ok(())
+            }
         }
 
         fn unmake_jack(&mut self, src: &str, dst: &str) -> Result<(), Box<dyn Error>> {
-            self.unmade_connections
-                .push((src.to_string(), dst.to_string()));
-            Ok(())
+            if self
+                .unmade_connections
+                .contains(&(src.to_string(), dst.to_string()))
+            {
+                Err(Box::new(MockJackError {
+                    what: format!("({src}, {dst}) is already disconnected"),
+                }))
+            } else {
+                self.unmade_connections
+                    .push((src.to_string(), dst.to_string()));
+		self.made_connections.retain(|c| c != &(src.to_string(), dst.to_string()));
+                Ok(())
+            }
         }
     }
 
@@ -368,11 +401,14 @@ mod tests {
             );
             table
         }
-
+	fn table_connections(input:&HashMap<u8, Vec<(String, String)>>) -> Vec<(String, String)>{
+	    input.values().flatten().cloned().collect()
+	}
         #[test]
         fn test_run_with_program_change() {
             let table = create_test_table();
-            let mut mock_jack = MockJackConnectionHandler::new();
+            let mut mock_jack =
+                MockJackConnectionHandler::new(&table_connections(&table));
             let midi_data = vec![
                 0xC0, // Program change on channel 0
                 0x01, // Program number 1
@@ -390,13 +426,17 @@ mod tests {
                 mock_jack.made_connections[1],
                 ("src2".to_string(), "dst2".to_string())
             );
-            assert_eq!(mock_jack.unmade_connections.len(), 0);
+            assert_eq!(mock_jack.unmade_connections.len(), 1);
+            assert_eq!(
+                mock_jack.unmade_connections[0],
+                ("src3".to_string(), "dst3".to_string())
+            );
         }
 
         #[test]
         fn test_run_with_program_change_and_previous_effect() {
             let table = create_test_table();
-            let mut mock_jack = MockJackConnectionHandler::new();
+            let mut mock_jack = MockJackConnectionHandler::new(&table_connections(&table));
             let midi_data = vec![
                 0xC0, // Program change on channel 0
                 0x01, // Program number 1
@@ -413,7 +453,7 @@ mod tests {
                 .contains(&("src1".to_string(), "dst1".to_string())));
             assert!(mock_jack
                 .made_connections
-                .contains(&("src2".to_string(), "dst2".to_string())));
+                .contains(&("src3".to_string(), "dst3".to_string())));
 
             // Second program change should:
             // 1. Keep src1-dst1 (common to both)
@@ -432,7 +472,7 @@ mod tests {
         #[test]
         fn test_run_with_wrong_channel() {
             let table = create_test_table();
-            let mut mock_jack = MockJackConnectionHandler::new();
+            let mut mock_jack = MockJackConnectionHandler::new(&table_connections(&table));
             let midi_data = vec![
                 0xC1, // Program change on channel 1 (we're listening to channel 0)
                 0x01, // Program number 1
@@ -442,13 +482,13 @@ mod tests {
             run(&mut reader, &table, 0, &mut mock_jack).unwrap();
 
             assert_eq!(mock_jack.made_connections.len(), 0);
-            assert_eq!(mock_jack.unmade_connections.len(), 0);
+            assert_eq!(mock_jack.unmade_connections.len(), 4);
         }
 
         #[test]
         fn test_run_with_non_program_change_message() {
             let table = create_test_table();
-            let mut mock_jack = MockJackConnectionHandler::new();
+            let mut mock_jack = MockJackConnectionHandler::new(&table_connections(&table));
             let midi_data = vec![
                 0x90, // Note on (not program change)
                 0x40, // Note number
@@ -459,14 +499,16 @@ mod tests {
             run(&mut reader, &table, 0, &mut mock_jack).unwrap();
 
             assert_eq!(mock_jack.made_connections.len(), 0);
-            assert_eq!(mock_jack.unmade_connections.len(), 0);
+            assert_eq!(mock_jack.unmade_connections.len(), 4);
         }
 
         #[test]
         fn test_run_with_unknown_program() {
             let table = create_test_table();
-            let mut mock_jack = MockJackConnectionHandler::new();
-            let midi_data = vec![
+            let mut mock_jack = MockJackConnectionHandler::new(&table_connections(&table));
+
+	    assert_eq!(mock_jack.unmade_connections.len(), 4);
+	    let midi_data = vec![
                 0xC0, // Program change on channel 0
                 0x03, // Program number 3 (not in our table)
             ];
@@ -476,7 +518,7 @@ mod tests {
             assert!(result.is_ok()); // Unknown programs should be ignored, not cause errors
 
             assert_eq!(mock_jack.made_connections.len(), 0);
-            assert_eq!(mock_jack.unmade_connections.len(), 0);
+            assert_eq!(mock_jack.unmade_connections.len(), 4);
         }
     }
 

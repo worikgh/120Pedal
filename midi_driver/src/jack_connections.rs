@@ -1,6 +1,7 @@
 //! Manipulate the pipes that drive the audio through the pedals.
 use jack::Error;
 
+#[derive(Debug)]
 pub struct JackConnections {
     client: jack::Client,
 }
