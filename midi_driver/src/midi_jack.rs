@@ -234,12 +234,12 @@ mod tests {
     }
     impl Error for MockJackError {}
     impl MockJackConnectionHandler {
-        fn new(connections: &Vec<(String, String)>) -> Self {
+        fn new(connections: &[(String, String)]) -> Self {
             MockJackConnectionHandler {
                 // Start with no connections made
                 made_connections: Vec::new(),
                 // Start with all connections unmade
-                unmade_connections: connections.clone(),
+                unmade_connections: connections.to_vec(),
             }
         }
     }
