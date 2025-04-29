@@ -61,7 +61,7 @@ sudo systemctl enable jackd
 
 ### Setup Mod-host
 
-[LV2](https:lv2plug.in) is a set of royalty-free open standards[2] for music production plug-ins and is very useful.  This pedal can be used without it, but using LV2 is a good idea.
+[LV2](https:lv2plug.in) is a set of royalty-free open standards for music production plug-ins and is very useful.  This pedal can be used without it, but using LV2 is a good idea.
 
 * Clone `https://github.com/worikgh/mod-host.git`
   * `cd mod-host`
@@ -123,7 +123,7 @@ Then use a web browser to connect to port 8888 `http://<IP of PI>:8888` for the 
 Example SINCO MIDI Pedal
 ---
 
-[SINCO.png]
+![SINCO pedal](SINCO.png)
 
 * `read_midi SINCO` will open the pedal and send MIDI to its standard output.  The first MIDI device where the name is a super string of the argument ("SINCO" in this case) is chosen as the pedal device
 
