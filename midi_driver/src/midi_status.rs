@@ -89,6 +89,42 @@ impl MidiStatus {
             MidiStatus::Undefined4 => 0xFD,
         }
     }
+
+    pub fn arg_count(&self) -> u8 {
+        match self {
+            MidiStatus::ProgramChange(_)
+            | MidiStatus::ChannelAftertouch(_)
+            | MidiStatus::TimeCodeQuarterFrame
+            | MidiStatus::SongSelect => {
+                // Only one data byte.
+                1
+            }
+
+            MidiStatus::NoteOff(_)
+            | MidiStatus::NoteOn(_)
+            | MidiStatus::PolyphonicAftertouch(_)
+            | MidiStatus::ControlChange(_)
+            | MidiStatus::PitchBend(_)
+            | MidiStatus::SongPositionPointer => {
+                // Two bytes.
+                2
+            }
+
+            MidiStatus::SystemExclusive
+            | MidiStatus::ActiveSensing
+            | MidiStatus::Reset
+            | MidiStatus::Stop
+            | MidiStatus::TuneRequest
+            | MidiStatus::EndOfExclusive
+            | MidiStatus::TimingClock
+            | MidiStatus::Start
+            | MidiStatus::Continue
+            | MidiStatus::Undefined1
+            | MidiStatus::Undefined2
+            | MidiStatus::Undefined3
+            | MidiStatus::Undefined4 => 0,
+        }
+    }
 }
 #[cfg(test)]
 mod tests {
