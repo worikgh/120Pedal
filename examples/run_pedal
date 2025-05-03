@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# Get the script's directory reliably
+THISDIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
+PARENTDIR=$(CDPATH='' cd -- "${THISDIR}/.." && pwd -P)
+
+# Configuration
+CFGDIR="${PARENTDIR}/examples"
+# Verify paths exist
+if [ ! -d "${CFGDIR}" ]; then
+    echo "Error: Configuration path not found: ${CFGDIR}" >&2
+    exit 1
+fi
+
+# Set paths to executables
+MIDI_DRIVER_PATH="${PARENTDIR}/midi_driver/target/release"
+
+
+if [ ! -d "${MIDI_DRIVER_PATH}" ]; then
+    echo "Error: MIDI driver path not found: ${MIDI_DRIVER_PATH}" >&2
+    exit 1
+fi
+
+# Add to PATH
+export PATH="${MIDI_DRIVER_PATH}:${PATH}"
+
+# Verify programs exist
+for cmd in read_midi translate_midi jack_midi; do
+    if ! command -v "${cmd}" >/dev/null 2>&1; then
+        echo "Error: Command not found: ${cmd}" >&2
+        exit 1
+    fi
+done
+
+# Verify config files exist
+for cfg in "${CFGDIR}/sinco.cfg" "${CFGDIR}/sas_house.cfg"; do
+    if [ ! -f "${cfg}" ]; then
+        echo "Error: Config file not found: ${cfg}" >&2
+        exit 1
+    fi
+done
+
+# Run the MIDI processing pipeline
+read_midi SINCO | translate_midi "${CFGDIR}/sinco.cfg" | jack_midi "${CFGDIR}/sas_house.cfg"
