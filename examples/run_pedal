@@ -1,12 +1,20 @@
 #!/bin/sh
 
-# Get the script's directory reliably
+# This sets up the SINCO pedal to switch between four effects.
+
+# The effects are jack pipe definitions for connections to
+# system:playback_1 and system_capture_1
+
+# E.g:
+# effect_6:out system:playback_1
+# system:capture_1 effect_7:InputL
+
+# Get the script's directory
 THISDIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
 PARENTDIR=$(CDPATH='' cd -- "${THISDIR}/.." && pwd -P)
 
 # Configuration
-CFGDIR="${PARENTDIR}/examples"
-# Verify paths exist
+CFGDIR="${PARENTDIR}/midi_driver/examples"
 if [ ! -d "${CFGDIR}" ]; then
     echo "Error: Configuration path not found: ${CFGDIR}" >&2
     exit 1
@@ -14,31 +22,29 @@ fi
 
 # Set paths to executables
 MIDI_DRIVER_PATH="${PARENTDIR}/midi_driver/target/release"
-
-
 if [ ! -d "${MIDI_DRIVER_PATH}" ]; then
     echo "Error: MIDI driver path not found: ${MIDI_DRIVER_PATH}" >&2
     exit 1
 fi
-
-# Add to PATH
-export PATH="${MIDI_DRIVER_PATH}:${PATH}"
-
-# Verify programs exist
-for cmd in read_midi translate_midi jack_midi; do
-    if ! command -v "${cmd}" >/dev/null 2>&1; then
+READ="${MIDI_DRIVER_PATH}"/read_midi
+TRANSLATE="${MIDI_DRIVER_PATH}"/translate_midi
+JACK="${MIDI_DRIVER_PATH}"/jack_midi
+for cmd in "$READ" "$TRANSLATE" "$JACK"; do
+    if ! [ -x "${cmd}" ]; then
         echo "Error: Command not found: ${cmd}" >&2
         exit 1
     fi
 done
 
-# Verify config files exist
-for cfg in "${CFGDIR}/sinco.cfg" "${CFGDIR}/sas_house.cfg"; do
+# Configuration files
+TRANS_CFG="${CFGDIR}/sinco.cfg" ## SINCO MIDI pedal
+JACK_CFG="${CFGDIR}/sas_house.cfg" ## The set of Jack pipes 
+for cfg in  "${JACK_CFG}" "${TRANS_CFG}"; do
     if [ ! -f "${cfg}" ]; then
         echo "Error: Config file not found: ${cfg}" >&2
         exit 1
     fi
 done
 
-# Run the MIDI processing pipeline
-read_midi SINCO | translate_midi "${CFGDIR}/sinco.cfg" | jack_midi "${CFGDIR}/sas_house.cfg"
+# Run the pipeline
+$READ --list | $TRANS "${TRANS_CFG}" | $JACK "${JACK_CFG}"

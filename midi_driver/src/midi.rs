@@ -61,7 +61,7 @@ impl Midi {
                             .ports()
                             .get(index)
                             .ok_or("Invalid port number")
-                            .unwrap()
+                            .expect("A MidiInputPort")
                             .clone();
 
                         let translate_table = self.translate_table.clone();

@@ -241,7 +241,9 @@ impl Translator {
 // }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let cfg_file_name = env::args().nth(1).unwrap();
+    let cfg_file_name = env::args()
+        .nth(1)
+        .expect("A configuration file name on the command line");
 
     // The contents of the configuration file as a `String`
     let mut s: String = "".to_string();
@@ -262,7 +264,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Read stdin a byte at a time
     let stdin = io::stdin();
     let byte_reader: &mut dyn MidiByteReader = &mut stdin.lock();
-    let mut translator = Translator::new(in_channel, out_channel, translation_table, );
+    let mut translator = Translator::new(in_channel, out_channel, translation_table);
 
     // While MIDI data is incoming
     while let Some(byte) = byte_reader.read_byte()? {

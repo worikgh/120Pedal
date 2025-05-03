@@ -37,7 +37,9 @@ fn make_table(description: &str) -> Result<(HashMap<u8, String>, u8), Box<dyn Er
     Ok((r1, channel))
 }
 fn main() -> Result<(), Box<dyn Error>> {
-    let cfg_file_name = env::args().nth(1).unwrap();
+    let cfg_file_name = env::args()
+        .nth(1)
+        .expect("Configuration file on command line");
     let mut s: String = "".to_string();
     let mut file = File::open(&cfg_file_name)
         .unwrap_or_else(|e| panic!("{e:?}: Could not open file: {cfg_file_name}"));

@@ -16,11 +16,9 @@ impl JackConnections {
         Ok(())
     }
 
-    pub fn new(client_name: &str) -> Self {
-        JackConnections {
-            client: jack::Client::new(client_name, jack::ClientOptions::NO_START_SERVER)
-                .unwrap()
-                .0,
-        }
+    pub fn new(client_name: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        Ok(JackConnections {
+            client: jack::Client::new(client_name, jack::ClientOptions::NO_START_SERVER)?.0,
+        })
     }
 }

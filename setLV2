@@ -9,7 +9,7 @@ use IO::Socket::INET;
 `jack_wait -w`;
 
 ## Ensure mod-host is running
-$MH_PID = `gpid mod-host`;
+my $MH_PID = `gpid mod-host`;
 $MH_PID or die "setLV2: mod-host not running";
 my $MODHOST_PORT= join(' ', map{s/\s*(\d+)\s*$/$1/} ` lsof -Pan -p ${MH_PID} -i | grep -E "TCP|UDP" | awk '{print $9}' | cut -d':' -f2 `);
 $MODHOST_PORT eq "5555" or die "setLV2: Invalid mod-host: $MODHOST_PORT";
@@ -114,8 +114,7 @@ sub mod_host( $ ){
 
     my $remote = "localhost";
 
-    my $mod_host_port_p = $ENV{MODHOST_PORT};
-    defined($mod_host_port_p) or $mod_host_port_p = 5555;
+    my $mod_host_port_p = $MODHOST_PORT;
     my $sock = new IO::Socket::INET( PeerAddr => 'localhost',
 				     PeerPort => $mod_host_port_p,
 				     Proto => 'tcp') or

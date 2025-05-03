@@ -14,9 +14,9 @@ mod pedals_available;
 use crate::midi::MidiData;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let cfg_file: String = args().nth(1).unwrap();
+    let cfg_file: String = args().nth(1).expect("No configuration file");
     let midi_translate = MidiTranslate::new(&cfg_file);
-    run(midi_translate).unwrap();
+    run(midi_translate)?;
     loop {
         thread::sleep(Duration::from_secs(1));
     }
@@ -33,7 +33,7 @@ fn handle_midi_real(
     midi_data: &mut MidiData,
 ) -> Result<(), Box<(dyn std::error::Error + 'static)>> {
     eprintln!("handle_midi_real {:?}", b);
-    let mut jack_connetions = JackConnections::new("client_name");
+    let mut jack_connetions = JackConnections::new("client_name")?;
     let a = b[1];
     if a == midi_data.last {
         eprintln!("Idempotent!");
