@@ -1,0 +1,4 @@
+[submodule "mod-host"]
+	path = mod-host
+	url = git@github.com:worikgh/mod-host.git
+	branch = master
