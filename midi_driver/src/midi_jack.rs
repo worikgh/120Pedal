@@ -4,6 +4,7 @@
 //! audio connections
 //! The MIDI responded to are Programme Change messages.  The channel
 //! can be optionally set, and defaults to channel 0
+//! The connections are defined in a local directory 'PEDALS/'
 use crate::jack_connections::JackConnections;
 use crate::midi_byte_reader::MidiByteReader;
 use crate::midi_status::MidiStatus;
@@ -138,7 +139,17 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
         }
     }
 
-    while let Some(byte) = byte_reader.read_byte()? {
+    loop {
+        let byte = match byte_reader.read_byte() {
+            Ok(o) => match o {
+                Some(b) => b,
+                None => {
+                    eprintln!("DBG midi_jack.rs Break");
+                    break;
+                }
+            },
+            Err(err) => panic!("DBG:{err} midi_jack"),
+        };
         if byte & 0x80 == 0x80 {
             // status
             if byte & 0x0f == channel {
