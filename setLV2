@@ -8,11 +8,29 @@ use IO::Socket::INET;
 ## Ensure Jack is running
 `jack_wait -w`;
 
-## Ensure mod-host is running
-my $MH_PID = `gpid mod-host`;
+## Ensure mod-host is running.  It must be running, listening on port
+## 5555, and no other port
+my $MH_PID = qx(pgrep -x mod-host);
+chomp $MH_PID;
 $MH_PID or die "setLV2: mod-host not running";
-my $MODHOST_PORT= join(' ', map{s/\s*(\d+)\s*$/$1/} ` lsof -Pan -p ${MH_PID} -i | grep -E "TCP|UDP" | awk '{print $9}' | cut -d':' -f2 `);
-$MODHOST_PORT eq "5555" or die "setLV2: Invalid mod-host: $MODHOST_PORT";
+
+sub get_listening_ports {
+    my $pid = shift or die "Pass non-zero pid";
+    my %ports = ();
+
+    if (open my $LSOF, '-|', "lsof -Pan -p $pid -i 2>/dev/null") {
+	while (<$LSOF>) {
+	    next unless /(TCP|UDP).*?:\d+/;
+	    my ($port) = /:(\d+)/;
+	    $ports{$port} = 1 if $port;
+	}
+	close $LSOF;
+    }
+
+    return keys(%ports);
+}
+my @ports = get_listening_ports($MH_PID);
+(scalar(@ports) == 1 and  $ports[0] == 5555) or die "setLV2: Invalid mod-host ports: ".join(",", @ports);
 
 my $pedal_dir = $ENV{PEDAL_DIR};
 if(!defined($pedal_dir)){
@@ -114,7 +132,7 @@ sub mod_host( $ ){
 
     my $remote = "localhost";
 
-    my $mod_host_port_p = $MODHOST_PORT;
+    my $mod_host_port_p = $ports[0];
     my $sock = new IO::Socket::INET( PeerAddr => 'localhost',
 				     PeerPort => $mod_host_port_p,
 				     Proto => 'tcp') or
@@ -134,16 +152,14 @@ sub mod_host( $ ){
 	if($cmd =~ /^add.+\s(\d+)/){
 	    # print STDERR "$cmd\n";
 	    # warn "Before jack_lsp\n";
-	    my $jack = grep{/effect_$1/} `jack_lsp`;
-	    warn "after jack_lsp\n";
-	    sleep(0.5);
-	    if(!$jack){
-		print STDERR "$cmd: effect_$1 failed\n";
-		$failed = 1;
-	    }else{
-		$failed = 0;
-		# print STDERR "Got effect_$1\n";
+	    my $max_retries = 5;
+	    my $retry_delay = 0.1;  # seconds
+	    my $i = 0;
+	    for (; $i < $max_retries; $i++) {
+		last if grep { /effect_$1/ } `jack_lsp`;
+		select(undef, undef, undef, $retry_delay);  # Non-busy sleep
 	    }
+	    die "effect_$1 failed to appear in JACK" if $i == $max_retries;
 	}
     }
 }
@@ -162,7 +178,7 @@ sub handle_jack( $ ){
 sub handle_jack_3( $$$ ){
     ## Passed a Jack command execute it.  There are two: "connect"
     ## and "disconnect"
-	 my ($cmd, $lhs, $rhs) = @_;
+    my ($cmd, $lhs, $rhs) = @_;
 
     # warn "$cmd ";
     if($cmd eq 'connect'){ ## (\S+)\s+(\S+)\s*$/){
