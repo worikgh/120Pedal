@@ -16,7 +16,7 @@ if [ ! -d "${CFGDIR}" ]; then
     echo "  ** Error: Configuration path not found: ${CFGDIR}" >&2
     exit 1
 fi
-echo "* Have configuration directory"
+echo "* Have configuration directory: ${CFGDIR}"
 
 # Configuration files
 TRANS_CFG="${CFGDIR}/sinco.cfg" ## SINCO MIDI pedal
@@ -35,6 +35,7 @@ if [ ! -d "${MIDI_DRIVER_PATH}" ]; then
     echo "  ** Error: MIDI driver path not found: ${MIDI_DRIVER_PATH}" >&2
     exit 1
 fi
+echo "* Found executable directory: ${MIDI_DRIVER_PATH}"
 READ="${MIDI_DRIVER_PATH}"/read_midi
 TRANS="${MIDI_DRIVER_PATH}"/translate_midi
 JACK="${MIDI_DRIVER_PATH}"/jack_midi
@@ -45,7 +46,6 @@ for cmd in "$READ" "$TRANS" "$JACK"; do
     fi
 done
 echo "* All required executables found"
-echo Here 0
 
 ## Our mod-host must be running, so shut down any other, explicitly
 ## ignore failure 
@@ -63,6 +63,5 @@ while ! nc -z localhost 5555; do
 done
 echo "* mod-host started successfully!"
 
-echo  "* Ready to run the pipeline : "
 # Run the pipeline
 $READ SINCO | $TRANS "${TRANS_CFG}" | $JACK "${JACK_CFG}"
