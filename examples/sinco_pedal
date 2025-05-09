@@ -64,6 +64,5 @@ done
 echo "* mod-host started successfully!"
 
 echo  "* Ready to run the pipeline : "
-exit 0
 # Run the pipeline
 $READ SINCO | $TRANS "${TRANS_CFG}" | $JACK "${JACK_CFG}"
