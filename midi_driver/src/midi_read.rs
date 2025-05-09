@@ -10,6 +10,7 @@ mod midi;
 const THIS_MIDI_NAME: &str = "120Pedal";
 
 fn main() -> Result<(), Box<dyn Error>> {
+    eprintln!("DBG midi_read.rs main ");
     // The name of the MIDI port.  The first port found that contains
     // this string will be used
     let matches = Command::new("MyApp")

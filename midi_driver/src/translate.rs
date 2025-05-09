@@ -274,6 +274,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         translator.write_working();
         translator.truncate();
     }
+    eprintln!("DBG translate.rs main after main loop");
     Ok(())
 }
 

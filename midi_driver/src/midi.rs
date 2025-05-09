@@ -52,7 +52,6 @@ impl Midi {
             match midi_in.port_name(port) {
                 Err(_) => continue,
                 Ok(port_name) => {
-                    eprintln!("DEBUGGING: port_name: {port_name}");
                     if port_name.as_str().contains(self.name.as_str()) {
                         // Found the port (first port that `card_name`
                         // is a subset of)
@@ -73,7 +72,6 @@ impl Midi {
                                     Some(&d) => d,
                                     None => b[1],
                                 };
-                                println!("MIDI in {:?}/{c}", &b);
 
                                 f(&[192, c], connection_cache);
                             },

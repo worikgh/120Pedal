@@ -30,12 +30,10 @@ pub trait JackConnectionHandler {
 impl JackConnectionHandler for JackConnections {
     // ...
     fn make_jack(&mut self, src: &str, dst: &str) -> Result<(), Box<dyn Error>> {
-        eprintln!("jack_midi: make_jack {src} => {dst}");
         self.make_connection(src, dst)?;
         Ok(())
     }
     fn unmake_jack(&mut self, src: &str, dst: &str) -> Result<(), Box<dyn Error>> {
-        eprintln!("jack_midi: unmake_jack {src} => {dst}");
         self.unmake_connection(src, dst)?;
         Ok(())
     }
@@ -136,9 +134,7 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
     // Ensure that all the connections in `command_table` are disconnected
     for civ in command_table.iter() {
         for ci in civ.1.iter() {
-            if jack_connections.unmake_jack(&ci.0, &ci.1).is_ok() {
-                eprintln!("jack_midi: Disconnected {} => {}", ci.0, ci.1);
-            }
+            _ = jack_connections.unmake_jack(&ci.0, &ci.1);
         }
     }
 
