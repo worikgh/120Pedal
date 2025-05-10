@@ -1,4 +1,4 @@
 [submodule "mod-host"]
 	path = mod-host
-	url = git@github.com:worikgh/mod-host.git
-	branch = master
+	url = https://github.com/worikgh/mod-host.git
+	branch = mistress
