@@ -1,0 +1,22 @@
+#!/bin/sh
+
+set -e
+
+sudo systemctl stop modep-mod-ui
+sudo systemctl stop modep-mod-host
+
+MOD_HOST_HOME="${HOME}/mod-host"
+One20PedalHome="${HOME}/120Pedal"
+# Start mod-host
+cd "${MOD_HOST_HOME}"
+echo "Building and starting mod-host..."
+pkill mod-host || true  # Prevent exit if process not found
+make
+export LV2_PATH=/var/modep/lv2
+./mod-host  -p 5555 
+
+cd ${One20PedalHome}
+./setLV2
+echo "  ** Start pedal"
+./examples/sinco_pedal
+
