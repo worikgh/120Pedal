@@ -47,21 +47,6 @@ for cmd in "$READ" "$TRANS" "$JACK"; do
 done
 echo "* All required executables found"
 
-## Our mod-host must be running, so shut down any other, explicitly
-## ignore failure 
-pkill mod-host || true
-${PARENTDIR}/mod-host/mod-host -p 5555
-timeout=5  # Max wait time in seconds
-elapsed=0
-while ! nc -z localhost 5555; do
-  sleep 0.1
-  elapsed=$((elapsed + 1))
-  if [ "$elapsed" -ge "$timeout" ]; then
-    echo "  ** Error: mod-host failed to start!" >&2
-    exit 1
-  fi
-done
-echo "* mod-host started successfully!"
 
 # Run the pipeline
 $READ SINCO | $TRANS "${TRANS_CFG}" | $JACK "${JACK_CFG}"
