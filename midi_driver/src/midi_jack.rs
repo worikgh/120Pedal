@@ -86,7 +86,7 @@ pub fn make_table(
         let mut file = match File::open(&file_name) {
             Ok(f) => f,
             Err(err) => {
-                eprintln!("jack_midi: Failed to open file:{file_name}. Err: {err:?}");
+                eprintln!("midi_jack.rs: jack_midi: Failed to open file:{file_name}. Err: {err:?}");
                 return Err(Box::new(err));
             }
         };
@@ -144,7 +144,7 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
             Ok(o) => match o {
                 Some(b) => b,
                 None => {
-                    eprintln!("DBG midi_jack.rs Break");
+                    eprintln!("DBG midi_jack.rs: Break");
                     break;
                 }
             },
@@ -199,7 +199,7 @@ pub fn load_configuration(
     let mut file = match File::open(cfg_file_name) {
         Ok(f) => f,
         Err(err) => {
-            eprintln!("jack_midi: Error opening configuration: {err:?}");
+            eprintln!("midi_jack.rs: Error opening configuration: {err:?}");
             return Err(Box::new(err));
         }
     };
@@ -409,11 +409,11 @@ mod tests {
             ];
             let mut reader = Cursor::new(midi_data);
             eprintln!(
-                "mock_jack.unmade_connections.len(): {}",
+                "midi_jack.rs: mock_jack.unmade_connections.len(): {}",
                 mock_jack.unmade_connections.len()
             );
             eprintln!(
-                "mock_jack.made_connections.len(): {}",
+                "midi_jack.rs: mock_jack.made_connections.len(): {}",
                 mock_jack.made_connections.len()
             );
 

@@ -10,7 +10,7 @@ mod midi;
 const THIS_MIDI_NAME: &str = "120Pedal";
 
 fn main() -> Result<(), Box<dyn Error>> {
-    eprintln!("DBG midi_read.rs main ");
+    eprintln!("DBG midi_read.rs: main ");
     // The name of the MIDI port.  The first port found that contains
     // this string will be used
     let matches = Command::new("MyApp")
@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if list {
         for mp in midi_in.ports().iter() {
             eprintln!(
-                "{}",
+                "midi_read.rs: {}",
                 midi_in
                     .port_name(mp)
                     .unwrap_or("Failed to get a port's name".to_string())
