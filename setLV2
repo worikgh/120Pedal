@@ -30,7 +30,7 @@ sub get_listening_ports {
     return keys(%ports);
 }
 my @ports = get_listening_ports($MH_PID);
-(scalar(@ports) == 1 and  $ports[0] == 5555) or die "setLV2: Invalid mod-host ports: ".join(",", @ports);
+# (scalar(@ports) == 1 and  $ports[0] == 5555) or die "setLV2: Invalid mod-host ports: ".join(",", @ports);
 
 my $pedal_dir = $ENV{PEDAL_DIR};
 if(!defined($pedal_dir)){
@@ -132,7 +132,7 @@ sub mod_host( $ ){
 
     my $remote = "localhost";
 
-    my $mod_host_port_p = $ports[0];
+    my $mod_host_port_p = 5555; #$ports[0];
     my $sock = new IO::Socket::INET( PeerAddr => 'localhost',
 				     PeerPort => $mod_host_port_p,
 				     Proto => 'tcp') or
@@ -159,7 +159,7 @@ sub mod_host( $ ){
 		last if grep { /effect_$1/ } `jack_lsp`;
 		select(undef, undef, undef, $retry_delay);  # Non-busy sleep
 	    }
-	    die "effect_$1 failed to appear in JACK" if $i == $max_retries;
+	    die "effect_$1 failed to appear in JACK for command: $cmd" if $i == $max_retries;
 	}
     }
 }
