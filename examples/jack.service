@@ -1,0 +1,16 @@
+[Unit]
+Description=JACK Audio Connection Kit
+After=sound.target
+
+[Service]
+ExecStart=/bin/sh -c 'CARD=$(aplay -l | grep -m1 "Scarlett Solo" | cut -d" " -f2 | tr -d ":"); exec /usr/bin/jackd -d alsa -d hw:$CARD -r 48000 -p 128 -n 2'
+Restart=always
+User=puppy
+Group=audio
+LimitMEMLOCK=8589934592
+LimitRTPRIO=89
+Environment="XDG_RUNTIME_DIR=/run/user/$(id -u puppy)"
+Environment="JACK_NO_AUDIO_RESERVATION=1"
+
+[Install]
+WantedBy=multi-user.target
