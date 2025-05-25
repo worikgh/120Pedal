@@ -1,5 +1,5 @@
 #!/bin/sh
 set -e
 
-pkill mod-host || true
+sudo pkill mod-host || true
 sudo systemctl restart modep-mod-ui
