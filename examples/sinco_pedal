@@ -49,4 +49,4 @@ echo "* All required executables found"
 
 
 # Run the pipeline
-$READ SINCO | $TRANS "${TRANS_CFG}" | $JACK "${JACK_CFG}"
+($READ SINCO | $TRANS "${TRANS_CFG}" | $JACK "${JACK_CFG}")&
