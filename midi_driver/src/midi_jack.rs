@@ -148,7 +148,7 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
                     break;
                 }
             },
-            Err(err) => panic!("DBG:{err} midi_jack"),
+            Err(err) => panic!("Error:{err} midi_jack"),
         };
         if byte & 0x80 == 0x80 {
             // status
