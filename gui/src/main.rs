@@ -1,97 +1,128 @@
 extern crate simple;
 use simple::{Event, Window};
 
-/// For a button
-enum Action {
-    Execute(String),
+trait TouchRectFn {
+    fn event(&mut self, is_down: bool, x: f64, y: f64);
+    fn point_inside(&self, x: f64, y: f64) -> bool;
+    fn paint(&self, app: &mut Window);
 }
 
-/// A buton
-#[derive(PartialEq)]
-enum PedalState {
-    ModUi,
-    Qzn3t,
-}
-struct TouchRect {
+/// The "button" that switches metween `mod-ui` and `qzn3t` MIDI pedal
+struct MainTouchRect {
+    /// RGBA
+    state_colour: [u8; 4],
+    not_state_colour: [u8; 4],
+    /// Name of an external function that one argument: `state`.
+    /// Starts `mod-ui` or `qzn3t`
+    command: String,
     /// x,y,w,h in 0..1
     corners: [f64; 4],
-    action: Action,
+    /// Was the last event a 'mouse_down'
     down: bool,
-    state: PedalState,
-    colour: [u8; 4],
+    /// This is effectively a toggle
+    state: bool,
+    /// If there are errors `valid` is false
     valid: bool,
+    /// The size of the rectangular area in native pixels
+    width: u16,
+    height: u16,
 }
-
-impl TouchRect {
-    fn _new(x: f64, y: f64, w: f64, h: f64, action: Action, colour: [u8; 4]) -> Self {
-        Self {
-            corners: [x, y, w, h],
-            action,
-            down: false,
-            colour,
-            state: PedalState::Qzn3t,
-            valid: true,
+impl TouchRectFn for MainTouchRect {
+    fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
+        if self.down != is_down {
+            if !is_down {
+                // Released. Take action
+                let argument = self.state;
+                match std::process::Command::new(self.command.as_str())
+                    .arg(argument.to_string())
+                    .status()
+                {
+                    Ok(s) => {
+                        eprintln!("DBG Run command Ok {argument}: Success: {}", s.success(),);
+                        self.valid = s.success();
+                    }
+                    Err(err) => eprintln!("DBG Run command Err {argument}: {err:?}"),
+                };
+                self.state = !self.state;
+            }
+            self.down = is_down;
         }
     }
-    fn event(&mut self, e: &Event) {
-        if let Event::Mouse { is_down, .. } = e {
-            // eprintln!("DBG TouchRect event: {is_down}");
-            if self.down != *is_down {
-                self.down = *is_down;
-                if !self.down {
-                    self.state = match self.state {
-                        PedalState::ModUi => PedalState::Qzn3t,
-                        PedalState::Qzn3t => PedalState::ModUi,
-                    };
-                    match &self.action {
-                        Action::Execute(command) => {
-                            let argument = self.state == PedalState::Qzn3t;
-                            match std::process::Command::new(command)
-                                .arg(argument.to_string())
-                                .status()
-                            {
-                                Ok(s) => {
-                                    eprintln!(
-                                        "DBG Run command Ok {argument}: Success: {}",
-                                        s.success(),
-                                    );
-                                    self.valid = s.success();
-                                }
-                                Err(err) => eprintln!("DBG Run command Err {argument}: {err:?}"),
-                            };
-                        }
-                    };
-                }
-            }
+    fn point_inside(&self, x: f64, y: f64) -> bool {
+        if x > self.corners[0]
+            && x <= self.corners[2] + self.corners[0]
+            && y > self.corners[1]
+            && y < self.corners[3] + self.corners[1]
+        {
+            true
+        } else {
+            false
         }
+    }
+    fn paint(&self, app: &mut Window) {
+        let colour: [u8; 4];
+        let fill_area = if self.valid {
+            simple::Rect::new(
+                (self.corners[0] * self.width as f64) as i32,
+                (self.corners[1] * self.height as f64) as i32,
+                (self.corners[2] * self.width as f64) as u32,
+                (self.corners[3] * self.height as f64) as u32,
+            )
+        } else {
+            let x0 = 0;
+            let x1 = self.width as i32;
+            let y0 = (0.4 * self.height as f64) as i32;
+            let y1 = (0.6 * self.height as f64) as i32;
+            simple::Rect::new(x0, y0, (x1 - x0) as u32, (y1 - y0) as u32)
+        };
+        if self.down {
+            colour = [0, 0, 0, 0];
+        } else if self.state {
+            colour = [
+                self.state_colour[0],
+                self.state_colour[1],
+                self.state_colour[2],
+                self.state_colour[3],
+            ];
+        } else {
+            colour = [
+                self.not_state_colour[0],
+                self.not_state_colour[1],
+                self.not_state_colour[2],
+                self.not_state_colour[3],
+            ];
+        }
+        app.set_color(colour[0], colour[1], colour[2], colour[3]);
+        app.fill_rect(fill_area);
     }
 }
 
 /// `TouchScreenCtl` Control surface for the device
 struct TouchScreenCtl {
-    rects: Vec<TouchRect>,
-    width: usize,
-    height: usize,
+    /// The control areas
+    rects: Vec<Box<dyn TouchRectFn>>,
+
+    /// Over all size
+    width: u16,
+    height: u16,
 }
 
 impl TouchScreenCtl {
     fn event(&mut self, e: &Event) {
-        for i in self.rects.iter_mut() {
-            if let Event::Mouse {
-                mouse_x, mouse_y, ..
-            } = *e
-            {
+        if let Event::Mouse {
+            mouse_x,
+            mouse_y,
+            is_down,
+            ..
+        } = *e
+        {
+            for i in self.rects.iter_mut() {
                 let x = mouse_x as f64 / self.width as f64;
                 let y = mouse_y as f64 / self.height as f64;
-                if x > i.corners[0]
-                    && x <= i.corners[0] + i.corners[2]
-                    && y > i.corners[1]
-                    && y <= i.corners[1] + i.corners[3]
-                {
-                    i.event(e);
+                if i.point_inside(x, y) {
+                    i.event(is_down, x, y);
                 }
             }
-            i.event(e);
         }
     }
 }
@@ -100,69 +131,44 @@ fn main() {
         Some(arg) => arg,
         None => panic!("Pass the control script as an argument"),
     };
+    // TODO: Check `argv` is executable
     eprintln!("DBG argv: {argv}");
 
-    let width: usize = 475;
-    let height: usize = 250;
+    let width: u16 = 475;
+    let height: u16 = 250;
     let mut app = simple::Window::new("Qzn3t", width as u16, height as u16);
 
-    // One rect for the whole screen
-    let main_button = TouchRect {
-        corners: [0.0, 0.0, 1.0, 1.0],
+    // The button that switches between `qzn3t` and `mod-ui`
+    let main_button = MainTouchRect {
+        corners: [0.0, 0.0, 0.75, 1.0],
         down: false,
-        colour: [255, 0, 0, 127],
-        action: Action::Execute(argv),
-        state: PedalState::Qzn3t,
+        state_colour: [0, 0, 255, 255],
+        not_state_colour: [255, 0, 0, 255],
+        command: argv,
+        state: false,
         valid: true,
-    };
-    let mut _tsc = TouchScreenCtl {
-        rects: vec![main_button],
         width,
         height,
     };
 
-    let paint_screen = |app: &mut Window, _tsc: &mut TouchScreenCtl| {
-        for i in _tsc.rects.iter() {
-            let colour: [u8; 4];
-            if i.down {
-                colour = [0, 0, 0, 0];
-            } else if i.state == PedalState::Qzn3t {
-                colour = [i.colour[0], i.colour[1], i.colour[2], i.colour[3]];
-            } else {
-                let r = ((i.colour[0] as u16 + 127) % 255) as u8;
-                let g = ((i.colour[1] as u16 + 127) % 255) as u8;
-                let b = ((i.colour[2] as u16 + 127) % 255) as u8;
-                let a = ((i.colour[3] as u16 + 127) % 255) as u8;
-                colour = [r, g, b, a];
-            }
+    let mut tsc = TouchScreenCtl {
+        rects: vec![Box::new(main_button)],
+        width,
+        height,
+    };
 
-            app.set_color(colour[0], colour[1], colour[2], colour[3]);
-            app.clear();
-            let fill_area: simple::Rect;
-            if i.valid {
-                fill_area = simple::Rect::new(
-                    i.corners[0] as i32 * _tsc.width as i32,
-                    i.corners[1] as i32 * _tsc.height as i32,
-                    i.corners[2] as u32 * _tsc.width as u32,
-                    i.corners[3] as u32 * _tsc.height as u32,
-                );
-            }else{
-                let x0 = 0;
-                let x1 = width as i32;
-                let y0 = (0.4 * height as f64) as i32;
-                let y1 = (0.6 * height as f64) as i32;
-                fill_area = simple::Rect::new(x0, y0, (x1-x0) as u32, (y1-y0) as u32);
-            }
-            app.fill_rect(fill_area);
-            eprintln!("DBG Paint button rect: {fill_area:?} colour: {colour:?} Valid:{}", i.valid);
+    let paint_screen = |app: &mut Window, tsc: &mut TouchScreenCtl| {
+        app.clear();
+        for i in tsc.rects.iter() {
+            i.paint(app);
         }
     };
-    paint_screen(&mut app, &mut _tsc);
+    paint_screen(&mut app, &mut tsc);
     while app.next_frame() {
         while app.has_event() {
             let e = app.next_event();
-            _tsc.event(&e);
-            paint_screen(&mut app, &mut _tsc);
+            tsc.event(&e);
+            paint_screen(&mut app, &mut tsc);
         }
     }
 }
