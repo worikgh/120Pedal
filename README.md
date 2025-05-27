@@ -85,15 +85,15 @@ python3 -m venv myenv
 source myenv/bin/activate
 pip3 install -r requirements.txt
 if [ -e myenv/lib/python3.10/site-packages/tornado/httputil.py ]; then
-	echo "  * Update 3.10: "
-	sed -i -e 's/collections.MutableMapping/collections.abc.MutableMapping/' myenv/lib/python3.10/site-packages/tornado/httputil.py
+    echo "  * Update 3.10: "
+    sed -i -e 's/collections.MutableMapping/collections.abc.MutableMapping/' myenv/lib/python3.10/site-packages/tornado/httputil.py
 elif [ -e myenv/lib/python3.11/site-packages/tornado/httputil.py ]; then
-	echo "  * Update 3.11: "
-	sed -i -e 's/collections.MutableMapping/collections.abc.MutableMapping/' myenv/lib/python3.11/site-packages/tornado/httputil.py
+    echo "  * Update 3.11: "
+    sed -i -e 's/collections.MutableMapping/collections.abc.MutableMapping/' myenv/lib/python3.11/site-packages/tornado/httputil.py
 elif [ -e myenv/lib/python3.12/site-packages/tornado/httputil.py ]; then
-	echo "  * Update 3.12: "
-	sed -i -e 's/collections.MutableMapping/collections.abc.MutableMapping/' myenv/lib/python3.12/site-packages/tornado/httputil.py
-	sed -i -e 's/import ssl/import _NOT_ssl/' myenv/lib/python3.12/site-packages/tornado/netutil.py
+    echo "  * Update 3.12: "
+    sed -i -e 's/collections.MutableMapping/collections.abc.MutableMapping/' myenv/lib/python3.12/site-packages/tornado/httputil.py
+    sed -i -e 's/import ssl/import _NOT_ssl/' myenv/lib/python3.12/site-packages/tornado/netutil.py
 fi
 make -C utils
 export MOD_DEV_ENVIRONMENT=0
@@ -109,10 +109,10 @@ Then use a web browser to connect to port 8888 `http://<IP of PI>:8888` for the 
 * If using LV2 simulators and `mod-ui`
   * `./getLV2param`
     * This reads the pedals as set up by `mod-ui`
-	* Alternatively if `mod-ui` run on a different computer, copy the LV2 definitions to `~/.lv2` and the `PEDALS/` directory to `120Pedal/PEDALS`
+    * Alternatively if `mod-ui` run on a different computer, copy the LV2 definitions to `~/.lv2` and the `PEDALS/` directory to `120Pedal/PEDALS`
   * `./setLV2`
     * This sets up the LV2 simulators.  It connects them into pedal boards (named in the `PEDALS/` directory) and makes the Jack connections between them.
-	* It makes no connections to the jack ports: `system_capture_*` and `system_playback_*`
+    * It makes no connections to the jack ports: `system_capture_*` and `system_playback_*`
 
 ### Pedal Driver
 
@@ -132,7 +132,7 @@ Example SINCO MIDI Pedal
   * Only programme change values output are:  0, 1, 2 or 3
   * The SINCO pedal has eight modes and can output 32 MIDI values.
     * Modes are changed by depressing two buttons together
-	* The buttons are small and close together, it is easy to depress two together by mistake
+    * The buttons are small and close together, it is easy to depress two together by mistake
     * The translation table ensure that button 'A' outputs 0, button 'B' outputs 1,  button 'C' outputs 2 and button 'D' outputs 3,  in all modes.
 
 * `jack_midi examples/midi_jack.cfg`The configuration file:
@@ -149,7 +149,7 @@ j 3 PEADLS/lost_world
 
 The files have contents like:
 ```sh
-$ cat PEDALS/lost_world 
+$ cat PEDALS/lost_world
 system:capture_1 effect_14:in
 effect_13:Out1 system:playback_1
 ```
@@ -157,4 +157,3 @@ effect_13:Out1 system:playback_1
 Where `effect_14` and `effect_13` are LV2 simulators.  There will be Jack connections between them set up by `setLV2`
 
 `120Pedal/midi_driver $ (export PATH=$PATH:$(pwd)/target/release; read_midi SINC | translate_midi examples/sinco.cfg | jack_midi examples/sas_house.cfg)`
-	
