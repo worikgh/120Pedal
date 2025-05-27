@@ -1,5 +1,6 @@
 extern crate simple;
 use simple::{Event, Window};
+use std::process::exit;
 
 trait TouchRectFn {
     fn event(&mut self, is_down: bool, x: f64, y: f64);
@@ -27,37 +28,52 @@ struct MainTouchRect {
     width: u16,
     height: u16,
 }
+
+/// This runs the command form MainTouchRect.  The command takes one
+/// `bool` argument.  If `tru` it will run `qzn3t` otherwise it rns
+/// `mod-ui`.  It returns `true` if the comand succeeded, `false`
+/// otherwise
+fn run_command(command: &str, argument: bool) -> bool {
+    match std::process::Command::new(command)
+        .arg(argument.to_string())
+        .status()
+    {
+        Ok(s) => {
+            eprintln!(
+                "DBG Run command Ok.  Arg: {argument}: Success: {}",
+                s.success(),
+            );
+            s.success()
+        }
+        Err(err) => {
+            eprintln!("DBG Run command Err {argument}: {err:?}");
+            false
+        }
+    }
+}
+
+impl MainTouchRect {
+    fn run_command(&mut self) {
+        self.valid = run_command(self.command.as_str(), self.state);
+    }
+}
+
 impl TouchRectFn for MainTouchRect {
     fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
         if self.down != is_down {
             if !is_down {
                 // Released. Take action
-                let argument = self.state;
-                match std::process::Command::new(self.command.as_str())
-                    .arg(argument.to_string())
-                    .status()
-                {
-                    Ok(s) => {
-                        eprintln!("DBG Run command Ok {argument}: Success: {}", s.success(),);
-                        self.valid = s.success();
-                    }
-                    Err(err) => eprintln!("DBG Run command Err {argument}: {err:?}"),
-                };
+                self.run_command();
                 self.state = !self.state;
             }
             self.down = is_down;
         }
     }
     fn point_inside(&self, x: f64, y: f64) -> bool {
-        if x > self.corners[0]
+        x > self.corners[0]
             && x <= self.corners[2] + self.corners[0]
             && y > self.corners[1]
             && y < self.corners[3] + self.corners[1]
-        {
-            true
-        } else {
-            false
-        }
     }
     fn paint(&self, app: &mut Window) {
         let colour: [u8; 4];
@@ -133,10 +149,13 @@ fn main() {
     };
     // TODO: Check `argv` is executable
     eprintln!("DBG argv: {argv}");
-
+    if !run_command(argv.as_str(), false) {
+        eprintln!("Failed to run `{argv} false`");
+        exit(1);
+    }
     let width: u16 = 475;
     let height: u16 = 250;
-    let mut app = simple::Window::new("Qzn3t", width as u16, height as u16);
+    let mut app = simple::Window::new("Qzn3t", width, height);
 
     // The button that switches between `qzn3t` and `mod-ui`
     let main_button = MainTouchRect {
@@ -145,12 +164,11 @@ fn main() {
         state_colour: [0, 0, 255, 255],
         not_state_colour: [255, 0, 0, 255],
         command: argv,
-        state: false,
+        state: true,
         valid: true,
         width,
         height,
     };
-
     let mut tsc = TouchScreenCtl {
         rects: vec![Box::new(main_button)],
         width,
