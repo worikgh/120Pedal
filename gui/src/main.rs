@@ -8,8 +8,9 @@ trait TouchRectFn {
     fn paint(&self, app: &mut Window);
 }
 
-/// The "button" that switches metween `mod-ui` and `qzn3t` MIDI pedal
-struct MainTouchRect {
+/// The "button" that executes a system command, and passes its
+/// `state` as a booleen argument
+struct BoolCommandRect {
     /// RGBA
     state_colour: [u8; 4],
     not_state_colour: [u8; 4],
@@ -29,11 +30,42 @@ struct MainTouchRect {
     height: u16,
 }
 
-/// This runs the command form MainTouchRect.  The command takes one
+/// The "button" that executes a system command, and passes its
+/// `state` as a tri-state argument
+enum TriState {
+    A,
+    B,
+    C,
+}
+struct TriCommandRect {
+    /// RGBA
+    state_a_colour: [u8; 4],
+    state_b_colour: [u8; 4],
+    state_c_colour: [u8; 4],
+
+    /// Name of an external function that one argument: `state`.
+    /// Starts `mod-ui` or `qzn3t`
+    command: String,
+    /// x,y,w,h in 0..1
+    corners: [f64; 4],
+    /// Was the last event a 'mouse_down'
+    down: bool,
+    /// This is effectively a toggle
+    state: TriState,
+
+    /// If there are errors `valid` is false
+    valid: bool,
+
+    /// The size of the rectangular area in native pixels
+    width: u16,
+    height: u16,
+}
+
+/// This runs the command from MainTouchRect.  The command takes one
 /// `bool` argument.  If `tru` it will run `qzn3t` otherwise it rns
 /// `mod-ui`.  It returns `true` if the comand succeeded, `false`
 /// otherwise
-fn run_command(command: &str, argument: bool) -> bool {
+fn run_command(command: &str, argument: bool, _network: bool) -> bool {
     match std::process::Command::new(command)
         .arg(argument.to_string())
         .status()
@@ -52,13 +84,55 @@ fn run_command(command: &str, argument: bool) -> bool {
     }
 }
 
-impl MainTouchRect {
-    fn run_command(&mut self) {
-        self.valid = run_command(self.command.as_str(), self.state);
+impl TouchRectFn for TriCommandRect {
+    fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
+        if self.down != is_down {
+            if !is_down {
+                // Released. Rotate state
+                self.state = match self.state {
+                    TriState::A => TriState::B,
+                    TriState::B => TriState::C,
+                    TriState::C => TriState::A,
+                };
+            }
+            self.down = is_down;
+        }
+    }
+    fn point_inside(&self, x: f64, y: f64) -> bool {
+        x > self.corners[0]
+            && x <= self.corners[2] + self.corners[0]
+            && y > self.corners[1]
+            && y < self.corners[3] + self.corners[1]
+    }
+    fn paint(&self, app: &mut Window) {
+        let fill_area = simple::Rect::new(
+            (self.corners[0] * self.width as f64) as i32,
+            (self.corners[1] * self.height as f64) as i32,
+            (self.corners[2] * self.width as f64) as u32,
+            (self.corners[3] * self.height as f64) as u32,
+        );
+        let colour: [u8; 4];
+        if self.down {
+            colour = [0, 0, 0, 0];
+        } else {
+            colour = match self.state {
+                TriState::A => self.state_a_colour,
+                TriState::B => self.state_b_colour,
+                TriState::C => self.state_c_colour,
+            };
+        }
+        app.set_color(colour[0], colour[1], colour[2], colour[3]);
+        app.fill_rect(fill_area);
     }
 }
 
-impl TouchRectFn for MainTouchRect {
+impl BoolCommandRect {
+    fn run_command(&mut self) {
+        self.valid = run_command(self.command.as_str(), self.state, true);
+    }
+}
+
+impl TouchRectFn for BoolCommandRect {
     fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
         if self.down != is_down {
             if !is_down {
@@ -149,7 +223,7 @@ fn main() {
     };
     // TODO: Check `argv` is executable
     eprintln!("DBG argv: {argv}");
-    if !run_command(argv.as_str(), false) {
+    if !run_command(argv.as_str(), false, true) {
         eprintln!("Failed to run `{argv} false`");
         exit(1);
     }
@@ -158,8 +232,10 @@ fn main() {
     let mut app = simple::Window::new("Qzn3t", width, height);
 
     // The button that switches between `qzn3t` and `mod-ui`
-    let main_button = MainTouchRect {
-        corners: [0.0, 0.0, 0.75, 1.0],
+    const MAIN_WIDTH: f64 = 0.75;
+    const MAIN_HEIGHT: f64 = 1.0;
+    let main_button = BoolCommandRect {
+        corners: [0.0, 0.0, MAIN_WIDTH, MAIN_HEIGHT],
         down: false,
         state_colour: [0, 0, 255, 255],
         not_state_colour: [255, 0, 0, 255],
@@ -169,8 +245,22 @@ fn main() {
         width,
         height,
     };
+
+    let network_button = TriCommandRect {
+        corners: [MAIN_WIDTH, 0.25, 1.0 - MAIN_WIDTH, 0.5],
+        down: false,
+        state_a_colour: [255, 255, 0, 255],
+        state_b_colour: [0, 255, 255, 255],
+        state_c_colour: [255, 0, 255, 255],
+
+        command: "".to_string(),
+        state: TriState::A,
+        valid: true,
+        width,
+        height,
+    };
     let mut tsc = TouchScreenCtl {
-        rects: vec![Box::new(main_button)],
+        rects: vec![Box::new(main_button), Box::new(network_button)],
         width,
         height,
     };
