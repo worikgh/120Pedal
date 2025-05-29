@@ -445,3 +445,5 @@ sub read_turtle( $ ){
     }
     return @comma_processed;
 }
+
+exit 0;

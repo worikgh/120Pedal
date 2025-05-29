@@ -10,13 +10,16 @@ This has been built and tested primarily on Raspberry Pi 4 and 5 SBCs.
 
 * Using Debian 12
 *  Required packages:
-  * jackd2
-  * libjack-jackd2-dev
-  * lv2-dev
-  * libreadline-dev
-  * liblilv-dev
+  * dnsmasq
   * git
+  * hostapd
+  * iw
+  * jackd2
   * libasound2-dev
+  * libjack-jackd2-dev
+  * liblilv-dev
+  * libreadline-dev
+  * lv2-dev
   * pkg-config
   * python3.11-dev
 * Install rust
@@ -157,3 +160,95 @@ effect_13:Out1 system:playback_1
 Where `effect_14` and `effect_13` are LV2 simulators.  There will be Jack connections between them set up by `setLV2`
 
 `120Pedal/midi_driver $ (export PATH=$PATH:$(pwd)/target/release; read_midi SINC | translate_midi examples/sinco.cfg | jack_midi examples/sas_house.cfg)`
+
+
+### Set up Network Interfaces
+
+Disable NetwokManager (the default for Pi) and enable `systemd-networkd`. The latter is better for our purposes.
+
+First step.  Edit: `/etc/wpa_supplicant/wpa_supplicant-wlan0.conf` to configure Wi-Fi for the local network  in the lab
+
+```
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=NZ  # Change to your country code
+
+network={
+    ssid="Your netwrk SSID"
+    psk="your_wifi_password_here"
+    priority=1  # Higher priority = tries to connect first
+}
+```
+
+Configure `systemd-networkd` for Wi-Fi Client Mode
+---
+
+Edit `/etc/systemd/network/20-wlan0.network`
+
+Add:
+```
+[Match]
+Name=wlan0
+
+[Network]
+DHCP=yes
+```
+
+Set Up Hotspot Config
+---
+
+Edit: `/etc/systemd/network/10-hotspot.network`
+
+Add
+
+```
+[Match]
+Name=wlan0
+
+[Network]
+Address=192.168.4.1/24
+DHCPServer=yes  # Uses built-in DHCP (no `dnsmasq` required)
+
+[DHCPServer]
+PoolOffset=10
+PoolSize=20
+EmitDNS=yes
+DNS=192.168.4.1  # Optional: Use Pi as DNS
+```
+
+Edit: `/etc/hostapd/hostapd.conf`
+
+```
+interface=wlan0
+driver=nl80211
+ssid=qzn3t          # Hotspot name
+hw_mode=g
+channel=6
+wpa=2
+wpa_passphrase=12345678  # Change this!
+wpa_key_mgmt=WPA-PSK
+rsn_pairwise=CCMP
+```
+
+Then rearrange the system software
+
+```sh
+# Stop NetworkManager
+sudo systemctl stop NetworkManager
+sudo systemctl disable NetworkManager
+# Enable `systemd-networkd` and `systemd-resolved`
+sudo systemctl enable systemd-networkd
+sudo systemctl start systemd-networkd
+sudo systemctl enable systemd-resolved
+sudo systemctl start systemd-resolved
+# Enable wpa_supplicant for wlan0
+sudo systemctl enable wpa_supplicant@wlan0
+sudo systemctl start wpa_supplicant@wlan0
+#Set Up `wpa_supplicant` for Wi-Fi
+sudo systemctl enable wpa_supplicant@wlan0
+sudo systemctl start wpa_supplicant@wlan0
+# Broadcast the SSID as a hotspot
+sudo systemctl unmask hostapd
+sudo systemctl enable --now hostapd
+```
+
