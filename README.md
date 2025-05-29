@@ -194,6 +194,7 @@ Name=wlan0
 DHCP=yes
 ```
 
+
 Set Up Hotspot Config
 ---
 
@@ -230,17 +231,38 @@ wpa_key_mgmt=WPA-PSK
 rsn_pairwise=CCMP
 ```
 
+Configure Minimal mDNS (.local resolution only)
+---
+
+Edit `/etc/systemd/resolved.conf`
+
+```
+[Resolve]
+DNS=                     # Empty = no DNS servers
+FallbackDNS=             # Empty = no fallbacks
+MulticastDNS=yes         # Enable mDNS for .local
+DNSSEC=no                # Disable DNSSEC
+DNSOverTLS=no            # Disable DoT
+LLMNR=yes                # Enable link-local name resolution
+```
+
+Edit `/etc/nsswitch.conf`
+
+Set the following line:
+
+```
+hosts: files mdns_minimal [NOTFOUND=return] dns myhostname
+```
+
 Then rearrange the system software
 
 ```sh
 # Stop NetworkManager
 sudo systemctl stop NetworkManager
 sudo systemctl disable NetworkManager
-# Enable `systemd-networkd` and `systemd-resolved`
+# Enable `systemd-networkd`
 sudo systemctl enable systemd-networkd
 sudo systemctl start systemd-networkd
-sudo systemctl enable systemd-resolved
-sudo systemctl start systemd-resolved
 # Enable wpa_supplicant for wlan0
 sudo systemctl enable wpa_supplicant@wlan0
 sudo systemctl start wpa_supplicant@wlan0
