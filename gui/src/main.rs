@@ -220,7 +220,9 @@ impl TouchScreenCtl {
     }
 }
 fn main() {
-    let command = match std::env::args().nth(1) {
+    let mut args = std::env::args().skip(1);
+    eprintln!("args: {args:?}  args.len(): {}", args.len());
+    let command = match args.next() {
         Some(arg) => arg,
         None => panic!("Pass the control script as an argument"),
     };
@@ -236,12 +238,28 @@ fn main() {
         eprintln!("{command} is not executable");
         exit(1);
     }
+    let width: u16;
+    let height: u16;
+    if args.len() == 2 {
+        // Passed width and height as arguments
+        width = args
+            .next()
+            .unwrap() // Checked this argument is here
+            .parse::<u16>()
+            .expect("Width argument not parsed as u16");
+        height = args
+            .next()
+            .unwrap() // Checked this argument is here
+            .parse::<u16>()
+            .expect("Height argument not parsed as u16");
+    } else {
+        width = 475;
+        height = 250;
+    }
     if !run_command(command.as_str(), false, true) {
         eprintln!("Failed to run `{command} false`");
         exit(1);
     }
-    let width: u16 = 475;
-    let height: u16 = 250;
     let mut app = simple::Window::new("Qzn3t", width, height);
 
     // The button that switches between `qzn3t` and `mod-ui`
