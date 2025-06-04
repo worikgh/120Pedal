@@ -1,5 +1,8 @@
 extern crate simple;
 use simple::{Event, Window};
+use std::fs::metadata;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::process::exit;
 mod send_osc;
 trait TouchRectFn {
@@ -217,14 +220,24 @@ impl TouchScreenCtl {
     }
 }
 fn main() {
-    let argv = match std::env::args().nth(1) {
+    let command = match std::env::args().nth(1) {
         Some(arg) => arg,
         None => panic!("Pass the control script as an argument"),
     };
-    // TODO: Check `argv` is executable
-    eprintln!("DBG argv: {argv}");
-    if !run_command(argv.as_str(), false, true) {
-        eprintln!("Failed to run `{argv} false`");
+    // Check `command` is executable
+    #[cfg(unix)]
+    if metadata(&command)
+        .unwrap_or_else(|e| panic!("{e}: Cannot get metadata for {command}"))
+        .permissions()
+        .mode()
+        & 0o111
+        == 0
+    {
+        eprintln!("{command} is not executable");
+        exit(1);
+    }
+    if !run_command(command.as_str(), false, true) {
+        eprintln!("Failed to run `{command} false`");
         exit(1);
     }
     let width: u16 = 475;
@@ -239,7 +252,7 @@ fn main() {
         down: false,
         state_colour: [0, 0, 255, 255],
         not_state_colour: [255, 0, 0, 255],
-        command: argv,
+        command,
         state: true,
         valid: true,
         width,
