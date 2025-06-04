@@ -1,7 +1,7 @@
 extern crate simple;
 use simple::{Event, Window};
 use std::process::exit;
-
+mod send_osc;
 trait TouchRectFn {
     fn event(&mut self, is_down: bool, x: f64, y: f64);
     fn point_inside(&self, x: f64, y: f64) -> bool;
@@ -43,7 +43,7 @@ struct TriCommandRect {
     state_b_colour: [u8; 4],
     state_c_colour: [u8; 4],
 
-    /// Name of an external function that one argument: `state`.
+    /// Name of an external function that takes one argument: `state`.
     /// Starts `mod-ui` or `qzn3t`
     command: String,
     /// x,y,w,h in 0..1
