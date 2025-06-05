@@ -5,7 +5,6 @@ use std::error::Error;
 use std::io::{self, Write};
 use std::thread;
 use std::time::Duration;
-mod midi;
 
 const THIS_MIDI_NAME: &str = "120Pedal";
 

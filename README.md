@@ -133,7 +133,7 @@ Then use a web browser to connect to port 8888 `http://<IP of PI>:8888` for the 
 * Clone the [120Pedal](https://github.com/worikgh/120Pedal.git) repository
 * `cd 120Pedal`
 * If using LV2 simulators and `mod-ui`
-  * `./getLV2param`
+  * `./getLV2`
     * This reads the pedals as set up by `mod-ui`
     * Alternatively if `mod-ui` run on a different computer, copy the LV2 definitions to `~/.lv2` and the `PEDALS/` directory to `120Pedal/PEDALS`
   * `./setLV2`

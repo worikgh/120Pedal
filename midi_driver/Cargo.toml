@@ -28,10 +28,6 @@ path="src/midi_jack.rs"
 name = "dump_midi"
 path="src/midi_dump.rs"
 
-[[bin]]
-name="main"
-path="src/main.rs"
-
 [dependencies]
 alsa = "0.7.0"
 clap = "4.5.35"
