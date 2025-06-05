@@ -35,6 +35,7 @@ struct BoolCommandRect {
 
 /// The "button" that executes a system command, and passes its
 /// `state` as a tri-state argument
+#[allow(dead_code)]
 enum TriState {
     A,
     B,
@@ -264,8 +265,8 @@ fn main() {
     let mut app = simple::Window::new("Qzn3t", width, height);
 
     // The button that switches between `qzn3t` and `mod-ui`
-    const MAIN_WIDTH: f64 = 0.75;
-    const MAIN_HEIGHT: f64 = 1.0;
+    const MAIN_WIDTH: f64 = 0.15;
+    const MAIN_HEIGHT: f64 = 0.15;
     let main_button = BoolCommandRect {
         corners: [0.0, 0.0, MAIN_WIDTH, MAIN_HEIGHT],
         down: false,
@@ -278,21 +279,8 @@ fn main() {
         height,
     };
 
-    let network_button = TriCommandRect {
-        corners: [MAIN_WIDTH, 0.25, 1.0 - MAIN_WIDTH, 0.5],
-        down: false,
-        state_a_colour: [255, 255, 0, 255],
-        state_b_colour: [0, 255, 255, 255],
-        state_c_colour: [255, 0, 255, 255],
-
-        command: "".to_string(),
-        state: TriState::A,
-        valid: true,
-        width,
-        height,
-    };
     let mut tsc = TouchScreenCtl {
-        rects: vec![Box::new(main_button), Box::new(network_button)],
+        rects: vec![Box::new(main_button)],
         width,
         height,
     };
