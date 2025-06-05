@@ -19,11 +19,34 @@ This has been built and tested primarily on Raspberry Pi 4 and 5 SBCs.
   * libjack-jackd2-dev
   * liblilv-dev
   * libreadline-dev
+  * libsdl2-dev
+  * libsdl2-image-dev
   * lv2-dev
   * pkg-config
   * python3.11-dev
+`sudo apt install  dnsmasq git hostapd iw jackd2 libasound2-dev libjack-jackd2-dev liblilv-dev libreadline-dev lv2-dev pkg-config python3.11-dev -y`
+
 * Install rust
   * `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+## Auto start Qzn3t GUI
+
+```
+mkdir -p ~/.config/autostart
+nano ~/.config/autostart/120pedal.desktop
+```
+
+```
+[Desktop Entry]
+Type=Application
+Name=120Pedal
+Exec=/bin/bash -c "sleep 5 && ${HOME}/120Pedal/gui/run.sh"
+Comment=120Pedal Controller
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=10
+```
+
+`chmod +x ~/.config/autostart/120pedal.desktop`
 
 ### Configure Jack
 
@@ -160,117 +183,4 @@ effect_13:Out1 system:playback_1
 Where `effect_14` and `effect_13` are LV2 simulators.  There will be Jack connections between them set up by `setLV2`
 
 `120Pedal/midi_driver $ (export PATH=$PATH:$(pwd)/target/release; read_midi SINC | translate_midi examples/sinco.cfg | jack_midi examples/sas_house.cfg)`
-
-
-### Set up Network Interfaces
-
-Disable NetwokManager (the default for Pi) and enable `systemd-networkd`. The latter is better for our purposes.
-
-First step.  Edit: `/etc/wpa_supplicant/wpa_supplicant-wlan0.conf` to configure Wi-Fi for the local network  in the lab
-
-```
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-country=NZ  # Change to your country code
-
-network={
-    ssid="Your netwrk SSID"
-    psk="your_wifi_password_here"
-    priority=1  # Higher priority = tries to connect first
-}
-```
-
-Configure `systemd-networkd` for Wi-Fi Client Mode
----
-
-Edit `/etc/systemd/network/20-wlan0.network`
-
-Add:
-```
-[Match]
-Name=wlan0
-
-[Network]
-DHCP=yes
-```
-
-
-Set Up Hotspot Config
----
-
-Edit: `/etc/systemd/network/10-hotspot.network`
-
-Add
-
-```
-[Match]
-Name=wlan0
-
-[Network]
-Address=192.168.4.1/24
-DHCPServer=yes  # Uses built-in DHCP (no `dnsmasq` required)
-
-[DHCPServer]
-PoolOffset=10
-PoolSize=20
-EmitDNS=yes
-DNS=192.168.4.1  # Optional: Use Pi as DNS
-```
-
-Edit: `/etc/hostapd/hostapd.conf`
-
-```
-interface=wlan0
-driver=nl80211
-ssid=qzn3t          # Hotspot name
-hw_mode=g
-channel=6
-wpa=2
-wpa_passphrase=12345678  # Change this!
-wpa_key_mgmt=WPA-PSK
-rsn_pairwise=CCMP
-```
-
-Configure Minimal mDNS (.local resolution only)
----
-
-Edit `/etc/systemd/resolved.conf`
-
-```
-[Resolve]
-DNS=                     # Empty = no DNS servers
-FallbackDNS=             # Empty = no fallbacks
-MulticastDNS=yes         # Enable mDNS for .local
-DNSSEC=no                # Disable DNSSEC
-DNSOverTLS=no            # Disable DoT
-LLMNR=yes                # Enable link-local name resolution
-```
-
-Edit `/etc/nsswitch.conf`
-
-Set the following line:
-
-```
-hosts: files mdns_minimal [NOTFOUND=return] dns myhostname
-```
-
-Then rearrange the system software
-
-```sh
-# Stop NetworkManager
-sudo systemctl stop NetworkManager
-sudo systemctl disable NetworkManager
-# Enable `systemd-networkd`
-sudo systemctl enable systemd-networkd
-sudo systemctl start systemd-networkd
-# Enable wpa_supplicant for wlan0
-sudo systemctl enable wpa_supplicant@wlan0
-sudo systemctl start wpa_supplicant@wlan0
-#Set Up `wpa_supplicant` for Wi-Fi
-sudo systemctl enable wpa_supplicant@wlan0
-sudo systemctl start wpa_supplicant@wlan0
-# Broadcast the SSID as a hotspot
-sudo systemctl unmask hostapd
-sudo systemctl enable --now hostapd
-```
 
