@@ -211,7 +211,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut jack_connections = JackConnections::new("midi_client")?;
     let cfg_file_name = env::args()
         .nth(1)
-        .expect("Configuratin file on the command line");
+        .expect("Configuration file on the command line");
     let (command_table, channel): (HashMap<u8, Vec<(String, String)>>, u8) =
         load_configuration(&cfg_file_name)?;
     run(
