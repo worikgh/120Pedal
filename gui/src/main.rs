@@ -40,6 +40,8 @@ enum TriState {
     B,
     C,
 }
+
+#[allow(dead_code)]
 struct TriCommandRect {
     /// RGBA
     state_a_colour: [u8; 4],
@@ -114,16 +116,15 @@ impl TouchRectFn for TriCommandRect {
             (self.corners[2] * self.width as f64) as u32,
             (self.corners[3] * self.height as f64) as u32,
         );
-        let colour: [u8; 4];
-        if self.down {
-            colour = [0, 0, 0, 0];
+        let colour = if self.down {
+            [0, 0, 0, 0]
         } else {
-            colour = match self.state {
+            match self.state {
                 TriState::A => self.state_a_colour,
                 TriState::B => self.state_b_colour,
                 TriState::C => self.state_c_colour,
-            };
-        }
+            }
+        };
         app.set_color(colour[0], colour[1], colour[2], colour[3]);
         app.fill_rect(fill_area);
     }
