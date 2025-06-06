@@ -18,6 +18,10 @@ use std::io::Read;
 mod jack_connections;
 mod midi_byte_reader;
 mod midi_status;
+
+/// The path to where pedal information is held. This is also known by the GUI
+const PEDAL_DIR: &str = "PEDALS/";
+
 /// A trait for (un)making Jack connections.
 pub trait JackConnectionHandler {
     fn make_jack(&mut self, src: &str, dst: &str) -> Result<(), Box<dyn Error>>;
@@ -81,8 +85,8 @@ pub fn make_table(
             }
             j += 1;
         }
-        let file_name = s[j..].to_string();
 
+        let file_name = format!("{PEDAL_DIR}/{}", &s[j..]);
         let mut file = match File::open(&file_name) {
             Ok(f) => f,
             Err(err) => {
