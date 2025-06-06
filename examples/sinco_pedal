@@ -39,6 +39,11 @@ echo "* Found executable directory: ${MIDI_DRIVER_PATH}"
 READ="${MIDI_DRIVER_PATH}"/read_midi
 TRANS="${MIDI_DRIVER_PATH}"/translate_midi
 JACK="${MIDI_DRIVER_PATH}"/jack_midi
+
+if pgrep -x "read_midi" >/dev/null; then
+    pkill -x "read_midi" && echo "Stopped read_midi" || echo "Failed to stop read_midi"
+fi
+
 for cmd in "$READ" "$TRANS" "$JACK"; do
     if ! [ -x "${cmd}" ]; then
         echo "  ** Error: Command not found: ${cmd}" >&2
