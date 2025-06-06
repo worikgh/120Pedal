@@ -52,6 +52,7 @@ for cmd in "$READ" "$TRANS" "$JACK"; do
 done
 echo "* All required executables found"
 
-
 # Run the pipeline
 ($READ SINCO | $TRANS "${TRANS_CFG}" | $JACK "${JACK_CFG}")&
+
+echo "DBG sinco_pedal pipeline started"
