@@ -9,12 +9,14 @@ use crate::jack_connections::JackConnections;
 use crate::midi_byte_reader::MidiByteReader;
 use crate::midi_status::MidiStatus;
 
+use fs2::FileExt;
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::error::Error;
-use std::fs::File;
-use std::io;
+use std::fs::{File, OpenOptions};
 use std::io::Read;
+use std::io::{self, Write};
 mod jack_connections;
 mod midi_byte_reader;
 mod midi_status;
@@ -125,6 +127,55 @@ pub fn make_table(
     Ok((table, channel))
 }
 
+/// Store the current state of the connections
+#[derive(Serialize, Deserialize)]
+struct State {
+    // The selected effect
+    selected: Option<u8>,
+    // The effects to choose from and their volumes, The volumes
+    // are set in the Gui and not affected by this programme
+    choices: Vec<(u8, f64)>,
+    // Match numbers to names
+    names: Vec<(u8, String)>,
+}
+impl State {
+    fn new(command_table: &HashMap<u8, Vec<(String, String)>>) -> Self {
+        let choices = command_table
+            .iter()
+            // Volume default
+            .map(|(k, _)| (*k, 0.5))
+            .collect::<Vec<(u8, f64)>>();
+
+        Self {
+            selected: None,
+            choices, //: Vec::new(),
+            names: Vec::new(),
+        }
+    }
+}
+fn state_file_name() -> String {
+    format!("{PEDAL_DIR}/.state")
+}
+fn write_state(state: &State) -> io::Result<()> {
+    let json =
+        serde_json::to_string(state).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let mut file = OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(state_file_name())?;
+    file.lock_exclusive()?;
+    file.write_all(&json.into_bytes())?;
+    Ok(())
+}
+fn read_state() -> io::Result<State> {
+    let mut file = OpenOptions::new().read(true).open(state_file_name())?;
+    file.lock_exclusive()?;
+    let mut json = String::new();
+    file.read_to_string(&mut json)?;
+    serde_json::from_str(&json).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+    //Err(io::Error::other("jack_midi: readState unimplemented"))
+}
+
 pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
     byte_reader: &mut B,
     command_table: &HashMap<u8, Vec<(String, String)>>,
@@ -140,6 +191,8 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
     // Record connections set so can be idempotent
     let mut connected: HashSet<(&str, &str)> = HashSet::new();
 
+    let mut state = State::new(command_table);
+    let mut state_clean = true;
     // Ensure that all the connections in `command_table` are disconnected
     for civ in command_table.iter() {
         for ci in civ.1.iter() {
@@ -192,9 +245,17 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
                             }
                         }
                     }
+                    state.selected = Some(byte);
+                    state_clean = false;
                     effect = Some(byte);
                 }
             }
+        }
+        if !state_clean {
+            let old_state = read_state()?;
+            state.choices = old_state.choices;
+            write_state(&state)?;
+            state_clean = true;
         }
     }
     Ok(())
