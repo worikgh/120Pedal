@@ -159,20 +159,33 @@ fn state_file_name() -> String {
 fn write_state(state: &State) -> io::Result<()> {
     let json =
         serde_json::to_string(state).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let fname = state_file_name();
+    eprintln!("DBG jack_midi Write state to: {fname}");
     let mut file = OpenOptions::new()
         .write(true)
         .truncate(true)
-        .open(state_file_name())?;
+        .create(true)
+        .open(fname)?;
     file.lock_exclusive()?;
     file.write_all(&json.into_bytes())?;
     Ok(())
 }
-fn read_state() -> io::Result<State> {
-    let mut file = OpenOptions::new().read(true).open(state_file_name())?;
-    file.lock_exclusive()?;
-    let mut json = String::new();
-    file.read_to_string(&mut json)?;
-    serde_json::from_str(&json).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+fn read_state() -> io::Result<Option<State>> {
+    eprintln!("jack_midi Read state");
+    match OpenOptions::new().read(true).open(state_file_name()) {
+        Ok(mut file) => {
+            file.lock_exclusive()?;
+            let mut json = String::new();
+            file.read_to_string(&mut json)?;
+            let result = serde_json::from_str::<State>(&json)
+                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+            Ok(Some(result))
+        }
+        Err(err) => {
+            eprintln!("DBG jack_midi err read stats: {err:?}");
+            Ok(None)
+        }
+    }
     //Err(io::Error::other("jack_midi: readState unimplemented"))
 }
 
@@ -252,8 +265,9 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
             }
         }
         if !state_clean {
-            let old_state = read_state()?;
-            state.choices = old_state.choices;
+            if let Some(old_state) = read_state()? {
+                state.choices = old_state.choices;
+            }
             write_state(&state)?;
             state_clean = true;
         }
