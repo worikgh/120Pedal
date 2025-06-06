@@ -240,7 +240,12 @@ impl Translator {
 //     Plus,
 // }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
+    if let Err(err) = inner_main() {
+        eprintln!("read_midi failed: {err:?}");
+    }
+}
+fn inner_main() -> Result<(), Box<dyn Error>> {
     let cfg_file_name = env::args()
         .nth(1)
         .expect("A configuration file name on the command line");

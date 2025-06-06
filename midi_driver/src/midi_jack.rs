@@ -278,7 +278,7 @@ pub fn load_configuration(
     make_table(&s)
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn inner_main() -> Result<(), Box<dyn Error>> {
     let mut jack_connections = JackConnections::new("midi_client")?;
     let cfg_file_name = env::args()
         .nth(1)
@@ -291,6 +291,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         channel,
         &mut jack_connections,
     )
+}
+
+fn main() {
+    if let Err(err) = inner_main() {
+        eprintln!("jack_midi failed: {err:?}");
+    }
 }
 #[cfg(test)]
 mod tests {

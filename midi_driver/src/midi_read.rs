@@ -8,7 +8,12 @@ use std::time::Duration;
 
 const THIS_MIDI_NAME: &str = "120Pedal";
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
+    if let Err(err) = inner_main() {
+        eprintln!("read_midi failed: {err:?}");
+    }
+}
+fn inner_main() -> Result<(), Box<dyn Error>> {
     // The name of the MIDI port.  The first port found that contains
     // this string will be used
     let matches = Command::new("MyApp")
