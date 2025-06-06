@@ -66,7 +66,11 @@ pub fn make_table(
         if !s.starts_with("j ") {
             continue;
         }
-        if s.len() < 6 {
+
+        // The string needs 2 chars for "j ", two characters, at least
+        // for number, and then at least one characters to name the
+        // pedal file
+        if s.len() < 5 {
             return Err(format!("{s1} is an invalid line for jack_midi configuration").into());
         }
         let mut i = 2;
@@ -166,6 +170,8 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
             // Data byte
             if let Some(MidiStatus::ProgramChange(_)) = status.as_ref() {
                 if let Some(jack_pipes) = command_table.get(&byte) {
+                    // Changing the pedal to byte
+
                     // Have jack connections to establish in `jack_pipes`
                     for jc in jack_pipes.iter() {
                         if !connected.contains(&(&jc.0, &jc.1)) {
