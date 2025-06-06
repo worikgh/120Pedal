@@ -78,7 +78,7 @@ fn run_command(command: &str, argument: bool, _network: bool) -> bool {
     {
         Ok(s) => {
             eprintln!(
-                "DBG Run command Ok.  Arg: {argument}: Success: {}",
+                "DBG Run command: {command} Ok.  Arg: {argument}: Success: {}",
                 s.success(),
             );
             s.success()
@@ -292,6 +292,7 @@ fn main() {
         }
     };
     paint_screen(&mut app, &mut tsc);
+    eprintln!("DBG gui main");
     while app.next_frame() {
         while app.has_event() {
             let e = app.next_event();
