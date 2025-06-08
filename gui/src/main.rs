@@ -1,5 +1,8 @@
 extern crate simple;
+use pedal_state::read_state;
+use pedal_state::PedalState;
 use simple::{Event, Window};
+use std::env;
 use std::fs::metadata;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -126,6 +129,10 @@ impl TouchRectFn for TriCommandRect {
                 TriState::C => self.state_c_colour,
             }
         };
+        eprintln!(
+            "DBG TriCommandRect.paint widthxheight {}x{} fill_area: {fill_area:?}",
+            self.width, self.height
+        );
         app.set_color(colour[0], colour[1], colour[2], colour[3]);
         app.fill_rect(fill_area);
     }
@@ -187,6 +194,10 @@ impl TouchRectFn for BoolCommandRect {
                 self.not_state_colour[3],
             ];
         }
+        eprintln!(
+            "DBG BoolCommandRect.paint widthxheight {}x{} fill_area: {fill_area:?}",
+            self.width, self.height
+        );
         app.set_color(colour[0], colour[1], colour[2], colour[3]);
         app.fill_rect(fill_area);
     }
@@ -222,7 +233,7 @@ impl TouchScreenCtl {
     }
 }
 fn main() {
-    let mut args = std::env::args().skip(1);
+    let mut args = env::args().skip(1);
     eprintln!("args: {args:?}  args.len(): {}", args.len());
     let command = match args.next() {
         Some(arg) => arg,
@@ -258,6 +269,21 @@ fn main() {
         width = 475;
         height = 250;
     }
+
+    // Set up display of pedals and volume
+    let mut pedals_dir = env::current_dir().expect("Failed to get current dir");
+    pedals_dir.push("../PEDALS");
+    let pedals_path = pedals_dir.canonicalize().expect("Failed to resolve path");
+    let pedal_state = match read_state(pedals_path.to_str().expect("Cannot convert path to string"))
+        .expect("Failed reading PedalState")
+    {
+        Some(p) => p,
+        None => PedalState {
+            selected: None,
+            choices: Vec::new(),
+        },
+    };
+
     if !run_command(command.as_str(), false, true) {
         eprintln!("Failed to run `{command} false`");
         exit(1);
@@ -266,7 +292,7 @@ fn main() {
 
     // The button that switches between `qzn3t` and `mod-ui`
     const MAIN_WIDTH: f64 = 0.15;
-    const MAIN_HEIGHT: f64 = 0.15;
+    const MAIN_HEIGHT: f64 = 0.25;
     let main_button = BoolCommandRect {
         corners: [0.0, 0.0, MAIN_WIDTH, MAIN_HEIGHT],
         down: false,
