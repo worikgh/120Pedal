@@ -83,13 +83,19 @@ impl TouchRectFn for EffectMixer {
     }
     #[allow(dead_code, unused_variables)]
     fn paint(&self, app: &mut Window) {
+        // Some constants to define the size of the "sliders"
+        let margin = 0.1; // Gap top and bottom
+
+        // `w_f` is width factor.  If it is 1.0 there is no space
+        // between sliders
+        let w_f = 5.0;
+
         // Paint the background
-        let fill_area = simple::Rect::new(
-            (self.corners[0] * self.width as f64) as i32,
-            (self.corners[1] * self.height as f64) as i32,
-            (self.corners[2] * self.width as f64) as u32,
-            (self.corners[3] * self.height as f64) as u32,
-        );
+        let x = (self.corners[0] * self.width as f64) as i32;
+        let bg_y = (self.corners[1] * self.height as f64) as i32;
+        let bg_width = (self.corners[2] * self.width as f64) as u32;
+        let bg_height = (self.corners[3] * self.height as f64) as u32;
+        let fill_area = simple::Rect::new(x, bg_y, bg_width, bg_height);
         app.set_color(0xf0, 0xf0, 0xf0, 255);
         app.fill_rect(fill_area);
 
@@ -102,16 +108,27 @@ impl TouchRectFn for EffectMixer {
             "DBG effects_mixer.paint widthxheight {}x{} count: {count} x_step: {x_step:0.2}",
             self.width, self.height
         );
-        for channel in self.channels.iter() {
-            // Background colour
-            app.set_color(0xff, 0xff, 0xff, 0xff);
-            let x1 = i * x_step - x_step / 4.0;
-            let x = ((self.corners[0] + x1) * self.width as f64) as i32;
-            let y = (self.corners[1] * self.height as f64 * 1.5) as i32;
-            let width = (x_step / 2.0 * self.width as f64) as u32;
-            let height = (self.corners[3] * self.height as f64 * 0.5) as u32;
+        // Vertical elements are constant for each  slider
+        let y = bg_y + (self.height as f64 * margin) as i32;
+        let height = (self.corners[3] * self.height as f64) as u32 - 2 * (y - bg_y) as u32;
+        // The width of each slider is constant
+        let width = (x_step * self.width as f64 / w_f) as u32;
+
+        for (idx, (_, v)) in self.channels.iter().enumerate() {
+            let xc = ((i * x_step) * self.width as f64) as i32;
+            if let Some(selected) = self.selected {
+                if selected == idx as u8 {
+                    let x = xc - width as i32;
+                    let width = width * 2;
+                    let rect = simple::Rect::new(x, y, width, height);
+                    app.set_color(0xf0, 0x0f, 0xff, 0xff);
+                    app.fill_rect(rect);
+                }
+            }
+            let x = xc - (width / 2) as i32;
             let rect = simple::Rect::new(x, y, width, height);
             eprintln!("DBG effects_mixer.paint rect: {rect:?} i: {i}");
+            app.set_color(0xff, 0xff, 0xff, 0xff);
             app.fill_rect(rect);
 
             // Forground colour
@@ -119,11 +136,14 @@ impl TouchRectFn for EffectMixer {
             // Sider position.  `x` and `width` unchanged
             // `y_v` is set by the voume.
             // the `height` is the thickness and can be 1.0 for now
-            let volume = channel.1;
+            let volume = v;
             let y_v = y + (height as f64 - volume * height as f64) as i32;
             let rect = simple::Rect::new(x, y_v, width, 1);
-            eprintln!("DBG effects_mixer.paint rect: {rect:?} i: {i} volume: {volume:0.2}");
+            eprintln!(
+                "DBG effects_mixer.paint rect: {rect:?} i: {i} volume: {volume:0.2} xc: {xc}"
+            );
             app.fill_rect(rect);
+
             i += 1.0;
         }
     }
