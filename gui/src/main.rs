@@ -45,6 +45,89 @@ enum TriState {
     C,
 }
 
+#[allow(dead_code, unused_variables)]
+/// Display a volume control for each effect.  Highlight the selected
+/// effect
+struct EffectMixer {
+    selected: Option<u8>,
+    channels: Vec<(u8, f64)>,
+    corners: [f64; 4],
+    width: u16,
+    height: u16,
+}
+impl EffectMixer {
+    fn new(
+        pedal_state: &PedalState,
+        x: f64,
+        y: f64,
+        w: f64,
+        h: f64,
+        width: u16,
+        height: u16,
+    ) -> Self {
+        Self {
+            selected: pedal_state.selected,
+            channels: pedal_state.choices.clone(),
+            corners: [x, y, w, h],
+            width,
+            height,
+        }
+    }
+}
+impl TouchRectFn for EffectMixer {
+    #[allow(dead_code, unused_variables)]
+    fn event(&mut self, is_down: bool, x: f64, y: f64) {}
+    #[allow(dead_code, unused_variables)]
+    fn point_inside(&self, x: f64, y: f64) -> bool {
+        false
+    }
+    #[allow(dead_code, unused_variables)]
+    fn paint(&self, app: &mut Window) {
+        // Paint the background
+        let fill_area = simple::Rect::new(
+            (self.corners[0] * self.width as f64) as i32,
+            (self.corners[1] * self.height as f64) as i32,
+            (self.corners[2] * self.width as f64) as u32,
+            (self.corners[3] * self.height as f64) as u32,
+        );
+        app.set_color(0xf0, 0xf0, 0xf0, 255);
+        app.fill_rect(fill_area);
+
+        // Paint the volume slider back ground and indicator for each
+        // effect
+        let count = self.channels.len();
+        let x_step = 1.0 / (count as f64 + 1.0);
+        let mut i = 1.0;
+        eprintln!(
+            "DBG effects_mixer.paint widthxheight {}x{} count: {count} x_step: {x_step:0.2}",
+            self.width, self.height
+        );
+        for channel in self.channels.iter() {
+            // Background colour
+            app.set_color(0xff, 0xff, 0xff, 0xff);
+            let x1 = i * x_step - x_step / 4.0;
+            let x = ((self.corners[0] + x1) * self.width as f64) as i32;
+            let y = (self.corners[1] * self.height as f64 * 1.5) as i32;
+            let width = (x_step / 2.0 * self.width as f64) as u32;
+            let height = (self.corners[3] * self.height as f64 * 0.5) as u32;
+            let rect = simple::Rect::new(x, y, width, height);
+            eprintln!("DBG effects_mixer.paint rect: {rect:?} i: {i}");
+            app.fill_rect(rect);
+
+            // Forground colour
+            app.set_color(0xff, 0x00, 0x00, 0xff);
+            // Sider position.  `x` and `width` unchanged
+            // `y_v` is set by the voume.
+            // the `height` is the thickness and can be 1.0 for now
+            let volume = channel.1;
+            let y_v = y + (height as f64 - volume * height as f64) as i32;
+            let rect = simple::Rect::new(x, y_v, width, 1);
+            eprintln!("DBG effects_mixer.paint rect: {rect:?} i: {i} volume: {volume:0.2}");
+            app.fill_rect(rect);
+            i += 1.0;
+        }
+    }
+}
 #[allow(dead_code)]
 struct TriCommandRect {
     /// RGBA
@@ -304,9 +387,18 @@ fn main() {
         width,
         height,
     };
+    let effects_mixer = EffectMixer::new(
+        &pedal_state,
+        0.0,
+        MAIN_HEIGHT,
+        1.0,
+        1.0 - MAIN_HEIGHT,
+        width,
+        height,
+    );
 
     let mut tsc = TouchScreenCtl {
-        rects: vec![Box::new(main_button)],
+        rects: vec![Box::new(main_button), Box::new(effects_mixer)],
         width,
         height,
     };
