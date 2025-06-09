@@ -57,20 +57,38 @@ struct PushButton {
     corners: [f64; 4],
     width: u16,
     height: u16,
+    colour: [u8; 4],
+    colour_pressed: [u8; 4],
+    pressed: bool,
 }
 impl PushButton {
     fn new(x: f64, y: f64, w: f64, h: f64, width: u16, height: u16, value: isize) -> Self {
+        let colour: [u8; 4] = if value.abs() == 1 {
+            [0, 0, 0xff, 0xff]
+        } else {
+            [0, 0xff, 0, 0xff]
+        };
         Self {
             corners: [x, y, w, h],
             width,
             height,
             value,
+            colour,
+            colour_pressed: [0xff, 0, 0, 0xff],
+            pressed: false,
         }
     }
 }
 impl TouchRectFn for PushButton {
     #[allow(dead_code, unused_variables)]
-    fn event(&mut self, is_down: bool, x: f64, y: f64) {}
+    fn event(&mut self, is_down: bool, x: f64, y: f64) {
+        self.pressed = is_down;
+        eprintln!(
+            "DBG PushButton.event: value: {} x: {x} y:  {y}  down: {is_down}",
+            self.value,
+        );
+    }
+
     #[allow(dead_code, unused_variables)]
     fn point_inside(&self, x: f64, y: f64) -> bool {
         x > self.corners[0]
@@ -90,12 +108,20 @@ impl TouchRectFn for PushButton {
         let h = (h * self.height as f64) as u32;
         let fill_rect = Rect::new(x, y, w, h);
         // For now plus/sub one is blue and plus/sub ten is green
-        if self.value.abs() == 1 {
-            app.set_color(0, 0, 0xff, 0xff);
-        } else if self.value.abs() == 10 {
-            app.set_color(0, 0xff, 0, 0xff);
+        if self.pressed {
+            app.set_color(
+                self.colour_pressed[0],
+                self.colour_pressed[1],
+                self.colour_pressed[2],
+                self.colour_pressed[3],
+            );
         } else {
-            panic!("Unknown value: {} for button", self.value);
+            app.set_color(
+                self.colour[0],
+                self.colour[1],
+                self.colour[2],
+                self.colour[3],
+            );
         }
         app.fill_rect(fill_rect);
     }
@@ -130,7 +156,6 @@ impl Slider {
         height: u16,
         margin: f64,
         w_f: f64,
-        x_step: f64,
         value: f64,
     ) -> Self {
         // Calculate the positions of the buttons.  The buttons for
@@ -176,6 +201,7 @@ impl Slider {
     }
 
     /// The value must be between 0..1
+    #[allow(dead_code)]
     fn set_value(&mut self, value: f64) {
         assert!((0.0..=1.0).contains(&value));
         self.value = value;
@@ -183,13 +209,34 @@ impl Slider {
 }
 impl TouchRectFn for Slider {
     #[allow(dead_code, unused_variables)]
-    fn event(&mut self, is_down: bool, x: f64, y: f64) {}
-    #[allow(dead_code, unused_variables)]
+    fn event(&mut self, is_down: bool, x: f64, y: f64) {
+        eprintln!(
+            "DBG Slider.event: value: {} x: {x} y:  {y}  down: {is_down}",
+            self.value,
+        );
+        // send to buttons
+        for b in [
+            &mut self.add_one,
+            &mut self.add_ten,
+            &mut self.sub_one,
+            &mut self.sub_ten,
+        ] {
+            if b.point_inside(x, y) {
+                b.event(is_down, x, y);
+            }
+        }
+    }
+
+    /// Check slider and buttons
     fn point_inside(&self, x: f64, y: f64) -> bool {
         x > self.corners[0]
             && x <= self.corners[2] + self.corners[0]
             && y > self.corners[1]
             && y < self.corners[3] + self.corners[1]
+            || self.add_one.point_inside(x, y)
+            || self.add_ten.point_inside(x, y)
+            || self.sub_one.point_inside(x, y)
+            || self.sub_ten.point_inside(x, y)
     }
 
     fn paint(&self, app: &mut Window) {
@@ -273,7 +320,7 @@ impl EffectMixer {
             for c in channels.iter() {
                 let x = x + idx as f64 * x_step;
                 sliders.push(Slider::new(
-                    x, y, x_step, h, width, height, margin, w_f, x_step, c.1,
+                    x, y, x_step, h, width, height, margin, w_f, c.1,
                 ));
                 idx += 1;
             }
@@ -289,11 +336,21 @@ impl EffectMixer {
     }
 }
 impl TouchRectFn for EffectMixer {
-    #[allow(dead_code, unused_variables)]
-    fn event(&mut self, is_down: bool, x: f64, y: f64) {}
-    #[allow(dead_code, unused_variables)]
+    fn event(&mut self, is_down: bool, x: f64, y: f64) {
+        eprintln!("DBG EffectMixer.event:  x: {x} y:  {y}  down: {is_down}",);
+        // Pass to sliders
+        for s in self.sliders.iter_mut() {
+            if s.point_inside(x, y) {
+                s.event(is_down, x, y);
+            }
+        }
+    }
+
     fn point_inside(&self, x: f64, y: f64) -> bool {
-        false
+        x > self.corners[0]
+            && x <= self.corners[2] + self.corners[0]
+            && y > self.corners[1]
+            && y < self.corners[3] + self.corners[1]
     }
 
     fn paint(&self, app: &mut Window) {
@@ -396,10 +453,6 @@ impl TouchRectFn for BoolCommandRect {
                 self.not_state_colour[3],
             ];
         }
-        eprintln!(
-            "DBG BoolCommandRect.paint widthxheight {}x{} fill_area: {fill_area:?}",
-            self.width, self.height
-        );
         app.set_color(colour[0], colour[1], colour[2], colour[3]);
         app.fill_rect(fill_area);
     }
@@ -427,6 +480,7 @@ impl TouchScreenCtl {
             for i in self.rects.iter_mut() {
                 let x = mouse_x as f64 / self.width as f64;
                 let y = mouse_y as f64 / self.height as f64;
+                eprintln!("DBG TouchScreenCtl.event {x}x{y}");
                 if i.point_inside(x, y) {
                     i.event(is_down, x, y);
                 }
