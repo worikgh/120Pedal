@@ -1,7 +1,7 @@
 extern crate simple;
 use pedal_state::read_state;
 use pedal_state::PedalState;
-use simple::{Event, Window};
+use simple::{Event, Rect, Window};
 use std::env;
 use std::fs::metadata;
 #[cfg(unix)]
@@ -45,12 +45,207 @@ enum TriState {
     C,
 }
 
+// Button that is highlighted while pressed, and is used to add (or
+// subtract) a value
 #[allow(dead_code, unused_variables)]
-/// Display a volume control for each effect.  Highlight the selected
-/// effect
+struct PushButton {
+    // Add (or subtract) this value
+    value: isize,
+
+    corners: [f64; 4],
+    width: u16,
+    height: u16,
+}
+#[allow(dead_code, unused_variables)]
+impl PushButton {
+    fn new(x: f64, y: f64, w: f64, h: f64, width: u16, height: u16, value: isize) -> Self {
+        Self {
+            corners: [x, y, w, h],
+            width,
+            height,
+            value,
+        }
+    }
+}
+impl TouchRectFn for PushButton {
+    #[allow(dead_code, unused_variables)]
+    fn event(&mut self, is_down: bool, x: f64, y: f64) {}
+    #[allow(dead_code, unused_variables)]
+    fn point_inside(&self, x: f64, y: f64) -> bool {
+        x > self.corners[0]
+            && x <= self.corners[2] + self.corners[0]
+            && y > self.corners[1]
+            && y < self.corners[3] + self.corners[1]
+    }
+    #[allow(dead_code, unused_variables)]
+    fn paint(&self, app: &mut Window) {
+        let w = self.corners[2];
+        let h = self.corners[3];
+        let x = self.corners[0];
+        let y = self.corners[1];
+        let x = (x * self.width as f64) as i32;
+        let y = (y * self.height as f64) as i32;
+        let w = (w * self.width as f64) as u32;
+        let h = (h * self.height as f64) as u32;
+        let fill_rect = Rect::new(x, y, w, h);
+        // For now plus/sub one is blue and plus/sub ten is green
+        if self.value.abs() == 1 {
+            app.set_color(0, 0, 0xff, 0xff);
+        } else if self.value.abs() == 10 {
+            app.set_color(0, 0xff, 0, 0xff);
+        } else {
+            panic!("Unknown value: {} for button", self.value);
+        }
+        app.fill_rect(fill_rect);
+    }
+}
+
+/// Adjusting one parameter.
+#[allow(dead_code, unused_variables)]
+struct Slider {
+    // Graphical widgets
+    add_one: PushButton,
+    add_ten: PushButton,
+    sub_one: PushButton,
+    sub_ten: PushButton,
+
+    // Value displayed
+    value: f64,
+
+    corners: [f64; 4],
+    width: u16,
+    height: u16,
+    // `w_f` is width factor.  If it is 1.0 there is no space
+    // between sliders
+    w_f: f64,
+    // Define space top and bottom in which the increment/decrement
+    // buttons are drawn
+    margin: f64,
+    // The normalised distance between slider centers
+    x_step: f64,
+}
+#[allow(clippy::too_many_arguments, dead_code, unused_variables)]
+impl Slider {
+    fn new(
+        x: f64,
+        y: f64,
+        w: f64,
+        h: f64,
+        width: u16,
+        height: u16,
+        margin: f64,
+        w_f: f64,
+        x_step: f64,
+        value: f64,
+    ) -> Self {
+        // Calculate the positions of the buttons.  The buttons for
+        // adding go on top, the buttons for subtracting at the
+        // bottom.  The buttons for one on left, ten on right
+        let but_one_x: f64 = x - w / 2.0;
+        let but_ten_x: f64 = x;
+        let but_h = (h + 2.0 * margin) * margin;
+        let but_w = w / 2.0;
+        let but_add_y = y - but_h;
+        let but_sub_y = y + h;
+        let add_one = PushButton::new(but_one_x, but_add_y, but_w, but_h, width, height, 1);
+        let add_ten = PushButton::new(but_ten_x, but_add_y, but_w, but_h, width, height, 10);
+        let sub_one = PushButton::new(but_one_x, but_sub_y, but_w, but_h, width, height, -1);
+        let sub_ten = PushButton::new(but_ten_x, but_sub_y, but_w, but_h, width, height, -10);
+        Self {
+            corners: [x, y, w, h],
+            width,
+            height,
+            value,
+            w_f,
+            margin,
+            x_step,
+            add_one,
+            add_ten,
+            sub_one,
+            sub_ten,
+        }
+    }
+
+    fn select(&self, app: &mut Window) {
+        let x = self.corners[0] - self.corners[2] / 2.0;
+        let y = self.corners[1];
+        let w = self.corners[2];
+        let h = self.corners[3];
+
+        let x = (x * self.width as f64) as i32;
+        let y = (y * self.height as f64) as i32;
+        let w = (w * self.width as f64) as u32;
+        let h = (h * self.height as f64) as u32;
+
+        let rect = Rect::new(x, y, w, h);
+        app.set_color(0xf0, 0x0f, 0xff, 0x88);
+        app.fill_rect(rect);
+    }
+
+    /// The value must be between 0..1
+    fn set_value(&mut self, value: f64) {
+        assert!((0.0..=1.0).contains(&value));
+        self.value = value;
+    }
+}
+impl TouchRectFn for Slider {
+    #[allow(dead_code, unused_variables)]
+    fn event(&mut self, is_down: bool, x: f64, y: f64) {}
+    #[allow(dead_code, unused_variables)]
+    fn point_inside(&self, x: f64, y: f64) -> bool {
+        x > self.corners[0]
+            && x <= self.corners[2] + self.corners[0]
+            && y > self.corners[1]
+            && y < self.corners[3] + self.corners[1]
+    }
+    #[allow(dead_code, unused_variables)]
+    fn paint(&self, app: &mut Window) {
+        // Paint the white background
+        {
+            let w = self.corners[2] * self.w_f;
+            let h = self.corners[3];
+            let x = self.corners[0] - w / 2.0;
+            let y = self.corners[1];
+
+            let x = (x * self.width as f64) as i32;
+            let y = (y * self.height as f64) as i32;
+            let w = (w * self.width as f64) as u32;
+            let h = (h * self.height as f64) as u32;
+            let fill_rect = Rect::new(x, y, w, h);
+            app.set_color(0xff, 0xff, 0xff, 0xff);
+            app.fill_rect(fill_rect);
+            // app.set_color(0x0, 0x0, 0x0, 0xff);
+            // app.draw_rect(fill_rect);
+        }
+
+        // Paint the buttons
+        self.add_one.paint(app);
+        self.add_ten.paint(app);
+        self.sub_one.paint(app);
+        self.sub_ten.paint(app);
+
+        // Paint the value indicator
+        {
+            let x = self.corners[0] - self.corners[2] / 2.0;
+            let y = self.corners[1] + self.corners[3] * (1.0 - self.value);
+            // let y = 1.0 - y;
+            let w = self.corners[2];
+
+            let x = (x * self.width as f64) as i32;
+            let y = (y * self.height as f64) as i32;
+            let w = (w * self.width as f64) as u32;
+            let h = 2;
+            let rect = Rect::new(x, y, w, h);
+            app.set_color(0xff, 0, 0, 0xff);
+            app.fill_rect(rect);
+        }
+    }
+}
+
 struct EffectMixer {
     selected: Option<u8>,
-    channels: Vec<(u8, f64)>,
+    _channels: Vec<(u8, f64)>,
+    sliders: Vec<Slider>,
     corners: [f64; 4],
     width: u16,
     height: u16,
@@ -65,9 +260,35 @@ impl EffectMixer {
         width: u16,
         height: u16,
     ) -> Self {
+        let channels = pedal_state.choices.clone();
+        // Sliders
+        let mut sliders: Vec<Slider> = Vec::new();
+        {
+            // For the sliders the `y`, `h`, `w`, `w_f`, `margin` and
+            // `x_step` are constant
+
+            // Scale for width of the drawn slider
+            let w_f = 0.2;
+
+            // Top and bottom
+            let margin = 0.1;
+
+            let x_step = 1.0 / (1.0 + channels.len() as f64);
+            let y = y + h * margin;
+            let h = h - 2.0 * h * margin;
+            let mut idx: usize = 1;
+            for c in channels.iter() {
+                let x = x + idx as f64 * x_step;
+                sliders.push(Slider::new(
+                    x, y, x_step, h, width, height, margin, w_f, x_step, c.1,
+                ));
+                idx += 1;
+            }
+        }
         Self {
             selected: pedal_state.selected,
-            channels: pedal_state.choices.clone(),
+            _channels: channels,
+            sliders,
             corners: [x, y, w, h],
             width,
             height,
@@ -83,13 +304,6 @@ impl TouchRectFn for EffectMixer {
     }
     #[allow(dead_code, unused_variables)]
     fn paint(&self, app: &mut Window) {
-        // Some constants to define the size of the "sliders"
-        let margin = 0.1; // Gap top and bottom
-
-        // `w_f` is width factor.  If it is 1.0 there is no space
-        // between sliders
-        let w_f = 5.0;
-
         // Paint the background
         let x = (self.corners[0] * self.width as f64) as i32;
         let bg_y = (self.corners[1] * self.height as f64) as i32;
@@ -99,78 +313,15 @@ impl TouchRectFn for EffectMixer {
         app.set_color(0xf0, 0xf0, 0xf0, 255);
         app.fill_rect(fill_area);
 
-        // Paint the volume slider back ground and indicator for each
-        // effect
-        let count = self.channels.len();
-        let x_step = 1.0 / (count as f64 + 1.0);
-        let mut i = 1.0;
-        eprintln!(
-            "DBG effects_mixer.paint widthxheight {}x{} count: {count} x_step: {x_step:0.2}",
-            self.width, self.height
-        );
-        // Vertical elements are constant for each  slider
-        let y = bg_y + (self.height as f64 * margin) as i32;
-        let height = (self.corners[3] * self.height as f64) as u32 - 2 * (y - bg_y) as u32;
-        // The width of each slider is constant
-        let width = (x_step * self.width as f64 / w_f) as u32;
-
-        for (idx, (_, v)) in self.channels.iter().enumerate() {
-            let xc = ((i * x_step) * self.width as f64) as i32;
+        for (idx, s) in self.sliders.iter().enumerate() {
             if let Some(selected) = self.selected {
                 if selected == idx as u8 {
-                    let x = xc - width as i32;
-                    let width = width * 2;
-                    let rect = simple::Rect::new(x, y, width, height);
-                    app.set_color(0xf0, 0x0f, 0xff, 0xff);
-                    app.fill_rect(rect);
+                    s.select(app);
                 }
             }
-            let x = xc - (width / 2) as i32;
-            let rect = simple::Rect::new(x, y, width, height);
-            eprintln!("DBG effects_mixer.paint rect: {rect:?} i: {i}");
-            app.set_color(0xff, 0xff, 0xff, 0xff);
-            app.fill_rect(rect);
-
-            // Forground colour
-            app.set_color(0xff, 0x00, 0x00, 0xff);
-            // Sider position.  `x` and `width` unchanged
-            // `y_v` is set by the voume.
-            // the `height` is the thickness and can be 1.0 for now
-            let volume = v;
-            let y_v = y + (height as f64 - volume * height as f64) as i32;
-            let rect = simple::Rect::new(x, y_v, width, 1);
-            eprintln!(
-                "DBG effects_mixer.paint rect: {rect:?} i: {i} volume: {volume:0.2} xc: {xc}"
-            );
-            app.fill_rect(rect);
-
-            i += 1.0;
+            s.paint(app);
         }
     }
-}
-#[allow(dead_code)]
-struct TriCommandRect {
-    /// RGBA
-    state_a_colour: [u8; 4],
-    state_b_colour: [u8; 4],
-    state_c_colour: [u8; 4],
-
-    /// Name of an external function that takes one argument: `state`.
-    /// Starts `mod-ui` or `qzn3t`
-    command: String,
-    /// x,y,w,h in 0..1
-    corners: [f64; 4],
-    /// Was the last event a 'mouse_down'
-    down: bool,
-    /// This is effectively a toggle
-    state: TriState,
-
-    /// If there are errors `valid` is false
-    valid: bool,
-
-    /// The size of the rectangular area in native pixels
-    width: u16,
-    height: u16,
 }
 
 /// This runs the command from MainTouchRect.  The command takes one
@@ -193,51 +344,6 @@ fn run_command(command: &str, argument: bool, _network: bool) -> bool {
             eprintln!("DBG Run command Err {argument}: {err:?}");
             false
         }
-    }
-}
-
-impl TouchRectFn for TriCommandRect {
-    fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
-        if self.down != is_down {
-            if !is_down {
-                // Released. Rotate state
-                self.state = match self.state {
-                    TriState::A => TriState::B,
-                    TriState::B => TriState::C,
-                    TriState::C => TriState::A,
-                };
-            }
-            self.down = is_down;
-        }
-    }
-    fn point_inside(&self, x: f64, y: f64) -> bool {
-        x > self.corners[0]
-            && x <= self.corners[2] + self.corners[0]
-            && y > self.corners[1]
-            && y < self.corners[3] + self.corners[1]
-    }
-    fn paint(&self, app: &mut Window) {
-        let fill_area = simple::Rect::new(
-            (self.corners[0] * self.width as f64) as i32,
-            (self.corners[1] * self.height as f64) as i32,
-            (self.corners[2] * self.width as f64) as u32,
-            (self.corners[3] * self.height as f64) as u32,
-        );
-        let colour = if self.down {
-            [0, 0, 0, 0]
-        } else {
-            match self.state {
-                TriState::A => self.state_a_colour,
-                TriState::B => self.state_b_colour,
-                TriState::C => self.state_c_colour,
-            }
-        };
-        eprintln!(
-            "DBG TriCommandRect.paint widthxheight {}x{} fill_area: {fill_area:?}",
-            self.width, self.height
-        );
-        app.set_color(colour[0], colour[1], colour[2], colour[3]);
-        app.fill_rect(fill_area);
     }
 }
 
@@ -407,6 +513,7 @@ fn main() {
         width,
         height,
     };
+
     let effects_mixer = EffectMixer::new(
         &pedal_state,
         0.0,
