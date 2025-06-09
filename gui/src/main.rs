@@ -1,3 +1,6 @@
+//! Front end for Qzn3t pedal
+//! Designed to run on a touch screen
+//! PLANNED: Allow editing the volume of effects
 extern crate simple;
 use pedal_state::read_state;
 use pedal_state::PedalState;
@@ -47,7 +50,6 @@ enum TriState {
 
 // Button that is highlighted while pressed, and is used to add (or
 // subtract) a value
-#[allow(dead_code, unused_variables)]
 struct PushButton {
     // Add (or subtract) this value
     value: isize,
@@ -56,7 +58,6 @@ struct PushButton {
     width: u16,
     height: u16,
 }
-#[allow(dead_code, unused_variables)]
 impl PushButton {
     fn new(x: f64, y: f64, w: f64, h: f64, width: u16, height: u16, value: isize) -> Self {
         Self {
@@ -101,7 +102,6 @@ impl TouchRectFn for PushButton {
 }
 
 /// Adjusting one parameter.
-#[allow(dead_code, unused_variables)]
 struct Slider {
     // Graphical widgets
     add_one: PushButton,
@@ -118,13 +118,8 @@ struct Slider {
     // `w_f` is width factor.  If it is 1.0 there is no space
     // between sliders
     w_f: f64,
-    // Define space top and bottom in which the increment/decrement
-    // buttons are drawn
-    margin: f64,
-    // The normalised distance between slider centers
-    x_step: f64,
 }
-#[allow(clippy::too_many_arguments, dead_code, unused_variables)]
+#[allow(clippy::too_many_arguments)]
 impl Slider {
     fn new(
         x: f64,
@@ -157,8 +152,6 @@ impl Slider {
             height,
             value,
             w_f,
-            margin,
-            x_step,
             add_one,
             add_ten,
             sub_one,
@@ -198,7 +191,7 @@ impl TouchRectFn for Slider {
             && y > self.corners[1]
             && y < self.corners[3] + self.corners[1]
     }
-    #[allow(dead_code, unused_variables)]
+
     fn paint(&self, app: &mut Window) {
         // Paint the white background
         {
@@ -302,7 +295,7 @@ impl TouchRectFn for EffectMixer {
     fn point_inside(&self, x: f64, y: f64) -> bool {
         false
     }
-    #[allow(dead_code, unused_variables)]
+
     fn paint(&self, app: &mut Window) {
         // Paint the background
         let x = (self.corners[0] * self.width as f64) as i32;
