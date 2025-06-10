@@ -102,10 +102,6 @@ impl TouchRectFn for PushButton {
             } else if *self.target.borrow() > 127.0 {
                 *self.target.borrow_mut() = 127.0;
             }
-            eprintln!(
-                "DBG PushButton.event: value: {} x: {x} y:  {y}  down: {is_down}",
-                self.value,
-            );
         }
         self.pressed = is_down;
     }
@@ -220,10 +216,6 @@ impl Slider {
 impl TouchRectFn for Slider {
     #[allow(dead_code, unused_variables)]
     fn event(&mut self, is_down: bool, x: f64, y: f64) {
-        eprintln!(
-            "DBG Slider.event: value: {} x: {x} y:  {y}  down: {is_down}",
-            *self.value.borrow(),
-        );
         // send to buttons
         for b in [
             &mut self.add_one,
@@ -323,17 +315,42 @@ impl EffectMixer {
                 idx += 1;
             }
         }
+        let (state_tx, state_rx) = channel();
         Self {
             selected: pedal_state.selected,
             _channels: channels,
             sliders,
             corners: [x, y, w, h],
+            state_rx,
+            state_tx,
         }
+    }
+    fn init(&self, pedals_path: PathBuf) {
+        let _jh = monitor_pedal_state(pedals_path, self.state_tx.clone());
+    }
+    fn tick(&mut self, app: &mut App) {
+        match self.state_rx.try_recv() {
+            Ok(selected) => {
+                if let Some(idx) = selected {
+                    for (i, s) in self.sliders.iter_mut().enumerate() {
+                        if i == idx as usize {
+                            s.select(app);
+                        } else {
+                            s.deselect(app);
+                        }
+                    }
+                } else {
+                    for s in self.sliders.iter() {
+                        s.deselect(app);
+                    }
+                }
+            }
+            Err(err) => eprintln!("Error {err} doing this thing"),
+        };
     }
 }
 impl TouchRectFn for EffectMixer {
     fn event(&mut self, is_down: bool, x: f64, y: f64) {
-        eprintln!("DBG EffectMixer.event:  x: {x} y:  {y}  down: {is_down}",);
         // Pass to sliders
         for s in self.sliders.iter_mut() {
             if s.point_inside(x, y) {
@@ -484,7 +501,6 @@ impl TouchScreenCtl {
             for i in self.rects.iter_mut() {
                 let x = mouse_x as f64 / self.width as f64;
                 let y = mouse_y as f64 / self.height as f64;
-                eprintln!("DBG TouchScreenCtl.event {x}x{y}");
                 if i.point_inside(x, y) {
                     i.event(is_down, x, y);
                 }
