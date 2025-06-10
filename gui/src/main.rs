@@ -5,11 +5,13 @@ extern crate simple;
 use pedal_state::read_state;
 use pedal_state::PedalState;
 use simple::{Event, Rect};
+use std::cell::RefCell;
 use std::env;
 use std::fs::metadata;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::process::exit;
+use std::rc::Rc;
 mod send_osc;
 
 struct App {
@@ -71,9 +73,10 @@ struct PushButton {
     colour: [u8; 4],
     colour_pressed: [u8; 4],
     pressed: bool,
+    target: Rc<RefCell<f64>>,
 }
 impl PushButton {
-    fn new(x: f64, y: f64, w: f64, h: f64, value: isize) -> Self {
+    fn new(x: f64, y: f64, w: f64, h: f64, value: isize, target: Rc<RefCell<f64>>) -> Self {
         let colour: [u8; 4] = if value.abs() == 1 {
             [0, 0, 0xff, 0xff]
         } else {
@@ -85,17 +88,26 @@ impl PushButton {
             colour,
             colour_pressed: [0xff, 0, 0, 0xff],
             pressed: false,
+            target,
         }
     }
 }
 impl TouchRectFn for PushButton {
     #[allow(dead_code, unused_variables)]
     fn event(&mut self, is_down: bool, x: f64, y: f64) {
+        if self.pressed && !is_down {
+            *self.target.borrow_mut() += self.value as f64 / 127.0;
+            if *self.target.borrow() < 0.0 {
+                *self.target.borrow_mut() = 0.0;
+            } else if *self.target.borrow() > 127.0 {
+                *self.target.borrow_mut() = 127.0;
+            }
+            eprintln!(
+                "DBG PushButton.event: value: {} x: {x} y:  {y}  down: {is_down}",
+                self.value,
+            );
+        }
         self.pressed = is_down;
-        eprintln!(
-            "DBG PushButton.event: value: {} x: {x} y:  {y}  down: {is_down}",
-            self.value,
-        );
     }
 
     #[allow(dead_code, unused_variables)]
@@ -145,7 +157,7 @@ struct Slider {
     sub_ten: PushButton,
 
     // Value displayed
-    value: f64,
+    value: Rc<RefCell<f64>>,
 
     corners: [f64; 4],
     // `w_f` is width factor.  If it is 1.0 there is no space
@@ -155,6 +167,9 @@ struct Slider {
 #[allow(clippy::too_many_arguments)]
 impl Slider {
     fn new(x: f64, y: f64, w: f64, h: f64, margin: f64, w_f: f64, value: f64) -> Self {
+        // The `value` of the slider is shared by the `PushButton`s so it can be changed
+        let value = Rc::new(RefCell::new(value));
+
         // Calculate the positions of the buttons.  The buttons for
         // adding go on top, the buttons for subtracting at the
         // bottom.  The buttons for one on left, ten on right
@@ -164,10 +179,10 @@ impl Slider {
         let but_w = w / 2.0;
         let but_add_y = y - but_h;
         let but_sub_y = y + h;
-        let add_one = PushButton::new(but_one_x, but_add_y, but_w, but_h, 1);
-        let add_ten = PushButton::new(but_ten_x, but_add_y, but_w, but_h, 10);
-        let sub_one = PushButton::new(but_one_x, but_sub_y, but_w, but_h, -1);
-        let sub_ten = PushButton::new(but_ten_x, but_sub_y, but_w, but_h, -10);
+        let add_one = PushButton::new(but_one_x, but_add_y, but_w, but_h, 1, value.clone());
+        let add_ten = PushButton::new(but_ten_x, but_add_y, but_w, but_h, 10, value.clone());
+        let sub_one = PushButton::new(but_one_x, but_sub_y, but_w, but_h, -1, value.clone());
+        let sub_ten = PushButton::new(but_ten_x, but_sub_y, but_w, but_h, -10, value.clone());
         Self {
             corners: [x, y, w, h],
             value,
@@ -199,7 +214,7 @@ impl Slider {
     #[allow(dead_code)]
     fn set_value(&mut self, value: f64) {
         assert!((0.0..=1.0).contains(&value));
-        self.value = value;
+        *self.value.borrow_mut() = value;
     }
 }
 impl TouchRectFn for Slider {
@@ -207,7 +222,7 @@ impl TouchRectFn for Slider {
     fn event(&mut self, is_down: bool, x: f64, y: f64) {
         eprintln!(
             "DBG Slider.event: value: {} x: {x} y:  {y}  down: {is_down}",
-            self.value,
+            *self.value.borrow(),
         );
         // send to buttons
         for b in [
@@ -262,7 +277,7 @@ impl TouchRectFn for Slider {
         // Paint the value indicator
         {
             let x = self.corners[0] - self.corners[2] / 2.0;
-            let y = self.corners[1] + self.corners[3] * (1.0 - self.value);
+            let y = self.corners[1] + self.corners[3] * (1.0 - *self.value.borrow());
             // let y = 1.0 - y;
             let w = self.corners[2];
 
