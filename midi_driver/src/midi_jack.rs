@@ -175,7 +175,6 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
             if let Some(MidiStatus::ProgramChange(_)) = status.as_ref() {
                 if let Some(jack_pipes) = command_table.get(&byte) {
                     // Changing the pedal to byte
-
                     // Have jack connections to establish in `jack_pipes`
                     for jc in jack_pipes.iter() {
                         if !connected.contains(&(&jc.0, &jc.1)) {
@@ -204,9 +203,11 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
         }
         if !state_clean {
             if let Some(old_state) = read_state(PEDAL_DIR)? {
+                eprintln!("DBG jack_midi pedal old state {old_state:?}");
                 state.choices = old_state.choices;
             }
             write_state(&state, PEDAL_DIR)?;
+            eprintln!("DBG jack_midi pedal new state {state:?}");
             state_clean = true;
         }
     }

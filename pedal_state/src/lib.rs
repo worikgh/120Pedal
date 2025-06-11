@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::{self, Write};
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PedalState {
     // The selected effect
     pub selected: Option<u8>,
@@ -34,7 +34,6 @@ pub fn write_state(state: &PedalState, pedal_dir: &str) -> io::Result<()> {
     let json =
         serde_json::to_string(state).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     let fname = state_file_name(pedal_dir);
-    eprintln!("DBG jack_midi Write state to: {fname}");
     let mut file = OpenOptions::new()
         .write(true)
         .truncate(true)
@@ -45,7 +44,6 @@ pub fn write_state(state: &PedalState, pedal_dir: &str) -> io::Result<()> {
     Ok(())
 }
 pub fn read_state(pedal_dir: &str) -> io::Result<Option<PedalState>> {
-    eprintln!("jack_midi Read state");
     match OpenOptions::new()
         .read(true)
         .open(state_file_name(pedal_dir))
