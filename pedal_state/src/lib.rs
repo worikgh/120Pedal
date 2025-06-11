@@ -15,12 +15,12 @@ pub struct PedalState {
 }
 impl PedalState {
     pub fn new(command_table: &HashMap<u8, Vec<(String, String)>>) -> Self {
-        let choices = command_table
+        let mut choices = command_table
             .iter()
             // Volume default
             .map(|(k, _)| (*k, 0.5))
             .collect::<Vec<(u8, f64)>>();
-
+        choices.sort_by(|a, b| a.0.cmp(&b.0));
         Self {
             selected: None,
             choices, //: Vec::new(),
