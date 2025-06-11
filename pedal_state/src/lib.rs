@@ -57,9 +57,8 @@ pub fn read_state(pedal_dir: &str) -> io::Result<Option<PedalState>> {
             Ok(Some(result))
         }
         Err(err) => {
-            eprintln!("DBG jack_midi err read stats: {err:?}");
+            eprintln!("Error PedalState.read_state: {err:?}");
             Ok(None)
         }
     }
-    //Err(io::Error::other("jack_midi: readState unimplemented"))
 }

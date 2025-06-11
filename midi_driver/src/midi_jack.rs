@@ -203,11 +203,9 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
         }
         if !state_clean {
             if let Some(old_state) = read_state(PEDAL_DIR)? {
-                eprintln!("DBG jack_midi pedal old state {old_state:?}");
                 state.choices = old_state.choices;
             }
             write_state(&state, PEDAL_DIR)?;
-            eprintln!("DBG jack_midi pedal new state {state:?}");
             state_clean = true;
         }
     }

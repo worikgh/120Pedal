@@ -390,7 +390,6 @@ impl TouchRectFn for EffectMixer {
     fn tick(&mut self, app: &mut App) {
         let mut dirty = false;
         if let Ok(selected) = self.state_rx.try_recv() {
-            eprintln!("DBG State notification change: {selected:?}");
             if let Some(idx) = selected {
                 for s in self.sliders.iter_mut() {
                     let mut idx_select = s.idx_selected.borrow_mut();
@@ -581,7 +580,6 @@ fn main() {
     // Set up display of pedals and volume
     let mut pedals_dir = env::current_dir().expect("Failed to get current dir");
     pedals_dir.push("../PEDALS");
-    eprintln!("DBG Pedals path: {pedals_dir:?}");
     let pedals_path = pedals_dir.canonicalize().expect("Failed to resolve path");
     let pedal_state = match read_state(pedals_path.to_str().expect("Cannot convert path to string"))
         .expect("Failed reading PedalState")
@@ -697,10 +695,6 @@ pub fn monitor_pedal_state(
                     }
                 };
                 if let Some(new_state) = new_state {
-                    eprintln!(
-                            "DBG monitor_pedal_state last_selected: {last_selected:?} new_state.selected: {:?}",
-                            new_state.selected
-                        );
                     if last_selected != new_state.selected {
                         last_selected = new_state.selected;
                         let _ = tx.send(last_selected);
