@@ -30,18 +30,21 @@ mod tests {
     use super::*;
 
     /// Tests if the OSC message is correctly sent and received.
+    fn send(osc_sender: &OscSender, osc_path: &str, value: f32) {
+        if let Err(err) = osc_sender.send(osc_path, value) {
+            eprintln!("DBG Errpr {err}");
+        }
+    }
     #[test]
     fn test_send_osc() -> Result<(), Box<dyn Error>> {
         let test_port = 5020;
         let test_addr = format!("127.0.0.1:{}", test_port);
         let osc_sender = OscSender::new("127.0.0.1:5200", &test_addr)?;
         // Send test OSC message
-        let osc_path = "/v/1";
-        let volume = 0.9;
-        if let Err(err) = osc_sender.send(osc_path, volume) {
-            eprintln!("DBG Errpr {err}");
-        }
-
+        send(&osc_sender, "/v/0", 0.2);
+        send(&osc_sender, "/v/1", 0.4);
+        send(&osc_sender, "/v/2", 0.999);
+        send(&osc_sender, "/v/3", 0.6);
         Ok(())
     }
 }
