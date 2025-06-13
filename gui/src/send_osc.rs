@@ -3,7 +3,7 @@ use rosc::{encoder, OscMessage, OscPacket, OscType};
 use std::error::Error;
 use std::net::{SocketAddrV4, UdpSocket};
 use std::str::FromStr;
-struct OscSender {
+pub struct OscSender {
     sock: UdpSocket,
     to_addr: SocketAddrV4,
 }
@@ -41,10 +41,10 @@ mod tests {
         let test_addr = format!("127.0.0.1:{}", test_port);
         let osc_sender = OscSender::new("127.0.0.1:5200", &test_addr)?;
         // Send test OSC message
-        send(&osc_sender, "/v/0", 0.2);
-        send(&osc_sender, "/v/1", 0.4);
-        send(&osc_sender, "/v/2", 0.999);
-        send(&osc_sender, "/v/3", 0.6);
+        send(&osc_sender, "/v/0", 0.999);
+        send(&osc_sender, "/v/1", 0.0002);
+        send(&osc_sender, "/v/2", 0.2002);
+        send(&osc_sender, "/v/3", 0.3002);
         Ok(())
     }
 }

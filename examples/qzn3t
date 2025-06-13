@@ -28,6 +28,9 @@ if ! pgrep mod-host 2>/dev/null; then
     exit 1
 fi
 
+# Start the mixer
+pd -jack -jack_name qzn3t_mixer  -inchannels 4 -outchannels 1 -r 48000 -realtime  -stderr -send "pd dsp 1"  -nogui ${One20PedalHome}/4ch-1ch-mixer.pd &
+
 cd "${One20PedalHome}" || { echo "Failed to cd to ${One20PedalHome}"; exit 1; }
 
 ./setLV2 || { echo "setLV2 failed"; exit 1; }

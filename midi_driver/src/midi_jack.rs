@@ -114,7 +114,18 @@ pub fn make_table(
             let dst = src_dst
                 .next()
                 .ok_or(format!("A bad jack description: {line}"))?;
-            jack_pairs.push((src.to_string(), dst.to_string()));
+
+            // The output is now directed to the input of the mixer so
+            // volume of each pedal board can be set at runtime
+            if dst.contains("system:playback") {
+                // The name of the mixer input pipe is
+                // `qzn3t_mixer:input_N` where `N` is idx + 1.  Pure
+                // Data Jack pipes are numbered starting at 1
+                let dst = format!("qzn3t_mixer:input_{}", idx + 1);
+                jack_pairs.push((src.to_string(), dst.to_string()));
+            } else {
+                jack_pairs.push((src.to_string(), dst.to_string()));
+            }
         }
         table.insert(idx, jack_pairs);
     }

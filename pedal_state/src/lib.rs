@@ -11,7 +11,8 @@ pub struct PedalState {
     pub selected: Option<u8>,
     // The effects to choose from and their volumes, The volumes
     // are set in the Gui and not affected by this programme
-    pub choices: Vec<(u8, f64)>,
+    // f32 because that is what Pure Data wants
+    pub choices: Vec<(u8, f32)>,
 }
 impl PedalState {
     pub fn new(command_table: &HashMap<u8, Vec<(String, String)>>) -> Self {
@@ -19,7 +20,7 @@ impl PedalState {
             .iter()
             // Volume default
             .map(|(k, _)| (*k, 0.5))
-            .collect::<Vec<(u8, f64)>>();
+            .collect::<Vec<(u8, f32)>>();
         choices.sort_by(|a, b| a.0.cmp(&b.0));
         Self {
             selected: None,
