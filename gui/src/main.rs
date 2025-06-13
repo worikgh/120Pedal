@@ -697,7 +697,8 @@ fn main() {
     };
 
     // Run the command once to initialise Pi in mod-ui
-    if main_button.run_command() {
+    if !main_button.run_command() {
+        eprintln!("Error: Failed to run main command");
         exit(1);
     }
 
