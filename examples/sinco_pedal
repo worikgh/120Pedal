@@ -51,7 +51,7 @@ for cmd in "$READ" "$TRANS" "$JACK"; do
     fi
 done
 echo "* All required executables found"
-
+echo "($READ SINCO | $TRANS \"${TRANS_CFG}\" | $JACK \"${JACK_CFG}\")"
 # Run the pipeline
 ($READ SINCO | $TRANS "${TRANS_CFG}" | $JACK "${JACK_CFG}")&
 
