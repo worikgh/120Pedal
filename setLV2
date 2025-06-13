@@ -14,6 +14,7 @@ my $MH_PID = qx(pgrep -x mod-host);
 chomp $MH_PID;
 $MH_PID or die "setLV2: mod-host not running";
 
+## Get all ports the programme with the PID has open
 sub get_listening_ports {
     my $pid = shift or die "Pass non-zero pid";
     my %ports = ();
@@ -30,7 +31,6 @@ sub get_listening_ports {
     return keys(%ports);
 }
 my @ports = get_listening_ports($MH_PID);
-# (scalar(@ports) == 1 and  $ports[0] == 5555) or die "setLV2: Invalid mod-host ports: ".join(",", @ports);
 
 my $pedal_dir = $ENV{PEDAL_DIR};
 if(!defined($pedal_dir)){
@@ -39,6 +39,8 @@ if(!defined($pedal_dir)){
 }
 -d $pedal_dir or die "setLV2: '$pedal_dir' not a directory";
 print STDERR " * Initialise the pedal definitions\n * Pedal Dir: $pedal_dir\n";
+
+## The initial;isation of Jack Pipes and simulation programmes
 my $initialise_fn = "$pedal_dir/Initialise";
 #-r $initialise_fn or die "setLV2: $!: '$initialise_fn'";
 open(my $fh, $initialise_fn) or die "setLV2: $!: $initialise_fn";

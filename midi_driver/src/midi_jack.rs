@@ -61,10 +61,10 @@ pub fn make_table(
     for s1 in lines.iter() {
         let s = s1.trim();
         // Format is /^j \d\s.+\s*$/
+        // ............j..m....FileName
 
-        // ...........j..m....FileName Match MIDI `m` with the file
-        // name for the file of of Jack connections that are to be
-        // made for this MIDI input of `m`
+        // Match MIDI `m` with the file name for the file of of Jack
+        // connections that are to be made for this MIDI input of `m`
         if !s.starts_with("j ") {
             continue;
         }
@@ -75,8 +75,9 @@ pub fn make_table(
         if s.len() < 5 {
             return Err(format!("{s1} is an invalid line for jack_midi configuration").into());
         }
+
         let mut i = 2;
-        // s[i] is start of MIDI
+        // s[i] is start of MIDI CC value ised to select pedal
         while let Some(c) = s.chars().nth(i) {
             if c.is_whitespace() {
                 break;
@@ -93,7 +94,8 @@ pub fn make_table(
         }
 
         let file_name = format!("{PEDAL_DIR}/{}", &s[j..]);
-        let mut file = match File::open(&file_name) {
+        let file_name = file_name.trim();
+        let mut file = match File::open(file_name) {
             Ok(f) => f,
             Err(err) => {
                 eprintln!("midi_jack.rs: jack_midi: Failed to open file:{file_name}. Err: {err:?}");
