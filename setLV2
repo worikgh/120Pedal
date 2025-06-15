@@ -59,6 +59,9 @@ foreach my $jcmd ( @jack_initial ) {
     &handle_jack( "connect $jcmd" );
 }
 
+# The last connection is from the mixer to the output.
+&handle_jack("connect qzn3t_mixer:output_1 system:playback_1");
+
 ## `handle_mh_cmd` and `mod_host` set up the LV2 simulators.
 ## `mod_host` is passed an array of commands to send to `mod-host`
 sub handle_mh_cmd( $$ ) {
