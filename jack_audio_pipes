@@ -1,0 +1,49 @@
+#!/usr/bin/perl -w
+use strict;
+
+my @lines = <>; #`jack_lsp -t`;
+
+my $src = undef;
+my @dst = ();
+my %connections = ();
+
+my$ln = 0;
+foreach my $l( @lines){
+    $ln++;
+    chomp $l;
+    $l =~ /^\s*$/ and next; # Blank lines
+    if($l =~ /^\t/){
+	# A type line
+	if($l =~ /^\t(.+audio)$/){
+	    # Audio pipe
+	    #warn "Type: $1\n";
+	    if(!$src){
+		die "Line $ln: Type found but no source";
+	    }
+	    if(!defined($connections{$src})){
+		$connections{$src} = [];
+	    }
+	    if(@dst){
+		foreach my $dst (@dst){
+		    push(@{$connections{$src}}, $dst);
+		}
+	    }
+	}
+	$src = undef;
+	@dst = ();
+	next;
+    }
+    if($l =~ /^\S/){
+	$src = $l;
+	next;
+    }
+    if($l =~ /^   (\S+)$/){
+	push(@dst, $1);
+	next;
+    }
+}
+foreach my $s (sort keys %connections){
+    foreach my $d (sort @{$connections{$s}}){
+	print "$s -- $d\n";
+    }
+}
