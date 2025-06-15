@@ -11,7 +11,7 @@ COMMAND="$1"
 
 One20PedalHome="${HOME}/120Pedal"
 RUN_QZN3T="${One20PedalHome}/examples/qzn3t_gui"
-RUN_MODUI="${One20PedalHome}/120Pedal/examples/mod-ui"
+RUN_MODUI="${One20PedalHome}/examples/mod-ui"
 
 # Validate arguments
 if [ $# -ne 1 ]; then
