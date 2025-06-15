@@ -323,9 +323,16 @@ sub process_lv2_turtle( $$ ) {
 
         # Activation connections are connected to system:capture_N
         if($tail[0]->[2] =~ /^capture_\d+$/ and
-	       $head[0]->[2] =~ /^playback_\d+$/){
+	       $head[0]->[2] =~ /^playback_(\d+)$/){
             ## A connection directly from capture to playback
-            push(@jack_activation_pipes, "$tail[0]->[2]:$head[0]->[2]");
+	    # For now we only handle pipes to `system:playback_1`
+	    if($1 != 1){
+		warn "Pipes to outputs other than system:playback_1 not supported: $pipe\n";
+		next;
+	    }
+	    my $connection = "$tail[0]->[2] qzn3t_mixer:output_1";
+	    warn "Direct connection:\n";
+            push(@jack_activation_pipes, $connection);
             next;
         }elsif($tail[0]->[2] =~ /^capture_\d+$/ ){
             ## A connection from the system input
@@ -335,12 +342,17 @@ sub process_lv2_turtle( $$ ) {
             push(@jack_activation_pipes, $p);
             next;
         }elsif($head[0]->[2] =~ /^playback_\d+$/){
-            # Output pipe.  An internal pipe
-            my $name_port = &$name_port($tail[0]->[2]) or die;
-            my $number = $name_number{$name_port->[0]};
-            my $p = "effect_$number:$name_port->[1] system:$head[0]->[2]";
-            push(@jack_activation_pipes, $p);
-            next;
+	    # Output pipe.
+	    # For now we only handle pipes to `system:playback_1`
+	    if($1 != 1){
+		warn "Pipes to outputs other than system:playback_1 not supported: $pipe\n";
+		next;
+	    }
+	    my $name_port = &$name_port($tail[0]->[2]) or die;
+	    my $number = $name_number{$name_port->[0]};
+	    my $p = "effect_$number:$name_port->[1] qzn3t_mixer:output_1";
+	    push(@jack_activation_pipes, $p);
+	    next;
         }
 
         ## This is an internal pipe
