@@ -9,8 +9,9 @@ set -eu
 
 COMMAND="$1"
 
-RUN_QZN3T="/home/patch/120Pedal/examples/qzn3t_gui"
-RUN_MODUI="/home/patch/120Pedal/examples/mod-ui"
+One20PedalHome="${HOME}/120Pedal"
+RUN_QZN3T="${One20PedalHome}/examples/qzn3t_gui"
+RUN_MODUI="${One20PedalHome}/120Pedal/examples/mod-ui"
 
 # Validate arguments
 if [ $# -ne 1 ]; then
