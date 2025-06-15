@@ -692,7 +692,7 @@ fn main() {
         state_colour: [0, 0, 255, 255],
         not_state_colour: [255, 0, 0, 255],
         command,
-        state: true,
+        state: false,
         valid: true,
     };
 
