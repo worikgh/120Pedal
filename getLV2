@@ -20,7 +20,7 @@ if(!defined($pedal_dir)){
 opendir(my $dir, $pedal_dir) or die "$!: $pedal_dir";
 foreach my $fn (readdir($dir)){
     $fn =~ /^\./ and next;
-    $fn =~ /^[A-Z]$/ and next; # Links for pedal driver
+    $fn =~ /pedal_\d+/ and next;  # Links for pedal driver
     my $path_to_delete = $pedal_dir .'/'. $fn;
     unlink($path_to_delete) or die "$!: $path_to_delete";
 }
@@ -100,6 +100,31 @@ foreach my $name (sort keys %jack_activation){
     @{$jack_activation{$name}};
 }
 
+## Check if state file exists, and if not initialise it
+my $state_fn = "$pedal_dir/.state";
+if(!-e $state_fn){
+    ## How many pedals
+    opendir(my $dh, $pedal_dir) or die "$!: $pedal_dir";
+    my $pedal_count = scalar grep {/pedal_\d+/} readdir($dh);
+    my $json = <<"EOF";
+{
+  "selected": null,
+  "choices":[
+XXXXXX
+  ]
+}
+EOF
+    my @xxx = ();
+    for(my $i = 0; $i < $pedal_count; $i++){
+	push(@xxx, "[ $i, 0.5]");
+    }
+    my $xxx = join(",\n", @xxx);
+    $json =~ s/XXXXXX/$xxx/;
+
+    open(my $fh, ">$state_fn") or die "$!: $state_fn";
+    print $fh $json;
+
+}
 
 ## Passed a file name and a start index, returns a HASH ref that
 ## describes all the actions required to instantiate a pedal board.
@@ -327,7 +352,7 @@ sub process_lv2_turtle( $$ ) {
             ## A connection directly from capture to playback
 	    # For now we only handle pipes to `system:playback_1`
 	    if($1 != 1){
-		warn "Pipes to outputs other than system:playback_1 not supported: $pipe\n";
+		warn "Pipes to outputs other than system:playback_1 not supported: ".join(',',@$pipe)."\n";
 		next;
 	    }
 	    my $connection = "system:$tail[0]->[2] qzn3t_mixer:input_1";
