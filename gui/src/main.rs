@@ -789,8 +789,8 @@ pub fn monitor_pedal_state(tx: Sender<Option<u8>>) -> std::thread::JoinHandle<()
                 let new_state = match read_state(path.to_str().expect("Statefile path invalid")) {
                     Ok(state) => state,
                     Err(e) => {
-                        eprintln!("Failed to read initial state: {}", e);
-                        return;
+                        eprintln!("gui: Failed to read initial state: {}", e);
+                        continue;
                     }
                 };
                 if let Some(new_state) = new_state {
