@@ -493,7 +493,6 @@ impl BoolCommandRect {
     /// it runs `mod-ui`.  It returns `true` if the comand succeeded,
     /// `false` otherwise
     fn run_command(&mut self) -> bool {
-        //= run_command(self.command.as_str(), self.state, true);
         let command = self.command.as_str();
         let argument = self.state;
         self.valid = match std::process::Command::new(command)
@@ -522,8 +521,13 @@ impl TouchRectFn for BoolCommandRect {
         if self.down != is_down {
             if !is_down {
                 // Released. Take action
-                self.run_command();
+                let dbg_state = self.state;
                 self.state = !self.state;
+                self.run_command();
+                eprintln!(
+                    "DBG gui BoolCommandRect State change: {dbg_state} -> {}",
+                    self.state
+                );
             }
             self.down = is_down;
         }
@@ -570,6 +574,7 @@ impl TouchRectFn for BoolCommandRect {
                 self.not_state_colour[3],
             ];
         }
+        eprintln! {"DBG gui: paint colour: {colour:?} self.state: {}", self.state};
         app.window
             .set_color(colour[0], colour[1], colour[2], colour[3]);
         app.window.fill_rect(fill_area);
@@ -670,7 +675,7 @@ fn main() {
     // pedals
     let pedals_path = pedals_dir();
     let pedal_state = match read_state(pedals_path.to_str().expect("Cannot convert path to string"))
-        .expect("Failed reading PedalState")
+        .expect("gui: Failed reading PedalState from: {pedals_path}")
     {
         Some(p) => p,
         None => PedalState {
@@ -689,8 +694,8 @@ fn main() {
     let mut main_button = BoolCommandRect {
         corners: [0.0, 0.0, MAIN_WIDTH, MAIN_HEIGHT],
         down: false,
-        state_colour: [0, 0, 255, 255],
-        not_state_colour: [255, 0, 0, 255],
+        state_colour: [255, 0, 0, 255],
+        not_state_colour: [0, 0, 255, 255],
         command,
         state: false,
         valid: true,
@@ -763,7 +768,7 @@ pub fn monitor_pedal_state(tx: Sender<Option<u8>>) -> std::thread::JoinHandle<()
         let last_state = match read_state(path.to_str().expect("Statefile path invalid")) {
             Ok(state) => state,
             Err(e) => {
-                eprintln!("Failed to read initial state: {}", e);
+                eprintln!("gui: Failed to read initial state: {}", e);
                 return;
             }
         };

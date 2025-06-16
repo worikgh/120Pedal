@@ -330,8 +330,8 @@ sub process_lv2_turtle( $$ ) {
 		warn "Pipes to outputs other than system:playback_1 not supported: $pipe\n";
 		next;
 	    }
-	    my $connection = "$tail[0]->[2] qzn3t_mixer:output_1";
-	    warn "Direct connection:\n";
+	    my $connection = "system:$tail[0]->[2] qzn3t_mixer:input_1";
+	    warn "Direct connection: $connection\n";
             push(@jack_activation_pipes, $connection);
             next;
         }elsif($tail[0]->[2] =~ /^capture_\d+$/ ){
@@ -341,7 +341,7 @@ sub process_lv2_turtle( $$ ) {
             my $p = "system:$tail[0]->[2] effect_$number:$name_port->[1]";
             push(@jack_activation_pipes, $p);
             next;
-        }elsif($head[0]->[2] =~ /^playback_\d+$/){
+        }elsif($head[0]->[2] =~ /^playback_(\d)+$/){
 	    # Output pipe.
 	    # For now we only handle pipes to `system:playback_1`
 	    if($1 != 1){
@@ -350,7 +350,7 @@ sub process_lv2_turtle( $$ ) {
 	    }
 	    my $name_port = &$name_port($tail[0]->[2]) or die;
 	    my $number = $name_number{$name_port->[0]};
-	    my $p = "effect_$number:$name_port->[1] qzn3t_mixer:output_1";
+	    my $p = "effect_$number:$name_port->[1] qzn3t_mixer:input_1";
 	    push(@jack_activation_pipes, $p);
 	    next;
         }

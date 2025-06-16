@@ -10,7 +10,7 @@ const THIS_MIDI_NAME: &str = "120Pedal";
 
 fn main() {
     if let Err(err) = inner_main() {
-        eprintln!("read_midi failed: {err:?}");
+        eprintln!("read_midi  inner_main failed: {err:?}");
     }
 }
 fn inner_main() -> Result<(), Box<dyn Error>> {
@@ -37,7 +37,13 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
 
     // Create the port for MIDI input
     let this_name = THIS_MIDI_NAME.to_string();
-    let midi_in = midir::MidiInput::new(THIS_MIDI_NAME)?;
+    let midi_in = match midir::MidiInput::new(THIS_MIDI_NAME) {
+        Ok(m) => m,
+        Err(err) => {
+            eprintln!("Error: read_midi Failed initialising MIDI input: {err}");
+            return Err(Box::new(err));
+        }
+    };
     if list {
         for mp in midi_in.ports().iter() {
             eprintln!(
@@ -53,9 +59,15 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         .get_one::<String>("port")
         .expect("Must pass port name");
     eprintln!("DBG read_midi name: {name}");
-    let this_port: MidiInputPort = get_midi_port(name, &midi_in)?;
+    let this_port: MidiInputPort = match get_midi_port(name, &midi_in) {
+        Ok(p) => p,
+        Err(err) => {
+            eprintln!("Error read_midi; Failed to get MIDI port: {err}");
+            return Err(err);
+        }
+    };
 
-    let _connect = midi_in.connect(
+    if let Err(err) = midi_in.connect(
         &this_port,
         format!("{}-in", this_name).as_str(),
         move |_a, b, _| {
@@ -64,10 +76,15 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
             io::stdout()
                 .write_all(b)
                 .unwrap_or_else(|e| panic!("Cannot write to stdout: {}", e));
-            io::stdout().flush().expect("Failed to flush stdout");
+            io::stdout()
+                .flush()
+                .expect("read_midi: Failed to flush stdout");
         },
         (),
-    )?;
+    ) {
+        eprintln!("Error: read_midi: Failed to connect to MIDI: {err}");
+        return Err(Box::new(err));
+    }
     loop {
         thread::sleep(Duration::from_secs(1));
     }
