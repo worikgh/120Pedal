@@ -67,7 +67,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    if let Err(err) = midi_in.connect(
+    let _c = match midi_in.connect(
         &this_port,
         format!("{}-in", this_name).as_str(),
         move |_a, b, _| {
@@ -82,9 +82,12 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         },
         (),
     ) {
-        eprintln!("Error: read_midi: Failed to connect to MIDI: {err}");
-        return Err(Box::new(err));
-    }
+        Ok(c) => c,
+        Err(err) => {
+            eprintln!("Error: read_midi: Failed to connect to MIDI: {err}");
+            return Err(Box::new(err));
+        }
+    };
     loop {
         thread::sleep(Duration::from_secs(1));
     }
