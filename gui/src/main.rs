@@ -785,6 +785,7 @@ pub fn monitor_pedal_state(tx: Sender<Option<u8>>) -> std::thread::JoinHandle<()
             if let EventKind::Modify(_modify_kind) = event.kind {
                 // State file changed
                 // Check selected slider has changed
+                eprintln!("DBG gui: state file changed");
                 let new_state = match read_state(path.to_str().expect("Statefile path invalid")) {
                     Ok(state) => state,
                     Err(e) => {
