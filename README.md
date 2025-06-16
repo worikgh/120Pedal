@@ -144,6 +144,7 @@ Then use a web browser to connect to port 8888 `http://<IP of PI>:8888` for the 
 
 * Clone the [120Pedal](https://github.com/worikgh/120Pedal.git) repository
 * `cd 120Pedal`
+* Given the hardware pedal to use [create the files in `PEDALS/`](PEDALS/README.md)
 * If using LV2 simulators and `mod-ui`
   * `./getLV2`
 	* This reads the pedals as set up by `mod-ui`
@@ -151,6 +152,7 @@ Then use a web browser to connect to port 8888 `http://<IP of PI>:8888` for the 
   * `./setLV2`
 	* This sets up the LV2 simulators.  It connects them into pedal boards (named in the `PEDALS/` directory) and makes the Jack connections between them.
 	* It makes no connections to the jack ports: `system_capture_*` and `system_playback_*`
+
 
 ### Pedal Driver
 
