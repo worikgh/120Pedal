@@ -801,5 +801,6 @@ pub fn monitor_pedal_state(tx: Sender<Option<u8>>) -> std::thread::JoinHandle<()
                 }
             }
         }
+        println!("Finished monitoring pedal state at: {}", path.display());
     })
 }

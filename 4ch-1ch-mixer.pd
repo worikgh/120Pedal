@@ -82,6 +82,7 @@
 #X floatatom 533 457 5 0 0 0 - - - 0;
 #X obj 471 383 r~ l1;
 #X obj 247 364 s~ l1;
+#X msg 424 290 stop;
 #X connect 0 0 4 0;
 #X connect 2 0 0 1;
 #X connect 2 0 26 0;
@@ -152,3 +153,4 @@
 #X connect 76 0 73 0;
 #X connect 78 0 71 0;
 #X connect 81 0 78 0;
+#X connect 83 0 73 0;
