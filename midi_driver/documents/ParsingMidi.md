@@ -208,4 +208,3 @@ fn main() {
 
 ---
 
-This list and parsing logic should help you build a simple MIDI parser for transposing Note On/Off messages! Let me know if you need further clarification or enhancements.

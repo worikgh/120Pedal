@@ -61,10 +61,12 @@ impl TranslateTable {
             })
             .collect()
     }
+
     /// Make a key for the translation table.  Combine the 4 bits of
-    /// status with the index in the message (0 or 1) in the MSB and put
-    /// the value to translate in the LSB of the key.
-    /// The index is in [0..1] only MIDI messages that have more than two data bytes following are:
+    /// status `s` with the index `x` in the message (0 or 1) in the
+    /// MSB and put the value to translate in the LSB of the key.
+    /// The index is in [0..1].  The only MIDI messages that have more
+    /// than two data bytes following are:
     /// * Sysex messages.  This programme does not translate those
     /// * NoteOn/NoteOff: These can be followed by an arbitrary number of
     ///   pairs of bytes for note/volume.  So when dealing with data for
@@ -184,7 +186,7 @@ impl Translator {
                     .unwrap_or_else(|| panic!["Invalid status byte: {byte}"]),
             );
 
-            // The working memory should be empty.  If not clear and
+            // The working memory should be empty.  If not, clear and
             // report it
             if !self.is_empty() {
                 eprintln!(
