@@ -2,7 +2,5 @@
 
 set -eu
 
-## For running qzn3t from the gui
-sudo systemctl stop modep-mod-ui || true
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"  # Gets absolute path to script dir
 "$SCRIPT_DIR/qzn3t"
