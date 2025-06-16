@@ -36,3 +36,5 @@ cd "${One20PedalHome}" || { echo "Failed to cd to ${One20PedalHome}"; exit 1; }
 ./setLV2 || { echo "setLV2 failed"; exit 1; }
 
 ./examples/sinco_pedal || { echo "sinco_pedal failed"; exit 1; }
+
+echo " ** qzn3t started"
