@@ -3,5 +3,5 @@ set -e
 
 sudo pkill mod-host || true
 pkill pd ||true
-sudo systemctl restart modep-host
+sudo systemctl restart modep-mod-host
 sudo systemctl restart modep-mod-ui
