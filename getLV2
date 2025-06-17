@@ -88,16 +88,22 @@ print $initfh map{"mh $_\n"} @param;
 print $initfh map{"jack $_\n"} @jack_init;
 close $initfh or die "$!";
 warn "Written $pedal_init_fn\n";
-## The activation data.  Pedals use this
+## The activation data.  Pedals use this.  
 foreach my $name (sort keys %jack_activation){
-    open(my $actfh, ">$pedal_dir/$name") or die "$!";
-    print $actfh map {"$_\n"}
+    my @activation_pipes = 
     map{
 	## Repair a special case
 	/^(capture_\d+):(playback_\d+)/ and $_ = "system:$1 system:$2";
 	$_
     }
     @{$jack_activation{$name}};
+    if(@activation_pipes){
+	open(my $actfh, ">$pedal_dir/$name") or die "$!";
+	print $actfh join("\n", @activation_pipes);
+    }else{
+	warn "Pedal $name has no activation\n";
+    }
+	
 }
 
 ## Check if state file exists, and if not initialise it
@@ -352,11 +358,12 @@ sub process_lv2_turtle( $$ ) {
             ## A connection directly from capture to playback
 	    # For now we only handle pipes to `system:playback_1`
 	    if($1 != 1){
-		warn "Pipes to outputs other than system:playback_1 not supported: ".join(',',@$pipe)."\n";
-		next;
+		$fn =~ /\/([^\/]+)$/;
+		warn "Pipes to outputs other than system:playback_1 not well supported: $1 \n";
+		# next;
 	    }
-	    my $connection = "system:$tail[0]->[2] qzn3t_mixer:input_1";
-	    warn "Direct connection: $connection\n";
+	    my $connection = "system:$tail[0]->[2] system:$head[0]->[2]";
+	    ## warn "Direct connection: $connection\n";
             push(@jack_activation_pipes, $connection);
             next;
         }elsif($tail[0]->[2] =~ /^capture_\d+$/ ){
@@ -375,7 +382,7 @@ sub process_lv2_turtle( $$ ) {
 	    }
 	    my $name_port = &$name_port($tail[0]->[2]) or die;
 	    my $number = $name_number{$name_port->[0]};
-	    my $p = "effect_$number:$name_port->[1] qzn3t_mixer:input_1";
+	    my $p = "effect_$number:$name_port->[1] system:$head[0]->[2]";
 	    push(@jack_activation_pipes, $p);
 	    next;
         }
