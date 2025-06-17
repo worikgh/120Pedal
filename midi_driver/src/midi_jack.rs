@@ -11,12 +11,16 @@ use crate::midi_status::MidiStatus;
 use pedal_state::read_state;
 use pedal_state::write_state;
 use pedal_state::PedalState;
+use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::error::Error;
+use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::io::{self};
+use std::path::Path;
+use std::path::PathBuf;
 mod jack_connections;
 mod midi_byte_reader;
 mod midi_status;
@@ -46,55 +50,69 @@ impl JackConnectionHandler for JackConnections {
     }
 }
 
-/// Associate u8 -> a set of jack connections
-/// Jack connection is two strings: src, dst
-/// Sets of Jack connections describe a pedal
-/// The configuration file associates `u8` with  a file path
-/// The file has the Jack connections one per line
-/// Return a HashMap from the index value to a vector of src/dst pairs
+/// A "Jack connection" is the name of an input pipe and the name of
+/// an output pipe.  The input pipe (inputs to the simulator) is
+/// connected to "system:capture_N" pipes, and output pipes (will be)
+/// connected to "qzn3t_mixer:input_N" pipes.  Each pedal is defined
+/// in a file "pedal_N".  Each input is from "system:capture_1" and
+/// for the file "pedal_Q" the output is (outputs are) sent to
+/// "qzn3t_mixer:input_Q".  (For now each simulator uses only one
+/// output. If there are more tan one output they are combined).
+/// Return a HashMap from the index value to a vector of src/dst pair.
+/// This vector will have one value until the code is extended for
+/// multi-channel effects
 #[allow(clippy::type_complexity)]
 pub fn make_table(
     description: &str,
 ) -> Result<(HashMap<u8, Vec<(String, String)>>, u8), Box<dyn Error>> {
     let mut table = HashMap::new();
-    let lines: Vec<&str> = description.lines().collect();
-    for s1 in lines.iter() {
-        let s = s1.trim();
-        // Format is /^j \d\s.+\s*$/
-        // ............j..m....FileName
 
-        // Match MIDI `m` with the file name for the file of of Jack
-        // connections that are to be made for this MIDI input of `m`
-        if !s.starts_with("j ") {
+    let dir_path = Path::new(PEDAL_DIR);
+
+    // This defines the files that contain the activation Jack pipes
+    // for a pedal.  Often it is symbolic link to the actual file
+    let pattern = Regex::new(r"pedal_(\d+)")?;
+
+    // The paths to pedal_N files indexed by `N`
+    let mut activation_files: HashMap<u8, PathBuf> = HashMap::new();
+
+    // All files in the PEDALS directory that match the pattern...
+    for entry in fs::read_dir(dir_path)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if !path.is_file() {
             continue;
         }
+        let file_name = path
+            .file_name()
+            .and_then(|f| f.to_str())
+            .ok_or_else(|| format!("Error: Failed converting oath {path:?} to a file name"))?;
+        let number = if let Some(captures) = pattern.captures(file_name) {
+            captures
+                .get(1)
+                .ok_or(format!("No capture group found in filename: {file_name}"))?
+                .as_str()
+                .parse::<u8>()
+                .map_err(|e| {
+                    format!("Error: {e}. Failed to get number from file name: {file_name}")
+                })?
+        } else {
+            eprintln!("jack_midi: Cannot parse file name: {file_name}");
+            continue;
+        };
 
-        // The string needs 2 chars for "j ", two characters, at least
-        // for number, and then at least one characters to name the
-        // pedal file
-        if s.len() < 5 {
-            return Err(format!("{s1} is an invalid line for jack_midi configuration").into());
+        if number == 0 {
+            // Invalid pedal file name
+            eprintln!("jack_midi: Error: File pedal_0 is invalid");
+            continue;
         }
+        activation_files.insert(number, path);
+    }
 
-        let mut i = 2;
-        // s[i] is start of MIDI CC value ised to select pedal
-        while let Some(c) = s.chars().nth(i) {
-            if c.is_whitespace() {
-                break;
-            }
-            i += 1;
-        }
-        let idx: u8 = s[2..i].parse()?;
-        let mut j = i;
-        while let Some(c) = s.chars().nth(j) {
-            if !c.is_whitespace() {
-                break;
-            }
-            j += 1;
-        }
-
-        let file_name = format!("{PEDAL_DIR}/{}", &s[j..]);
-        let file_name = file_name.trim();
+    // For each activation file
+    for (k, path) in activation_files.iter() {
+        let file_name = path.to_str().unwrap();
         let mut file = match File::open(file_name) {
             Ok(f) => f,
             Err(err) => {
@@ -107,8 +125,10 @@ pub fn make_table(
         let lines = jack_cfg.lines();
         let mut jack_pairs: Vec<(String, String)> = Vec::new();
         for line in lines {
-            // Each line must be of the form "<src jack pipe> <sink jack pipe>"
-            // Jack pipes do not contain whitespace
+            // Each line must be of the form "<src jack pipe> <sink
+            // jack pipe>".  Each must have "system:playback_N" or
+            // "system:capture_N".  Jack pipes do not contain
+            // whitespace
             let mut src_dst = line.split_whitespace();
             let src = src_dst
                 .next()
@@ -117,20 +137,26 @@ pub fn make_table(
                 .next()
                 .ok_or(format!("A bad jack description: {line}"))?;
 
+            if !src.contains("system:capture") && !dst.contains("system:playback") {
+                eprintln!("jack_midi: Error.Invalid Jack I/O: src{src} -> dst: {dst}");
+                continue;
+            }
+
             // The output is now directed to the input of the mixer so
             // volume of each pedal board can be set at runtime
             if dst.contains("system:playback") {
                 // The name of the mixer input pipe is
-                // `qzn3t_mixer:input_N` where `N` is idx + 1.  Pure
-                // Data Jack pipes are numbered starting at 1
-                let dst = format!("qzn3t_mixer:input_{}", idx + 1);
+                // `qzn3t_mixer:input_N` where `N` is `k`.  `k`
+                // starts at 1
+                let dst = format!("qzn3t_mixer:input_{k}",);
                 jack_pairs.push((src.to_string(), dst.to_string()));
             } else {
                 jack_pairs.push((src.to_string(), dst.to_string()));
             }
         }
-        table.insert(idx, jack_pairs);
+        table.insert(*k, jack_pairs);
     }
+
     let channel: u8 = description
         .lines()
         .rev() // If more than one, use last
