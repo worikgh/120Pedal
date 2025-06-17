@@ -1,14 +1,23 @@
 ![under construction](under-construction.png)
+**THIS BARELY WORKS**
+
+Make simulated guitar pedals available for live use using a MIDI pedal.
 
 This has been built and tested primarily on Raspberry Pi 4 and 5 SBCs.
 
-**THIS BARELY WORKS**
+Pedals simulators have Jack audio input and output pipes.
 
-# Guitar Pedal
+The simulator input and output pipes are defined in files named "pedal_N" where 'N' is a positive integer.
+
+Any simulator that takes input form and sends ouputs to Jack audio pipes can be used.
+
+# Installation
 
 The best operating systemm to use at this point is [Patchbox OS](https://blokas.io/patchbox-os/) this supplies `mod-ui` as a service, and it is connected to [Patch Storage](https://patchstorage.com/) which makes setting up basic pedals easier.
 
-During the installation of Patchbox OS when asked what modules to choose, choose none. **TODO: Check what installer actually asks**
+During the installation of Patchbox OS:
+* When asked what modules to choose, choose none. **TODO: Check what installer actually asks**
+* Select the sound card and parameters
 
 > Once the installation is complete ensure that `mod-ui` is disabled so it will not start at boot. It will be under our control
 `sudo systemctl disable modep-mod-ui **TODO Unsure...**
@@ -17,7 +26,7 @@ During the installation of Patchbox OS when asked what modules to choose, choose
 
 Patchbox OS has [opt-out telemetry](https://community.blokas.io/t/what-is-blokas-telemetry/3698/2).  If you are uncomfortable with it run: `sudo apt purge blokas-telemetry`
 
-### Set up the machine:
+## Set up the machine:
 
 * Using Debian 12
 *  Required packages:
