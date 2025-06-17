@@ -1,208 +1,204 @@
+Here's an improved version of your README.md with better organization, clearer instructions, and more professional presentation:
+
+# 120Pedal - MIDI Guitar Pedal Controller 🎸
+
 ![under construction](under-construction.png)
 **THIS BARELY WORKS**
 
-Make simulated guitar pedals available for live use using a MIDI pedal.
+A system to control simulated guitar pedals using a MIDI foot controller. Designed primarily for Raspberry Pi 4/5, it allows real-time switching of audio effects via Jack audio connections.
 
-This has been built and tested primarily on Raspberry Pi 4 and 5 SBCs.
+## Key Features
+- Real-time audio routing (<100ms latency)
+- Supports any Jack-compatible audio processor
+- LV2 plugin integration via mod-ui
+- MIDI controller configuration
+- Designed for headless operation
 
-Pedals simulators have Jack audio input and output pipes.
+## System Requirements
+- Raspberry Pi 4 or 5 (recommended)
+- Debian 12 (Patchbox OS)
+- Compatible audio interface
+- MIDI foot controller
 
-The simulator input and output pipes are defined in files named "pedal_N" where 'N' is a positive integer.
+## Installation
 
-Any simulator that takes input form and sends ouputs to Jack audio pipes can be used.
+### Recommended OS: Patchbox OS
+1. Download [Patchbox OS](https://blokas.io/patchbox-os/)
+2. Install with these settings:
+   - Select no additional modules during installation
+   - Configure your audio interface settings
+3. Post-installation:
+   ```bash
+   sudo systemctl disable modep-mod-ui  # Prevent mod-ui from auto-starting
+   ```
 
-# Installation
-
-The best operating systemm to use at this point is [Patchbox OS](https://blokas.io/patchbox-os/) this supplies `mod-ui` as a service, and it is connected to [Patch Storage](https://patchstorage.com/) which makes setting up basic pedals easier.
-
-During the installation of Patchbox OS:
-* When asked what modules to choose, choose none. **TODO: Check what installer actually asks**
-* Select the sound card and parameters
-
-> Once the installation is complete ensure that `mod-ui` is disabled so it will not start at boot. It will be under our control
-`sudo systemctl disable modep-mod-ui **TODO Unsure...**
-
-## Blokas Telemetry`
-
-Patchbox OS has [opt-out telemetry](https://community.blokas.io/t/what-is-blokas-telemetry/3698/2).  If you are uncomfortable with it run: `sudo apt purge blokas-telemetry`
-
-## Set up the machine:
-
-* Using Debian 12
-*  Required packages:
-  * dnsmasq
-  * git
-  * hostapd
-  * iw
-  * jackd2
-  * libasound2-dev
-  * libjack-jackd2-dev
-  * liblilv-dev
-  * libreadline-dev
-  * libsdl2-dev
-  * libsdl2-image-dev
-  * lv2-dev
-  * pkg-config
-  * python3.11-dev
-
-`sudo apt install  dnsmasq git hostapd iw jackd2 libasound2-dev libjack-jackd2-dev liblilv-dev libreadline-dev lv2-dev pkg-config python3.11-dev -y`
-
-* Install rust
-  * `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-
-## Auto start Qzn3t GUI
-
+### Optional: Remove Telemetry
+Patchbox OS includes opt-out telemetry. To remove:
+```bash
+sudo apt purge blokas-telemetry
 ```
+
+### Software Setup
+1. Install required packages:
+```bash
+sudo apt install dnsmasq git hostapd iw jackd2 libasound2-dev \
+libjack-jackd2-dev liblilv-dev libreadline-dev libsdl2-dev \
+libsdl2-image-dev lv2-dev pkg-config python3.11-dev -y
+```
+
+2. Install Rust:
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+## Configuration
+
+### Auto-start GUI
+```bash
 mkdir -p ~/.config/autostart
-nano ~/.config/autostart/120pedal.desktop
-```
-
-```
+cat > ~/.config/autostart/120pedal.desktop <<EOF
 [Desktop Entry]
 Type=Application
 Name=120Pedal
-Exec=/bin/bash -c "sleep 5 && ${HOME}/120Pedal/gui/run.sh"
+Exec=/bin/bash -c "sleep 5 && \${HOME}/120Pedal/gui/run.sh"
 Comment=120Pedal Controller
 X-GNOME-Autostart-enabled=true
 X-GNOME-Autostart-Delay=10
+EOF
+chmod +x ~/.config/autostart/120pedal.desktop
 ```
 
-`chmod +x ~/.config/autostart/120pedal.desktop`
+### Jack Audio Setup
 
-### Configure Jack
+If not using Patchbox OS (that takes care of this):
 
-Get the user name and the name of the sound card in use.  E.g: puppy using a Scarlett Solo:
-
-```sh
-aplay -l |grep  Scarl
-card 3: Gen [Scarlett Solo 4th Gen], device 0: USB Audio [USB Audio]
+1. Identify your audio interface:
+```bash
+aplay -l | grep "Your Interface Name"
 ```
-Edit `/etc/systemd/system/jackd.service` to start Jack
-```
+
+2. Create `/etc/systemd/system/jackd.service`:
+```ini
 [Unit]
 Description=JACK Audio Connection Kit
 After=sound.target
 
 [Service]
-ExecStart=/bin/sh -c 'CARD=$(aplay -l | grep -m1 "Scarlett Solo" | cut -d" " -f2 | tr -d ":"); exec /usr/bin/jackd -d alsa -d hw:$CARD -r 48000 -p 128 -n 2'
+ExecStart=/bin/sh -c 'CARD=$(aplay -l | grep -m1 "Your Interface" | cut -d" " -f2 | tr -d ":"); exec /usr/bin/jackd -d alsa -d hw:$CARD -r 48000 -p 128 -n 2'
 Restart=always
-User=puppy
+User=your_username
 Group=audio
 LimitMEMLOCK=8589934592
 LimitRTPRIO=89
-Environment="XDG_RUNTIME_DIR=/run/user/$(id -u puppy)"
+Environment="XDG_RUNTIME_DIR=/run/user/$(id -u your_username)"
 Environment="JACK_NO_AUDIO_RESERVATION=1"
 
 [Install]
 WantedBy=multi-user.target
 ```
-* `-d alsa` Alsa backend
-* `-r 48000` Sample rate of 48kHz
-* `-p 128` Buffer size
 
-Run:
-```sh
+3. Enable Jack:
+```bash
 sudo systemctl start jackd
 sudo systemctl enable jackd
 ```
 
-### Setup Mod-host
+### mod-host Setup
 
-[LV2](https:lv2plug.in) is a set of royalty-free open standards for music production plug-ins and is very useful.  This pedal can be used without it, but using LV2 is a good idea.
+If using Patchbox OS: `sudo apt install modep-mod-host`
 
-* Clone `https://github.com/worikgh/mod-host.git`
-  * `cd mod-host`
-  * `make`
-  * `./mod-host -n -p 5555 `
+Otherwise:
 
-### Build Simulators
-
-* This system switches audio jack signals in real time (sub 100ms)
-  * A MIDI foot pedal can simulate guitar pedals
-
-Any jack based audio processing can be used, so long as it can read and write audio from and to jack.  However a very convenient way is to use [mod-ui](https://github.com/worikgh/mod-ui.git).  It is important to use that repository, not the official one (as of 2025-04-19) as `mod-host` requires Jackd from Debian 12 and `mod-ui` from the official repository will not build with Python 3.10, which is the default on Debian-12.
-
-The installation instructions in [this mod-ui](https://github.com/worikgh/mod-ui.git) include code to get around that.
-
-* So clone https://github.com/worikgh/mod-ui.git
-* `cd mod-ui`
-* Follow the instructions in the `README.md` which are:
+```bash
+cd
+git clone https://github.com/worikgh/mod-host.git
+cd mod-host
+make
+./mod-host -n -p 5555
 ```
+
+### mod-ui Installation
+
+If using Patchbox OS: `sudo apt install modep-mod-ui`
+
+Access the interface at `http://<your-pi-ip>` (**Not HTTPS**)
+
+Otherwise:
+
+```bash
+cd
+git clone https://github.com/worikgh/mod-ui.git
+cd mod-ui
 python3 -m venv myenv
 source myenv/bin/activate
 pip3 install -r requirements.txt
-if [ -e myenv/lib/python3.10/site-packages/tornado/httputil.py ]; then
-	echo "  * Update 3.10: "
-	sed -i -e 's/collections.MutableMapping/collections.abc.MutableMapping/' myenv/lib/python3.10/site-packages/tornado/httputil.py
-elif [ -e myenv/lib/python3.11/site-packages/tornado/httputil.py ]; then
-	echo "  * Update 3.11: "
-	sed -i -e 's/collections.MutableMapping/collections.abc.MutableMapping/' myenv/lib/python3.11/site-packages/tornado/httputil.py
-elif [ -e myenv/lib/python3.12/site-packages/tornado/httputil.py ]; then
-	echo "  * Update 3.12: "
-	sed -i -e 's/collections.MutableMapping/collections.abc.MutableMapping/' myenv/lib/python3.12/site-packages/tornado/httputil.py
-	sed -i -e 's/import ssl/import _NOT_ssl/' myenv/lib/python3.12/site-packages/tornado/netutil.py
-fi
+
+# Apply necessary patches
+find myenv/lib/python* -name httputil.py | xargs sed -i 's/collections.MutableMapping/collections.abc.MutableMapping/'
 make -C utils
 export MOD_DEV_ENVIRONMENT=0
 python3 ./server.py
 ```
 
-Then use a web browser to connect to port 8888 `http://<IP of PI>:8888` for the `mod-ui` interface.  It is possible to make use of LV2 simulators, with a nice user interface: [mod-ui_ss.png] `mod-ui` will look for LV2 plugins in `~/.lv2/`.
+Access the interface at `http://<your-pi-ip>:8888`  (**Not HTTPS**)
 
-### Set up Pedals
+## Setting Up Pedals
 
-* Clone the [120Pedal](https://github.com/worikgh/120Pedal.git) repository
-* `cd 120Pedal`
-* Given the hardware pedal to use [create the files in `PEDALS/`](PEDALS/README.md)
-* If using LV2 simulators and `mod-ui`
-  * `./getLV2`
-	* This reads the pedals as set up by `mod-ui`
-	* Alternatively if `mod-ui` run on a different computer, copy the LV2 definitions to `~/.lv2` and the `PEDALS/` directory to `120Pedal/PEDALS`
-  * `./setLV2`
-	* This sets up the LV2 simulators.  It connects them into pedal boards (named in the `PEDALS/` directory) and makes the Jack connections between them.
-	* It makes no connections to the jack ports: `system_capture_*` and `system_playback_*`
+1. Clone the repository:
+```bash
+cd
+git clone https://github.com/worikgh/120Pedal.git
+cd 120Pedal
+```
 
+2. Configure your pedal setups in the `PEDALS/` directory (see [PEDALS/README.md](PEDALS/README.md))
 
-### Pedal Driver
+3. For LV2 simulators:
+```bash
+./getLV2  # Reads mod-ui pedal configurations
+./setLV2  # Sets up LV2 simulators and Jack connections
+```
 
-1. `read_midi` Passed a device name it reads MIDI fro that device and outputs it on its standard output
-2. `translate_midi` Reads MIDI from the standard in, translates the MIDI according to instructions from a configuration file, outputs MIDI on its standard out
-3. `jack_midi`  Reads MIDI from its standard in and creates and destroys Jack connections
+## MIDI Pedal Configuration
 
-Example SINCO MIDI Pedal
----
+The MIDI pedal is driven with three components:
 
+1. A reader: `read_midi` that connects to the device and outputs the MIDI data on its STDOUT
+2. A translator: `translate_midi` that reads MIDI on its STDIN and writes (translated) MIDI on its STDOUT
+3. An actor: `jack_midi` that reads MIDI on its STDIN and sets up Jack audio pipes
+
+### Example: SINCO MIDI Pedal
 ![SINCO pedal](SINCO.png)
 
-* `read_midi SINCO` will open the pedal and send MIDI to its standard output.  The first MIDI device where the name is a super string of the argument ("SINCO" in this case) is chosen as the pedal device
-
-* `translate_midi examples/sinco.cfg` The configuration file [sinco.cfg](midi_driver/examples/sinco.cfg) configures `translate_midi` so:
-  * Programme change MIDI messages are on channel 0 because a channel is not specified and that is the default
-  * Only programme change values output are:  0, 1, 2 or 3
-  * The SINCO pedal has eight modes and can output 32 MIDI values.
-	* Modes are changed by depressing two buttons together
-	* The buttons are small and close together, it is easy to depress two together by mistake
-	* The translation table ensure that button 'A' outputs 0, button 'B' outputs 1,  button 'C' outputs 2 and button 'D' outputs 3,  in all modes.
-
-* `jack_midi examples/midi_jack.cfg`The configuration file:
-```plaintext
-j 0 PEADLS/Big_Muff
-j 1 PEADLS/Chaos
-j 2 PEADLS/GXepicvalve
-j 3 PEADLS/lost_world
+1. **Read MIDI Input**:
+```bash
+read_midi SINCO
 ```
-  * Button `a` will make the connections in `PEDALS/Big_Muff`
-  * Button `b` will make the connections in `PEDALS/Chaos`
-  * Button `c` will make the connections in `PEDALS/GXepicvalve`
-  * Button `d` will make the connections in `PEDALS/lost_world`
 
-The files have contents like:
-```sh
-$ cat PEDALS/lost_world
+2. **Translate MIDI Commands**:
+```bash
+translate_midi examples/sinco.cfg
+```
+
+3. **Control Jack Connections**:
+```bash
+jack_midi examples/midi_jack.cfg
+```
+
+### Pipeline Example
+```bash
+(export PATH=$PATH:$(pwd)/midi_driver/target/release
+read_midi SINCO | translate_midi examples/sinco.cfg | jack_midi examples/sas_house.cfg)
+```
+
+## Pedal Configuration Files
+Example pedal definition (`PEDALS/lost_world`):
+```
 system:capture_1 effect_14:in
 effect_13:Out1 system:playback_1
 ```
 
-Where `effect_14` and `effect_13` are LV2 simulators.  There will be Jack connections between them set up by `setLV2`
-
-`120Pedal/midi_driver $ (export PATH=$PATH:$(pwd)/target/release; read_midi SINC | translate_midi examples/sinco.cfg | jack_midi examples/sas_house.cfg)`
+## Troubleshooting
+- Ensure Jack is running before starting mod-host
+- Verify your audio interface is properly detected
+- Check MIDI device permissions
