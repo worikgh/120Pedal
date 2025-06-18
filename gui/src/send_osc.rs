@@ -3,6 +3,7 @@ use rosc::{encoder, OscMessage, OscPacket, OscType};
 use std::error::Error;
 use std::net::{SocketAddrV4, UdpSocket};
 use std::str::FromStr;
+#[derive(Debug)]
 pub struct OscSender {
     sock: UdpSocket,
     to_addr: SocketAddrV4,

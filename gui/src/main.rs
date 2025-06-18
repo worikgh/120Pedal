@@ -64,6 +64,7 @@ struct BoolCommandRect {
 
 // Button that is highlighted while pressed, and is used to add (or
 // subtract) a value
+#[derive(Debug)]
 struct PushButton {
     // Add (or subtract) this value
     value: isize,
@@ -142,6 +143,7 @@ impl TouchRectFn for PushButton {
     }
 }
 
+#[derive(Debug)]
 struct SliderValue {
     value: RefCell<f32>, // Value of slider
     osc: Rc<OscSender>,  // Shared OSC transmitter
@@ -158,6 +160,7 @@ impl SliderValue {
 }
 
 /// Adjusting one parameter.
+#[derive(Debug)]
 struct Slider {
     // Graphical widgets
     add_one: PushButton,
@@ -178,6 +181,7 @@ struct Slider {
     // between sliders
     w_f: f64,
 }
+#[derive(Debug)]
 struct IdxSelected {
     idx: u8,
     selected: bool,
@@ -337,6 +341,7 @@ impl TouchRectFn for Slider {
     }
 }
 
+#[derive(Debug)]
 struct EffectMixer {
     sliders: Vec<Slider>,
     corners: [f64; 4],
@@ -452,6 +457,7 @@ impl TouchRectFn for EffectMixer {
                             dirty = true;
                         }
                     }
+                    self.pedal_state.selected = Some(idx);
                 } else {
                     for s in self.sliders.iter_mut() {
                         if s.idx_selected.borrow().selected {
@@ -474,6 +480,7 @@ impl TouchRectFn for EffectMixer {
                     if choice.1 != value {
                         choice.1 = value;
                         dirty = true;
+                        break;
                     }
                 }
             }
@@ -575,7 +582,6 @@ impl TouchRectFn for BoolCommandRect {
                 self.not_state_colour[3],
             ];
         }
-        eprintln! {"DBG gui: paint colour: {colour:?} self.state: {}", self.state};
         app.window
             .set_color(colour[0], colour[1], colour[2], colour[3]);
         app.window.fill_rect(fill_area);
@@ -764,7 +770,7 @@ pub fn monitor_pedal_state(tx: Sender<Option<u8>>) -> std::thread::JoinHandle<()
             .watch(path, RecursiveMode::NonRecursive)
             .expect("Failed to watch file");
 
-        println!("Monitoring pedal state at: {}", path.display());
+        eprintln!("Monitoring pedal state at: {}", path.display());
 
         let last_state = match read_state(path.to_str().expect("Statefile path invalid")) {
             Ok(state) => state,
@@ -786,7 +792,6 @@ pub fn monitor_pedal_state(tx: Sender<Option<u8>>) -> std::thread::JoinHandle<()
             if let EventKind::Modify(_modify_kind) = event.kind {
                 // State file changed
                 // Check selected slider has changed
-                eprintln!("DBG gui: state file changed");
                 let new_state = match read_state(path.to_str().expect("Statefile path invalid")) {
                     Ok(state) => state,
                     Err(e) => {
