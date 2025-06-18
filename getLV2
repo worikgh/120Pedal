@@ -121,7 +121,8 @@ XXXXXX
 }
 EOF
     my @xxx = ();
-    for(my $i = 0; $i < $pedal_count; $i++){
+    ## Choices are 1 based
+    for(my $i = 1; $i <= $pedal_count; $i++){
 	push(@xxx, "[ $i, 0.5]");
     }
     my $xxx = join(",\n", @xxx);

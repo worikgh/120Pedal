@@ -289,7 +289,7 @@ impl TouchRectFn for Slider {
     }
 
     fn paint(&mut self, app: &mut App) {
-        // Paint the white background
+        // Paint the background
         {
             let w = self.corners[2] * self.w_f;
             let h = self.corners[3];
@@ -301,7 +301,8 @@ impl TouchRectFn for Slider {
             let w = (w * app.width as f64) as u32;
             let h = (h * app.height as f64) as u32;
             let fill_rect = Rect::new(x, y, w, h);
-            if self.idx_selected.borrow().selected {
+            let selected: bool = self.idx_selected.borrow().selected;
+            if selected {
                 app.window.set_color(0xf0, 0x0f, 0xff, 0x88);
             } else {
                 app.window.set_color(0x0f, 0xf0, 0xff, 0x88);
