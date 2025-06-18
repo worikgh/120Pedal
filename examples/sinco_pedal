@@ -3,6 +3,7 @@
 # The effects are jack pipe definitions for connections to
 # system:playback_1 and system_capture_1
 
+echo "  ** examples/sinco_pedal"
 set -e
 
 # Get the script's directory, 
@@ -41,6 +42,7 @@ TRANS="${MIDI_DRIVER_PATH}"/translate_midi
 JACK="${MIDI_DRIVER_PATH}"/jack_midi
 
 if pgrep -x "read_midi" >/dev/null; then
+    echo -n "  ** examples/sinco_pedal: "
     pkill -x "read_midi" && echo "Stopped read_midi" || echo "Failed to stop read_midi"
 fi
 

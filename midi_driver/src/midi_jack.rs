@@ -98,7 +98,7 @@ pub fn make_table(
                     format!("Error: {e}. Failed to get number from file name: {file_name}")
                 })?
         } else {
-            eprintln!("jack_midi: Cannot parse file name: {file_name}");
+            // An other file.  Do not care
             continue;
         };
 
@@ -138,7 +138,7 @@ pub fn make_table(
                 .ok_or(format!("A bad jack description: {line}"))?;
 
             if !src.contains("system:capture") && !dst.contains("system:playback") {
-                eprintln!("jack_midi: Error.Invalid Jack I/O: src{src} -> dst: {dst}");
+                eprintln!("jack_midi: Error. Invalid Jack I/O: src{src} -> dst: {dst}");
                 continue;
             }
 
@@ -212,9 +212,12 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
         } else {
             // Data byte
             if let Some(MidiStatus::ProgramChange(_)) = status.as_ref() {
+                eprintln!("DBG jack_midi: Got byte: {byte:x}");
                 if let Some(jack_pipes) = command_table.get(&byte) {
                     // Changing the pedal to byte
                     // Have jack connections to establish in `jack_pipes`
+                    eprintln!("DBG jack_midi: Got pipes: {jack_pipes:?}");
+
                     for jc in jack_pipes.iter() {
                         if !connected.contains(&(&jc.0, &jc.1)) {
                             jack_connections.make_jack(&jc.0, &jc.1)?;

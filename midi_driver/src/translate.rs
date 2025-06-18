@@ -75,7 +75,6 @@ impl TranslateTable {
     ///   even address, in which case it is "volume"
     fn make_key(s: u8, x: u8, k: u8) -> u16 {
         let result = ((s as u16 | x as u16) << 8) | (k as u16);
-        eprintln!("DBG: translate_midi s: {s:x} x: {x:x} k: {k:x}");
         result
     }
 }
@@ -200,6 +199,7 @@ impl Translator {
             self.working.push(byte);
         } else {
             // Data byte
+            eprintln!("DBG translate_midi: Data byte: {byte:x}");
             match self.status {
                 Some(status) => {
                     let byte = match self.translate(byte, &status)? {
@@ -210,6 +210,7 @@ impl Translator {
                             byte
                         }
                     };
+                    eprintln!("DBG translate_midi: Translated byte: {byte:x}");
 
                     self.working.push(byte);
                     self.write_working();

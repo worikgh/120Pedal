@@ -10,7 +10,8 @@ One20PedalHome="${HOME}/120Pedal"
 
 # Start mod-host
 cd "${MOD_HOST_HOME}" || { echo "Failed to cd to ${MOD_HOST_HOME}"; exit 1; }
-pkill mod-host || true  # Prevent exit if process not found
+echo "  ** examples/qzn3t: Kill mod-host"
+pkill -x mod-host || true  # Prevent exit if process not found
 
 make || { echo "Make failed"; exit 1; }
 

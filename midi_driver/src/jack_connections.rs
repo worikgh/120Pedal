@@ -12,6 +12,7 @@ impl JackConnections {
     }
 
     pub fn make_connection(&mut self, src: &str, dst: &str) -> Result<(), Error> {
+        eprintln!("DBG jack_midi Connect {src} -> {dst}");
         self.client.connect_ports_by_name(src, dst)?;
         Ok(())
     }

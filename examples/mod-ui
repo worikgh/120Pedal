@@ -1,7 +1,10 @@
 #!/bin/sh
 set -e
-
-sudo pkill mod-host || true
-pkill pd ||true
+echo "  ** examples/modui: Kill mod-host"
+sudo pkill -x mod-host || true
+echo "  ** examples/modui: Kill pd"
+pkill -x pd ||true
+echo "  ** examples/modui: Restart mod-host"
 sudo systemctl restart modep-mod-host
+echo "  ** examples/modui: Restart mod-ui"
 sudo systemctl restart modep-mod-ui
