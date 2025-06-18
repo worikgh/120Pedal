@@ -74,8 +74,7 @@ impl TranslateTable {
     ///   address (relative to status) which means it is "note", or at an
     ///   even address, in which case it is "volume"
     fn make_key(s: u8, x: u8, k: u8) -> u16 {
-        let result = ((s as u16 | x as u16) << 8) | (k as u16);
-        result
+        ((s as u16 | x as u16) << 8) | (k as u16)
     }
 }
 
