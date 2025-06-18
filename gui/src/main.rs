@@ -43,9 +43,18 @@ trait TouchRectFn {
     fn tick(&mut self, _app: &mut App) {}
 }
 
-/// The "button" that executes a system command, and passes its
-/// `state` as a booleen argument
-struct BoolCommandRect {
+/// The command modes for MainCommandRect
+#[derive(Debug, Clone)]
+enum CommandMode {
+    EditMode,
+    LiveMode,
+}
+
+/// The "button" that switches between `EditMode` where the pedal has
+/// no effect and the web interface is offered for adjusting pedal
+/// parameters adn `LiveMode` where the pedlal does have an efect and
+/// the web interface is turned off
+struct MainCommandRect {
     /// RGBA
     state_colour: [u8; 4],
     not_state_colour: [u8; 4],
@@ -57,7 +66,7 @@ struct BoolCommandRect {
     /// Was the last event a 'mouse_down'
     down: bool,
     /// This is effectively a toggle
-    state: bool,
+    mode: CommandMode,
     /// If there are errors `valid` is false
     valid: bool,
 }
@@ -495,18 +504,18 @@ impl TouchRectFn for EffectMixer {
     }
 }
 
-impl BoolCommandRect {
+impl MainCommandRect {
     /// This runs the command from MainTouchRect.  The command takes
     /// one `bool` argument.  If `true` it will run `qzn3t` otherwise
     /// it runs `mod-ui`.  It returns `true` if the comand succeeded,
     /// `false` otherwise
     fn run_command(&mut self) -> bool {
         let command = self.command.as_str();
-        let argument = self.state;
-        self.valid = match std::process::Command::new(command)
-            .arg(argument.to_string())
-            .status()
-        {
+        let argument = match self.mode {
+            CommandMode::EditMode => "false",
+            CommandMode::LiveMode => "true",
+        };
+        self.valid = match std::process::Command::new(command).arg(argument).status() {
             Ok(s) => {
                 eprintln!(
                     "DBG Run command: {command} Ok.  Arg: {argument}: Success: {}",
@@ -523,18 +532,21 @@ impl BoolCommandRect {
     }
 }
 
-impl TouchRectFn for BoolCommandRect {
+impl TouchRectFn for MainCommandRect {
     /// Touch events toggle between `mod-ui` and `qzn3t`
     fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
         if self.down != is_down {
             if !is_down {
                 // Released. Take action
-                let dbg_state = self.state;
-                self.state = !self.state;
+                let dbg_state = self.mode.clone();
+                self.mode = match self.mode {
+                    CommandMode::EditMode => CommandMode::LiveMode,
+                    CommandMode::LiveMode => CommandMode::EditMode,
+                };
                 self.run_command();
                 eprintln!(
-                    "DBG gui BoolCommandRect State change: {dbg_state} -> {}",
-                    self.state
+                    "DBG gui BoolCommandRect State change: {dbg_state:?} -> {:?}",
+                    self.mode
                 );
             }
             self.down = is_down;
@@ -547,7 +559,6 @@ impl TouchRectFn for BoolCommandRect {
             && y < self.corners[3] + self.corners[1]
     }
     fn paint(&mut self, app: &mut App) {
-        let colour: [u8; 4];
         let fill_area = if self.valid {
             let x = self.corners[0];
             let y = self.corners[1];
@@ -565,23 +576,24 @@ impl TouchRectFn for BoolCommandRect {
             let y1 = (0.6 * app.height as f64) as i32;
             simple::Rect::new(x0, y0, (x1 - x0) as u32, (y1 - y0) as u32)
         };
-        if self.down {
-            colour = [0, 0, 0, 0];
-        } else if self.state {
-            colour = [
-                self.state_colour[0],
-                self.state_colour[1],
-                self.state_colour[2],
-                self.state_colour[3],
-            ];
+        let colour: [u8; 4] = if self.down {
+            [0, 0, 0, 0]
         } else {
-            colour = [
-                self.not_state_colour[0],
-                self.not_state_colour[1],
-                self.not_state_colour[2],
-                self.not_state_colour[3],
-            ];
-        }
+            match self.mode {
+                CommandMode::LiveMode => [
+                    self.state_colour[0],
+                    self.state_colour[1],
+                    self.state_colour[2],
+                    self.state_colour[3],
+                ],
+                CommandMode::EditMode => [
+                    self.not_state_colour[0],
+                    self.not_state_colour[1],
+                    self.not_state_colour[2],
+                    self.not_state_colour[3],
+                ],
+            }
+        };
         app.window
             .set_color(colour[0], colour[1], colour[2], colour[3]);
         app.window.fill_rect(fill_area);
@@ -698,13 +710,13 @@ fn main() {
     // and height are normalised.
     const MAIN_WIDTH: f64 = 0.15; // 15%
     const MAIN_HEIGHT: f64 = 0.25;
-    let mut main_button = BoolCommandRect {
+    let mut main_button = MainCommandRect {
         corners: [0.0, 0.0, MAIN_WIDTH, MAIN_HEIGHT],
         down: false,
         state_colour: [255, 0, 0, 255],
         not_state_colour: [0, 0, 255, 255],
         command,
-        state: false,
+        mode: CommandMode::LiveMode,
         valid: true,
     };
 
