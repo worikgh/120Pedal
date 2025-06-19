@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::{self, Write};
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct PedalState {
     // The selected effect
     pub selected: Option<u8>,

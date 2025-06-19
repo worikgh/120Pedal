@@ -21,6 +21,19 @@ use std::sync::mpsc::{channel, Sender};
 use std::time::{Duration, Instant};
 mod send_osc;
 
+const COLOUR_BLUE: [u8; 4] = [0, 0, 0xff, 0xff];
+const COLOUR_GREEN: [u8; 4] = [0, 0xff, 0, 0xff];
+const COLOUR_RED: [u8; 4] = [0xff, 0, 0, 0xff];
+const COLOUR_BLACK: [u8; 4] = [0x0, 0, 0, 0xff];
+
+/// Colours for the sliders.
+const COLOUR_SELECTED: [u8; 4] = [0xf0, 0x0f, 0xff, 0x88];
+const COLOUR_UNSELECTED: [u8; 4] = [0x0f, 0xf0, 0xff, 0x88];
+const COLOUR_THUMB: [u8; 4] = COLOUR_RED;
+
+/// The background of the slider
+const COLOUR_BACKGROUND: [u8; 4] = [0xf8, 0xf0, 0xf0, 255];
+
 struct App {
     window: simple::Window,
     width: u16,
@@ -33,6 +46,10 @@ impl App {
             height,
             window: simple::Window::new(name, width, height),
         }
+    }
+    fn set_colour(&mut self, colour: &[u8; 4]) {
+        self.window
+            .set_color(colour[0], colour[1], colour[2], colour[3]);
     }
 }
 
@@ -87,15 +104,15 @@ struct PushButton {
 impl PushButton {
     fn new(x: f64, y: f64, w: f64, h: f64, value: isize, target: Rc<SliderValue>) -> Self {
         let colour: [u8; 4] = if value.abs() == 1 {
-            [0, 0, 0xff, 0xff]
+            COLOUR_BLUE
         } else {
-            [0, 0xff, 0, 0xff]
+            COLOUR_GREEN
         };
         Self {
             corners: [x, y, w, h],
             value,
             colour,
-            colour_pressed: [0xff, 0, 0, 0xff],
+            colour_pressed: COLOUR_RED,
             pressed: false,
             target,
         }
@@ -116,10 +133,7 @@ impl TouchRectFn for PushButton {
     }
 
     fn point_inside(&self, x: f64, y: f64) -> bool {
-        x > self.corners[0]
-            && x <= self.corners[2] + self.corners[0]
-            && y > self.corners[1]
-            && y < self.corners[3] + self.corners[1]
+        point_inside_rect(x, y, self.corners)
     }
 
     fn paint(&mut self, app: &mut App) {
@@ -134,19 +148,9 @@ impl TouchRectFn for PushButton {
         let fill_rect = Rect::new(x, y, w, h);
         // For now plus/sub one is blue and plus/sub ten is green
         if self.pressed {
-            app.window.set_color(
-                self.colour_pressed[0],
-                self.colour_pressed[1],
-                self.colour_pressed[2],
-                self.colour_pressed[3],
-            );
+            app.set_colour(&self.colour_pressed);
         } else {
-            app.window.set_color(
-                self.colour[0],
-                self.colour[1],
-                self.colour[2],
-                self.colour[3],
-            );
+            app.set_colour(&self.colour);
         }
         app.window.fill_rect(fill_rect);
     }
@@ -223,6 +227,13 @@ impl Slider {
         let but_w = w / 2.0;
         let but_add_y = y - but_h;
         let but_sub_y = y + h;
+
+        // Initialise the mixer settings
+        let osc_msg = format!("/v/{}", idx);
+        if let Err(err) = osc.send(osc_msg.as_str(), value) {
+            eprintln!("Error: Sending OSC initialising EffectMixer: {osc_msg}  Value: {value}  Error: {err}");
+        }
+
         let slider_value = SliderValue::new(osc, value, idx);
         let slider_value = Rc::new(slider_value);
         let add_one = PushButton::new(
@@ -291,10 +302,7 @@ impl TouchRectFn for Slider {
 
     /// Check slider and buttons
     fn point_inside(&self, x: f64, y: f64) -> bool {
-        x > self.corners[0]
-            && x <= self.corners[2] + self.corners[0]
-            && y > self.corners[1]
-            && y < self.corners[3] + self.corners[1]
+        point_inside_rect(x, y, self.corners)
             || self.add_one.point_inside(x, y)
             || self.add_ten.point_inside(x, y)
             || self.sub_one.point_inside(x, y)
@@ -316,13 +324,11 @@ impl TouchRectFn for Slider {
             let fill_rect = Rect::new(x, y, w, h);
             let selected: bool = self.idx_selected.borrow().selected;
             if selected {
-                app.window.set_color(0xf0, 0x0f, 0xff, 0x88);
+                app.set_colour(&COLOUR_SELECTED);
             } else {
-                app.window.set_color(0x0f, 0xf0, 0xff, 0x88);
+                app.set_colour(&COLOUR_UNSELECTED);
             }
             app.window.fill_rect(fill_rect);
-            // app.set_color(0x0, 0x0, 0x0, 0xff);
-            // app.draw_rect(fill_rect);
         }
 
         // Paint the buttons
@@ -344,7 +350,7 @@ impl TouchRectFn for Slider {
             let w = (w * app.width as f64) as u32;
             let h = 2;
             let rect = Rect::new(x, y, w, h);
-            app.window.set_color(0xff, 0, 0, 0xff);
+            app.set_colour(&COLOUR_THUMB);
             app.window.fill_rect(rect);
         }
     }
@@ -354,8 +360,7 @@ impl TouchRectFn for Slider {
 struct EffectMixer {
     sliders: Vec<Slider>,
     corners: [f64; 4],
-    state_tx: Sender<Option<u8>>,
-    state_rx: Receiver<Option<u8>>,
+    state_rx: Receiver<PedalState>,
     pedal_state: PedalState,
 }
 impl EffectMixer {
@@ -398,17 +403,16 @@ impl EffectMixer {
             }
         }
         let (state_tx, state_rx) = channel();
+        let _jh = monitor_pedal_state(state_tx.clone(), pedal_state.clone());
         Self {
             pedal_state,
             sliders,
             corners: [x, y, w, h],
             state_rx,
-            state_tx,
+            //state_tx,
         }
     }
-    fn init(&self) {
-        let _jh = monitor_pedal_state(self.state_tx.clone());
-    }
+    fn init(&self) {}
 }
 impl TouchRectFn for EffectMixer {
     fn event(&mut self, is_down: bool, x: f64, y: f64) {
@@ -425,10 +429,7 @@ impl TouchRectFn for EffectMixer {
     }
 
     fn point_inside(&self, x: f64, y: f64) -> bool {
-        x > self.corners[0]
-            && x <= self.corners[2] + self.corners[0]
-            && y > self.corners[1]
-            && y < self.corners[3] + self.corners[1]
+        point_inside_rect(x, y, self.corners)
     }
 
     fn paint(&mut self, app: &mut App) {
@@ -442,7 +443,7 @@ impl TouchRectFn for EffectMixer {
         let w = (w * app.width as f64) as u32;
         let h = (h * app.height as f64) as u32;
         let fill_area = simple::Rect::new(x, y, w, h);
-        app.window.set_color(0xf0, 0xf0, 0xf0, 255);
+        app.set_colour(&COLOUR_BACKGROUND);
         app.window.fill_rect(fill_area);
 
         for s in self.sliders.iter_mut() {
@@ -456,23 +457,16 @@ impl TouchRectFn for EffectMixer {
         // 2. Check if the volume on any slider has changed
         {
             let mut dirty = false;
-            if let Ok(selected) = self.state_rx.try_recv() {
-                if let Some(idx) = selected {
-                    for s in self.sliders.iter_mut() {
-                        let mut idx_select = s.idx_selected.borrow_mut();
-                        let old_selected = idx_select.selected;
-                        idx_select.selected = idx_select.idx == idx;
-                        if old_selected != idx_select.selected {
-                            dirty = true;
-                        }
-                    }
-                    self.pedal_state.selected = Some(idx);
-                } else {
-                    for s in self.sliders.iter_mut() {
-                        if s.idx_selected.borrow().selected {
-                            dirty = true;
-                        }
-                        s.select(false);
+            if let Ok(r_state) = self.state_rx.try_recv() {
+                for s in self.sliders.iter_mut() {
+                    let idx = s.idx_selected.borrow().idx;
+
+                    let old_selected = s.idx_selected.borrow().selected;
+                    s.select(
+                        r_state.selected.is_some() && r_state.selected.as_ref().unwrap() == &idx,
+                    );
+                    if old_selected != s.idx_selected.borrow().selected {
+                        dirty = true;
                     }
                 }
             }
@@ -553,10 +547,7 @@ impl TouchRectFn for MainCommandRect {
         }
     }
     fn point_inside(&self, x: f64, y: f64) -> bool {
-        x > self.corners[0]
-            && x <= self.corners[2] + self.corners[0]
-            && y > self.corners[1]
-            && y < self.corners[3] + self.corners[1]
+        point_inside_rect(x, y, self.corners)
     }
     fn paint(&mut self, app: &mut App) {
         let fill_area = if self.valid {
@@ -577,25 +568,14 @@ impl TouchRectFn for MainCommandRect {
             simple::Rect::new(x0, y0, (x1 - x0) as u32, (y1 - y0) as u32)
         };
         let colour: [u8; 4] = if self.down {
-            [0, 0, 0, 0]
+            COLOUR_BLACK
         } else {
             match self.mode {
-                CommandMode::LiveMode => [
-                    self.state_colour[0],
-                    self.state_colour[1],
-                    self.state_colour[2],
-                    self.state_colour[3],
-                ],
-                CommandMode::EditMode => [
-                    self.not_state_colour[0],
-                    self.not_state_colour[1],
-                    self.not_state_colour[2],
-                    self.not_state_colour[3],
-                ],
+                CommandMode::LiveMode => self.state_colour,
+                CommandMode::EditMode => self.not_state_colour,
             }
         };
-        app.window
-            .set_color(colour[0], colour[1], colour[2], colour[3]);
+        app.set_colour(&colour);
         app.window.fill_rect(fill_area);
     }
 }
@@ -690,8 +670,8 @@ fn main() {
         height = 250;
     }
 
-    // Read in the PedalState objectto set the initial; state of the
-    // pedals
+    // Read in the PedalState object to set the initial state of the
+    // pedals.  The state file must exist.
     let pedals_path = pedals_dir();
     let pedal_state = match read_state(pedals_path.to_str().expect("Cannot convert path to string"))
         .expect("gui: Failed reading PedalState from: {pedals_path}")
@@ -765,7 +745,11 @@ fn main() {
 /// Monitor the PedalState file to see if the selected effect has been
 /// changed.  In which case send a message to the main thread to
 /// change the selected slider
-pub fn monitor_pedal_state(tx: Sender<Option<u8>>) -> std::thread::JoinHandle<()> {
+pub fn monitor_pedal_state(
+    tx: Sender<PedalState>,
+    pedal_state: PedalState,
+) -> std::thread::JoinHandle<()> {
+    let mut stored_state = pedal_state;
     let file_path = pedals_dir();
     std::thread::spawn(move || {
         let path = file_path.as_ref();
@@ -783,23 +767,6 @@ pub fn monitor_pedal_state(tx: Sender<Option<u8>>) -> std::thread::JoinHandle<()
             .expect("Failed to watch file");
 
         eprintln!("Monitoring pedal state at: {}", path.display());
-
-        let last_state = match read_state(path.to_str().expect("Statefile path invalid")) {
-            Ok(state) => state,
-            Err(e) => {
-                eprintln!("gui: Failed to read initial state: {}", e);
-                return;
-            }
-        };
-        let mut last_selected: Option<u8> = if let Some(state) = last_state {
-            state.selected
-        } else {
-            None
-        };
-
-        // Send initial state
-        let _ = tx.send(last_selected);
-
         for event in watcher_rx.into_iter().flatten() {
             if let EventKind::Modify(_modify_kind) = event.kind {
                 // State file changed
@@ -811,14 +778,24 @@ pub fn monitor_pedal_state(tx: Sender<Option<u8>>) -> std::thread::JoinHandle<()
                         continue;
                     }
                 };
-                if let Some(new_state) = new_state {
-                    if last_selected != new_state.selected {
-                        last_selected = new_state.selected;
-                        let _ = tx.send(last_selected);
-                    }
+                if new_state.is_none() {
+                    eprintln!("Error gui: Failed to read pedal state in file monitor");
+                    continue;
+                }
+                let new_state = new_state.unwrap();
+                let last_selected: Option<u8> = stored_state.selected;
+                let new_selected: Option<u8> = new_state.selected;
+                if last_selected != new_selected {
+                    stored_state = new_state;
+                    let _ = tx.send(stored_state.clone());
                 }
             }
         }
         println!("Finished monitoring pedal state at: {}", path.display());
     })
+}
+
+/// Helper function for detecting when the mouse/pointer is inside a rectangle/window
+fn point_inside_rect(x: f64, y: f64, corners: [f64; 4]) -> bool {
+    x > corners[0] && x <= corners[2] + corners[0] && y > corners[1] && y < corners[3] + corners[1]
 }
