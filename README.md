@@ -1,5 +1,3 @@
-Here's an improved version of your README.md with better organization, clearer instructions, and more professional presentation:
-
 # 120Pedal - MIDI Guitar Pedal Controller 🎸
 
 ![under construction](under-construction.png)
