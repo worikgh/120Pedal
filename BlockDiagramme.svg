@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/PR-SVG-20010719/DTD/svg10.dtd">
+<svg width="58cm" height="32cm" viewBox="-66 -3 1147 631" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs/>
+  <g id="Background"/>
+  <g id="Background">
+    <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x="216.893" y="-1.42109" width="862.67" height="391.737" rx="0" ry="0"/>
+    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="498" y="90">
+      <tspan x="498" y="90"></tspan>
+    </text>
+    <g>
+      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke-linejoin: round; stroke: #000000" x="258" y="62" width="113" height="64" rx="20" ry="20"/>
+      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="282.5" y="94">
+        <tspan x="282.5" y="94">Read MIDI</tspan>
+      </text>
+    </g>
+    <g transform="matrix(1,0,0,1,-1.06581e-13,0)">
+      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke-linejoin: round; stroke: #000000" x="409.1" y="60.4" width="113" height="64" rx="20" ry="20"/>
+      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="419.1" y="91.3">
+        <tspan x="419.1" y="91.3">Translate MIDI</tspan>
+      </text>
+    </g>
+    <g>
+      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke-linejoin: round; stroke: #000000" x="553.2" y="61.8" width="113" height="64" rx="20" ry="20"/>
+      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="610.7" y="86.8">
+        <tspan x="610.7" y="86.8">jack_connect</tspan>
+        <tspan x="610.7" y="102.8">Jack_disconnect</tspan>
+      </text>
+    </g>
+    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="547.5" y="221.25">
+      <tspan x="547.5" y="221.25"></tspan>
+    </text>
+    <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="553.5" y="336">
+      <tspan x="553.5" y="336"></tspan>
+    </text>
+    <g>
+      <rect style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke-linejoin: round; stroke: #000000" x="504" y="305" width="99" height="62" rx="20" ry="20"/>
+      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="530.5" y="340">
+        <tspan x="530.5" y="340">pd Mixer</tspan>
+      </text>
+    </g>
+    <g>
+      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke-linejoin: round; stroke: #ff0000" x1="371" y1="94" x2="398.38" y2="93.5369"/>
+      <polygon style="fill: #ff0000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #ff0000" fill-rule="evenodd" points="405.879,93.4101 395.965,98.5785 398.38,93.5369 395.796,88.5799 "/>
+    </g>
+    <g>
+      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #ff0000" x1="527.117" y1="93.518" x2="543.465" y2="93.6948"/>
+      <polygon style="fill: #ff0000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #ff0000" fill-rule="evenodd" points="550.964,93.7758 540.911,98.6674 543.465,93.6948 541.019,88.668 "/>
+    </g>
+    <g>
+      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #ff0000" x1="620.111" y1="127.01" x2="620.791" y2="158.766"/>
+      <polygon style="fill: #ff0000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #ff0000" fill-rule="evenodd" points="620.952,166.264 615.739,156.374 620.791,158.766 625.737,156.16 "/>
+    </g>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="727" y="203.5">
+      <tspan x="727" y="203.5"></tspan>
+    </text>
+    <g>
+      <rect style="fill: #d8e5e5; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke-linejoin: round; stroke: #000000" x="404" y="177" width="287" height="88.5" rx="40" ry="40"/>
+      <text font-size="12.8" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="542.5" y="219">
+        <tspan x="542.5" y="219">Jackd Audio Connection Kit</tspan>
+        <tspan x="542.5" y="235">and effects</tspan>
+        <tspan x="542.5" y="251"></tspan>
+      </text>
+    </g>
+    <g>
+      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke-linejoin: round; stroke: #000000" x1="170.224" y1="220.61" x2="393.292" y2="220.989"/>
+      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="400.792,221.001 390.783,225.984 393.292,220.989 390.8,215.984 "/>
+    </g>
+    <g>
+      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x1="547.5" y1="265.5" x2="549.147" y2="297.688"/>
+      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="549.53,305.178 544.026,295.447 549.147,297.688 554.013,294.936 "/>
+    </g>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="301" y="313.5">
+      <tspan x="301" y="313.5">GUI</tspan>
+    </text>
+    <g>
+      <rect style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x="865" y="46.5002" width="155.498" height="95"/>
+      <image x="866" y="47.5002" width="153.498" height="93" xlink:href="file:///home/worik/Documents/2024/120Pedal/ScreenShotGui.png"/>
+    </g>
+    <g>
+      <polygon style="fill: #ffffff; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="805,191.5 891.7,191.5 920.6,220.4 920.6,336 805,336 "/>
+      <polyline style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" points="891.7,191.5 891.7,220.4 920.6,220.4 920.6,220.4 "/>
+    </g>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="829.8" y="251.75">
+      <tspan x="829.8" y="251.75">State File</tspan>
+    </text>
+    <g>
+      <rect style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #ffffff" x="-39.5685" y="175.782" width="200.733" height="92.9756"/>
+      <image x="-38.5685" y="176.782" width="198.733" height="90.9756" xlink:href="file:///home/worik/Documents/2024/120Pedal/Focursite.png"/>
+    </g>
+    <g>
+      <path style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" d="M 666.2 93.8 C 756,85.5002 673.238,156.143 795.571,225.587"/>
+      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="802.093,229.289 790.928,228.701 795.571,225.587 795.865,220.004 "/>
+    </g>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="755" y="149.5">
+      <tspan x="755" y="149.5">Selected </tspan>
+      <tspan x="755" y="165.5">Pedal</tspan>
+    </text>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="796" y="134.5">
+      <tspan x="796" y="134.5"></tspan>
+    </text>
+    <g>
+      <path style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" d="M 803.996 255.35 C 754.499,248.279 757,327.5 623.724,334.024"/>
+      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="616.233,334.391 625.977,328.908 623.724,334.024 626.466,338.896 "/>
+    </g>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="638.686" y="347.85">
+      <tspan x="638.686" y="347.85">Volume</tspan>
+    </text>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="792.032" y="75.7556">
+      <tspan x="792.032" y="75.7556">Volume</tspan>
+    </text>
+    <g>
+      <path style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" d="M 924.968 245.723 C 875.47,238.652 1015.92,265.522 999.081,160.584"/>
+      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="997.893,153.179 1004.41,162.26 999.081,160.584 994.541,163.845 "/>
+    </g>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:middle;font-family:sans-serif;font-style:normal;font-weight:normal" x="971.026" y="196.529">
+      <tspan x="971.026" y="196.529">Selected </tspan>
+      <tspan x="971.026" y="212.529">Pedal</tspan>
+    </text>
+    <g>
+      <path style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" d="M 858.946 79.1891 C 809.448,79.1891 846.218,76.3607 832.074,172.794"/>
+      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="830.986,180.214 827.49,169.595 832.074,172.794 837.384,171.046 "/>
+    </g>
+    <image x="-65.95" y="32.52" width="204.818" height="87.6812" xlink:href="SINCO.png"/>
+    <g>
+      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #ff0000" x1="141.542" y1="91.6154" x2="248.266" y2="93.8007"/>
+      <polygon style="fill: #ff0000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #ff0000" fill-rule="evenodd" points="255.764,93.9542 245.664,98.7485 248.266,93.8007 245.869,88.7506 "/>
+    </g>
+    <g>
+      <path style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" d="M 553.5 367 C 554.914,424.983 420.539,427.086 361.143,431.328 C 301.746,435.571 167.395,374.76 159.791,291.118"/>
+      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="159.112,283.649 164.997,293.155 159.791,291.118 155.038,294.06 "/>
+    </g>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="235.278" y="199.397">
+      <tspan x="235.278" y="199.397">Audio In</tspan>
+    </text>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" x="310.231" y="444.056">
+      <tspan x="310.231" y="444.056">Audio Out</tspan>
+    </text>
+    <image x="-41.9084" y="386.073" width="100.409" height="97.8989" xlink:href="gibson.png"/>
+    <g>
+      <path style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" d="M 14.6602 381.831 C 83.9567,319.605 57.3258,366.84 49.722,283.198"/>
+      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="49.043,275.729 54.9278,285.235 49.722,283.198 44.9689,286.141 "/>
+    </g>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" transform="translate(3.34648,375.912) rotate(-45) translate(-3.34648,-375.912)">
+      <tspan x="3.34648" y="375.912">Audio In</tspan>
+    </text>
+    <image x="130.626" y="466.684" width="173.948" height="161.337" xlink:href="Peavy.png"/>
+    <g>
+      <line style="fill: none; stroke-opacity: 1; stroke-width: 2; stroke: #000000" x1="77.8873" y1="261.983" x2="185.218" y2="451.145"/>
+      <polygon style="fill: #000000; fill-opacity: 1; stroke-opacity: 1; stroke-width: 2; stroke: #000000" fill-rule="evenodd" points="188.919,457.668 179.635,451.438 185.218,451.145 188.333,446.503 "/>
+    </g>
+    <text font-size="12.7998" style="fill: #000000; fill-opacity: 1; stroke: none;text-anchor:start;font-family:sans-serif;font-style:normal;font-weight:normal" transform="translate(119.312,313.686) rotate(60) translate(-119.312,-313.686)">
+      <tspan x="119.312" y="313.686">Audio Out</tspan>
+    </text>
+  </g>
+</svg>
