@@ -9,6 +9,7 @@ use pedal_state::PedalState;
 use send_osc::OscSender;
 use simple::{Event, Rect};
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::env;
 use std::fs::metadata;
 #[cfg(unix)]
@@ -18,7 +19,14 @@ use std::process::exit;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::{channel, Sender};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use std::thread;
+use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
+use sysinfo::System;
 mod send_osc;
 
 const COLOUR_BLUE: [u8; 4] = [0, 0, 0xff, 0xff];
@@ -65,27 +73,6 @@ trait TouchRectFn {
 enum CommandMode {
     EditMode,
     LiveMode,
-}
-
-/// The "button" that switches between `EditMode` where the pedal has
-/// no effect and the web interface is offered for adjusting pedal
-/// parameters adn `LiveMode` where the pedlal does have an efect and
-/// the web interface is turned off
-struct MainCommandRect {
-    /// RGBA
-    state_colour: [u8; 4],
-    not_state_colour: [u8; 4],
-    /// Name of an external function that one argument: `state`.
-    /// Starts `mod-ui` or `qzn3t`
-    command: String,
-    /// x,y,w,h in 0..1
-    corners: [f64; 4],
-    /// Was the last event a 'mouse_down'
-    down: bool,
-    /// This is effectively a toggle
-    mode: CommandMode,
-    /// If there are errors `valid` is false
-    valid: bool,
 }
 
 // Button that is highlighted while pressed, and is used to add (or
@@ -498,6 +485,28 @@ impl TouchRectFn for EffectMixer {
     }
 }
 
+/// The "button" that switches between `EditMode` where the pedal has
+/// no effect and the web interface is offered for adjusting pedal
+/// parameters adn `LiveMode` where the pedlal does have an efect and
+/// the web interface is turned off
+struct MainCommandRect {
+    /// RGBA
+    state_colour: [u8; 4],
+    not_state_colour: [u8; 4],
+    /// Name of an external function that one argument: `state`.
+    /// Starts `mod-ui` or `qzn3t`
+    command: String,
+    /// x,y,w,h in 0..1
+    corners: [f64; 4],
+    /// Was the last event a 'mouse_down'
+    down: bool,
+    /// This is effectively a toggle
+    mode: CommandMode,
+    /// If there are errors `valid` is false
+    valid: bool,
+    jh: JoinHandle<()>,
+    qzn3t_beacon: Arc<AtomicBool>,
+}
 impl MainCommandRect {
     /// This runs the command from MainTouchRect.  The command takes
     /// one `bool` argument.  If `true` it will run `qzn3t` otherwise
@@ -523,6 +532,29 @@ impl MainCommandRect {
             }
         };
         self.valid
+    }
+
+    fn new(width: f64, height: f64, command: String) -> Self {
+        // Set up thread to monitor Qzn3t health
+        let qzn3t_beacon_read = Arc::new(AtomicBool::new(false));
+        let qzn3t_beacon_write = Arc::clone(&qzn3t_beacon_read);
+        let jh = std::thread::spawn(move || loop {
+            let qz3t_beacon_value = qzn3t_running();
+            qzn3t_beacon_write.store(qz3t_beacon_value, Ordering::Relaxed);
+            thread::sleep(Duration::from_millis(100));
+        });
+
+        Self {
+            corners: [0.0, 0.0, width, height],
+            down: false,
+            state_colour: [255, 0, 0, 255],
+            not_state_colour: [0, 0, 255, 255],
+            command,
+            mode: CommandMode::LiveMode,
+            valid: true,
+            jh,
+            qzn3t_beacon: qzn3t_beacon_read,
+        }
     }
 }
 
@@ -550,23 +582,11 @@ impl TouchRectFn for MainCommandRect {
         point_inside_rect(x, y, self.corners)
     }
     fn paint(&mut self, app: &mut App) {
-        let fill_area = if self.valid {
-            let x = self.corners[0];
-            let y = self.corners[1];
-            let w = self.corners[2];
-            let h = self.corners[3];
-            let x = (x * app.width as f64) as i32;
-            let y = (y * app.height as f64) as i32;
-            let w = (w * app.width as f64) as u32;
-            let h = (h * app.height as f64) as u32;
-            simple::Rect::new(x, y, w, h)
-        } else {
-            let x0 = 0;
-            let x1 = (self.corners[3] * app.width as f64) as i32;
-            let y0 = (0.4 * app.height as f64) as i32;
-            let y1 = (0.6 * app.height as f64) as i32;
-            simple::Rect::new(x0, y0, (x1 - x0) as u32, (y1 - y0) as u32)
+        let valid = match self.mode {
+            CommandMode::LiveMode => self.qzn3t_beacon.load(Ordering::Relaxed),
+            CommandMode::EditMode => true,
         };
+
         let colour: [u8; 4] = if self.down {
             COLOUR_BLACK
         } else {
@@ -575,8 +595,65 @@ impl TouchRectFn for MainCommandRect {
                 CommandMode::EditMode => self.not_state_colour,
             }
         };
-        app.set_colour(&colour);
-        app.window.fill_rect(fill_area);
+
+        // The dimensions of the button
+        let x = self.corners[0];
+        let y = self.corners[1];
+        let w = self.corners[2];
+        let h = self.corners[3];
+        let x = (x * app.width as f64) as i32;
+        let y = (y * app.height as f64) as i32;
+        let w = (w * app.width as f64) as u32;
+        let h = (h * app.height as f64) as u32;
+
+        let fill_area = simple::Rect::new(x, y, w, h);
+        if valid {
+            app.set_colour(&colour);
+            app.window.fill_rect(fill_area);
+        } else {
+            // Invalid state. A cross of colour
+            app.set_colour(&COLOUR_BLACK);
+            app.window.fill_rect(fill_area);
+
+            // Make the cross
+            app.set_colour(&colour);
+
+            // Adjustment factor.  Increase this to make the cross
+            // (that indicates invalid) skinnier. Too skinney and the
+            // cross will disappear
+            let adj: usize = 4;
+
+            // Horizontal
+            // `x` and `w` constant
+            // adjust `y` and `h`
+            {
+                let y = y + (h as i32 / 2) - h as i32 / (adj as i32 * 2);
+                let h = h / adj as u32;
+                let fill_area = simple::Rect::new(x, y, w, h);
+                app.window.fill_rect(fill_area);
+            }
+
+            // Vertical
+            // `y` and `h` constant
+            // Adjust `x` and `w`
+            {
+                let x = x + (w as i32 / 2) - w as i32 / (adj as i32 * 2);
+                let w = w / adj as u32;
+                let fill_area = simple::Rect::new(x, y, w, h);
+                app.window.fill_rect(fill_area);
+            }
+        };
+    }
+    fn tick(&mut self, app: &mut App) {
+        let valid = self.qzn3t_beacon.load(Ordering::Relaxed);
+        if valid != self.valid {
+            eprintln!(
+                "DBG gui: MainCommandRect.tick self.valid: {} -> {valid}",
+                self.valid
+            );
+            self.valid = valid;
+        }
+        self.paint(app);
     }
 }
 
@@ -627,6 +704,7 @@ fn pedals_dir() -> PathBuf {
 }
 
 fn main() {
+    let _ = qzn3t_running();
     // The first argument is the command that starts the qzn3t pedals or
     // mod-ui
     let mut args = env::args().skip(1);
@@ -690,15 +768,7 @@ fn main() {
     // and height are normalised.
     const MAIN_WIDTH: f64 = 0.15; // 15%
     const MAIN_HEIGHT: f64 = 0.25;
-    let mut main_button = MainCommandRect {
-        corners: [0.0, 0.0, MAIN_WIDTH, MAIN_HEIGHT],
-        down: false,
-        state_colour: [255, 0, 0, 255],
-        not_state_colour: [0, 0, 255, 255],
-        command,
-        mode: CommandMode::LiveMode,
-        valid: true,
-    };
+    let mut main_button = MainCommandRect::new(MAIN_WIDTH, MAIN_HEIGHT, command);
 
     // Run the command once to initialise Pi in mod-ui
     if !main_button.run_command() {
@@ -798,4 +868,23 @@ pub fn monitor_pedal_state(
 /// Helper function for detecting when the mouse/pointer is inside a rectangle/window
 fn point_inside_rect(x: f64, y: f64, corners: [f64; 4]) -> bool {
     x > corners[0] && x <= corners[2] + corners[0] && y > corners[1] && y < corners[3] + corners[1]
+}
+
+/// Check if the Qzn3t pedal  simulator is running
+fn qzn3t_running() -> bool {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+    let mut c: HashSet<String> = HashSet::new();
+    for process in sys.processes().values() {
+        if let Some(process_name) = process.name().to_str() {
+            if process_name == "read_midi" {
+                c.insert("read_midi".to_string());
+            } else if process_name == "jack_midi" {
+                c.insert("jack_midi".to_string());
+            } else if process_name == "translate_midi" {
+                c.insert("translate_midi".to_string());
+            }
+        }
+    }
+    c.contains("jack_midi") && c.contains("translate_midi") && c.contains("read_midi")
 }
