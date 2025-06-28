@@ -24,7 +24,6 @@ use std::sync::{
     Arc,
 };
 use std::thread;
-use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 use sysinfo::System;
 mod send_osc;
@@ -504,9 +503,10 @@ struct MainCommandRect {
     mode: CommandMode,
     /// If there are errors `valid` is false
     valid: bool,
-    jh: JoinHandle<()>,
+    // jh: JoinHandle<()>,
     qzn3t_beacon: Arc<AtomicBool>,
 }
+
 impl MainCommandRect {
     /// This runs the command from MainTouchRect.  The command takes
     /// one `bool` argument.  If `true` it will run `qzn3t` otherwise
@@ -538,7 +538,7 @@ impl MainCommandRect {
         // Set up thread to monitor Qzn3t health
         let qzn3t_beacon_read = Arc::new(AtomicBool::new(false));
         let qzn3t_beacon_write = Arc::clone(&qzn3t_beacon_read);
-        let jh = std::thread::spawn(move || loop {
+        let _jh = std::thread::spawn(move || loop {
             let qz3t_beacon_value = qzn3t_running();
             qzn3t_beacon_write.store(qz3t_beacon_value, Ordering::Relaxed);
             thread::sleep(Duration::from_millis(100));
@@ -552,7 +552,7 @@ impl MainCommandRect {
             command,
             mode: CommandMode::LiveMode,
             valid: true,
-            jh,
+            //jh,
             qzn3t_beacon: qzn3t_beacon_read,
         }
     }
