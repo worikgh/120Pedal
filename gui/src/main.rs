@@ -79,7 +79,7 @@ enum CommandMode {
 #[derive(Debug)]
 struct PushButton {
     // Add (or subtract) this value
-    value: isize,
+    value: ButtonIncrement,
 
     corners: [f64; 4],
     colour: [u8; 4],
@@ -87,12 +87,37 @@ struct PushButton {
     pressed: bool,
     target: Rc<SliderValue>,
 }
+
+#[derive(PartialEq, Eq, Debug)]
+/// The values that can be added to the slider value
+enum ButtonIncrement {
+    NegativeSmall,
+    NegativeBig,
+    PositiveSmall,
+    PositiveBig,
+}
+impl ButtonIncrement {
+    fn value(&self) -> isize {
+        match self {
+            ButtonIncrement::NegativeSmall => -1,
+            ButtonIncrement::PositiveSmall => 1,
+            ButtonIncrement::NegativeBig => -10,
+            ButtonIncrement::PositiveBig => 10,
+        }
+    }
+}
 impl PushButton {
-    fn new(x: f64, y: f64, w: f64, h: f64, value: isize, target: Rc<SliderValue>) -> Self {
-        let colour: [u8; 4] = if value.abs() == 1 {
-            COLOUR_BLUE
-        } else {
-            COLOUR_GREEN
+    fn new(
+        x: f64,
+        y: f64,
+        w: f64,
+        h: f64,
+        value: ButtonIncrement,
+        target: Rc<SliderValue>,
+    ) -> Self {
+        let colour: [u8; 4] = match value {
+            ButtonIncrement::NegativeSmall | ButtonIncrement::PositiveSmall => COLOUR_BLUE,
+            ButtonIncrement::NegativeBig | ButtonIncrement::PositiveBig => COLOUR_GREEN,
         };
         Self {
             corners: [x, y, w, h],
@@ -107,7 +132,7 @@ impl PushButton {
 impl TouchRectFn for PushButton {
     fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
         if self.pressed && !is_down {
-            let new_value = *self.target.value.borrow() + (self.value as f32 / 127.0);
+            let new_value = *self.target.value.borrow() + (self.value.value() as f32 / 127.0);
             let new_value = new_value.clamp(0.0, 1.0);
             *self.target.value.borrow_mut() = new_value;
             let osc_msg = format!("/v/{}", self.target.idx);
@@ -139,6 +164,37 @@ impl TouchRectFn for PushButton {
             app.set_colour(&self.colour);
         }
         app.window.fill_rect(fill_rect);
+
+        // Draw a "-" or "+", thin or thick....
+        {
+            let thickness: usize = if self.value == ButtonIncrement::NegativeBig
+                || self.value == ButtonIncrement::PositiveBig
+            {
+                h as usize / 4
+            } else {
+                h as usize / 8
+            };
+
+            let y1 = y + (h / 2) as i32 - (thickness as i32 / 2);
+            let x1 = x + (w / 2) as i32 - (thickness as i32 / 2);
+
+            let plus = match self.value {
+                ButtonIncrement::PositiveSmall | ButtonIncrement::PositiveBig => true,
+                _ => false,
+            };
+
+            app.set_colour(&COLOUR_BLACK);
+            if plus {
+                // Vertical
+                let rect = Rect::new(x1, y, thickness as u32, h);
+                app.window.fill_rect(rect);
+            }
+
+            // horizontal
+            let diff_h = if w > h { w - h } else { 0 }; // Make horizontal same as vertical
+            let rect = Rect::new(x + diff_h as i32 / 2, y1, w - diff_h, thickness as u32);
+            app.window.fill_rect(rect);
+        }
     }
 }
 
@@ -217,7 +273,9 @@ impl Slider {
         // Initialise the mixer settings
         let osc_msg = format!("/v/{}", idx);
         if let Err(err) = osc.send(osc_msg.as_str(), value) {
-            eprintln!("Error: Sending OSC initialising EffectMixer: {osc_msg}  Value: {value}  Error: {err}");
+            eprintln!(
+                "Error: Sending OSC initialising EffectMixer: {osc_msg}  Value: {value}  Error: {err}"
+            );
         }
 
         let slider_value = SliderValue::new(osc, value, idx);
@@ -227,7 +285,7 @@ impl Slider {
             but_add_y,
             but_w,
             but_h,
-            1,
+            ButtonIncrement::PositiveSmall,
             Rc::clone(&slider_value),
         );
         let add_ten = PushButton::new(
@@ -235,7 +293,7 @@ impl Slider {
             but_add_y,
             but_w,
             but_h,
-            10,
+            ButtonIncrement::PositiveBig,
             Rc::clone(&slider_value),
         );
         let sub_one = PushButton::new(
@@ -243,7 +301,7 @@ impl Slider {
             but_sub_y,
             but_w,
             but_h,
-            -1,
+            ButtonIncrement::NegativeSmall,
             Rc::clone(&slider_value),
         );
         let sub_ten = PushButton::new(
@@ -251,7 +309,7 @@ impl Slider {
             but_sub_y,
             but_w,
             but_h,
-            -10,
+            ButtonIncrement::NegativeBig,
             Rc::clone(&slider_value),
         );
 
