@@ -499,22 +499,38 @@ impl TouchRectFn for EffectMixer {
         // Do two things every tick
         // 1. Check if the selected channel has changed.
         // 2. Check if the volume on any slider has changed
+        let mut selected_slider: Option<u8> = self.pedal_state.selected;
         {
             let mut dirty = false;
             if let Ok(r_state) = self.state_rx.try_recv() {
+                let new_selected_slider = r_state.selected;
+                if new_selected_slider != selected_slider {
+                    selected_slider = new_selected_slider;
+                    dirty = true;
+                }
                 for s in self.sliders.iter_mut() {
                     let idx = s.idx_selected.borrow().idx;
 
                     let old_selected = s.idx_selected.borrow().selected;
-                    s.select(
-                        r_state.selected.is_some() && r_state.selected.as_ref().unwrap() == &idx,
-                    );
-                    if old_selected != s.idx_selected.borrow().selected {
+                    let new_selected = if r_state.selected.is_some() {
+                        let res = r_state.selected.as_ref().unwrap() == &idx;
+                        eprintln!("DBG EffectMixer.tick idx: {idx} new_selected: {res}",);
+                        res
+                    } else {
+                        false
+                    };
+                    s.select(new_selected);
+                    if old_selected != new_selected {
+                        eprintln!(
+                            "DBG EffectMixer.tick idx: {idx} old: {old_selected} -> {}  r_state: {r_state:?}",
+                            s.idx_selected.borrow().selected
+                        );
                         dirty = true;
                     }
                 }
             }
             if dirty {
+                self.pedal_state.selected = selected_slider;
                 self.paint(app);
             }
         }
