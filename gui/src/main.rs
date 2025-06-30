@@ -178,10 +178,10 @@ impl TouchRectFn for PushButton {
             let y1 = y + (h / 2) as i32 - (thickness as i32 / 2);
             let x1 = x + (w / 2) as i32 - (thickness as i32 / 2);
 
-            let plus = match self.value {
-                ButtonIncrement::PositiveSmall | ButtonIncrement::PositiveBig => true,
-                _ => false,
-            };
+            let plus = matches!(
+                self.value,
+                ButtonIncrement::PositiveSmall | ButtonIncrement::PositiveBig
+            );
 
             app.set_colour(&COLOUR_BLACK);
             if plus {
@@ -191,7 +191,7 @@ impl TouchRectFn for PushButton {
             }
 
             // horizontal
-            let diff_h = if w > h { w - h } else { 0 }; // Make horizontal same as vertical
+            let diff_h = w.saturating_sub(h); // Make horizontal same as vertical
             let rect = Rect::new(x + diff_h as i32 / 2, y1, w - diff_h, thickness as u32);
             app.window.fill_rect(rect);
         }
@@ -428,7 +428,10 @@ impl EffectMixer {
             let mut idx: usize = 1;
             let test_port = 5020;
             let test_addr = format!("127.0.0.1:{}", test_port);
-            let osc = OscSender::new("127.0.0.1:5200", &test_addr).expect("Failed to create OSC");
+            let osc = match OscSender::new("127.0.0.1:5200", &test_addr) {
+                Ok(o) => o,
+                Err(err) => panic!("{err:?}: Failed to create OSC: {test_addr:?}"),
+            };
             let osc = Rc::new(osc);
             for c in channels.iter() {
                 let x = x + idx as f64 * x_step;
