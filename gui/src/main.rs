@@ -77,7 +77,7 @@ enum CommandMode {
 // Button that is highlighted while pressed, and is used to add (or
 // subtract) a value
 #[derive(Debug)]
-struct PushButton {
+struct AdjButton {
     // Add (or subtract) this value
     value: ButtonIncrement,
 
@@ -106,7 +106,7 @@ impl ButtonIncrement {
         }
     }
 }
-impl PushButton {
+impl AdjButton {
     fn new(
         x: f64,
         y: f64,
@@ -129,7 +129,7 @@ impl PushButton {
         }
     }
 }
-impl TouchRectFn for PushButton {
+impl TouchRectFn for AdjButton {
     fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
         if self.pressed && !is_down {
             let new_value = *self.target.value.borrow() + (self.value.value() as f32 / 127.0);
@@ -218,10 +218,10 @@ impl SliderValue {
 #[derive(Debug)]
 struct Slider {
     // Graphical widgets
-    add_one: PushButton,
-    add_ten: PushButton,
-    sub_one: PushButton,
-    sub_ten: PushButton,
+    add_one: AdjButton,
+    add_ten: AdjButton,
+    sub_one: AdjButton,
+    sub_ten: AdjButton,
 
     // Value displayed
     slider_value: Rc<SliderValue>,
@@ -280,7 +280,7 @@ impl Slider {
 
         let slider_value = SliderValue::new(osc, value, idx);
         let slider_value = Rc::new(slider_value);
-        let add_one = PushButton::new(
+        let add_one = AdjButton::new(
             but_one_x,
             but_add_y,
             but_w,
@@ -288,7 +288,7 @@ impl Slider {
             ButtonIncrement::PositiveSmall,
             Rc::clone(&slider_value),
         );
-        let add_ten = PushButton::new(
+        let add_ten = AdjButton::new(
             but_ten_x,
             but_add_y,
             but_w,
@@ -296,7 +296,7 @@ impl Slider {
             ButtonIncrement::PositiveBig,
             Rc::clone(&slider_value),
         );
-        let sub_one = PushButton::new(
+        let sub_one = AdjButton::new(
             but_one_x,
             but_sub_y,
             but_w,
@@ -304,7 +304,7 @@ impl Slider {
             ButtonIncrement::NegativeSmall,
             Rc::clone(&slider_value),
         );
-        let sub_ten = PushButton::new(
+        let sub_ten = AdjButton::new(
             but_ten_x,
             but_sub_y,
             but_w,
@@ -852,6 +852,11 @@ fn main() {
         eprintln!("Error: Failed to run main command");
         exit(1);
     }
+
+    // Mute button
+    // let mut mute_button = PushButton::new(
+    // 	width as f64 *(1_f64 -  MAIN_WIDTH), 0, MAIN_WIDTH, MAIN_HEIGHT,
+    // 	);
 
     // The mixer that controls the volumes of the effects
     let effects_mixer = EffectMixer::new(pedal_state, 0.0, MAIN_HEIGHT, 1.0, 1.0 - MAIN_HEIGHT);
