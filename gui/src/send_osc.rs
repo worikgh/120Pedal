@@ -37,15 +37,24 @@ mod tests {
         }
     }
     #[test]
-    fn test_send_osc() -> Result<(), Box<dyn Error>> {
+    fn test_send_osc_volume() -> Result<(), Box<dyn Error>> {
         let test_port = 5020;
         let test_addr = format!("127.0.0.1:{}", test_port);
         let osc_sender = OscSender::new("127.0.0.1:5200", &test_addr)?;
         // Send test OSC message
-        send(&osc_sender, "/v/0", 0.999);
-        send(&osc_sender, "/v/1", 0.0002);
+        send(&osc_sender, "/v/1", 1.0);
         send(&osc_sender, "/v/2", 0.2002);
         send(&osc_sender, "/v/3", 0.3002);
+        send(&osc_sender, "/v/4", 0.999);
+
+        Ok(())
+    }
+    #[test]
+    fn test_send_osc_master() -> Result<(), Box<dyn Error>> {
+        let test_port = 5020;
+        let test_addr = format!("127.0.0.1:{}", test_port);
+        let osc_sender = OscSender::new("127.0.0.1:5200", &test_addr)?;
+        send(&osc_sender, "/M", 0.0);
         Ok(())
     }
 }

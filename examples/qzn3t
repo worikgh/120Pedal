@@ -30,7 +30,7 @@ if ! pgrep mod-host 2>/dev/null; then
 fi
 
 # Start the mixer
-pd -jack -jackname qzn3t_mixer  -inchannels 4 -outchannels 1 -r 48000 -realtime  -stderr -send "pd dsp 1" -nomidi  -nojackconnect  -nogui ${One20PedalHome}/4ch-1ch-mixer.pd &
+pd -jack -jackname qzn3t_mixer  -inchannels 4 -outchannels 1 -r 48000 -realtime  -stderr -send "pd dsp 1" -nomidi  -nojackconnect  -nogui ${One20PedalHome}/qzn3t_mixer_4_1.pd &
 
 cd "${One20PedalHome}" || { echo "Failed to cd to ${One20PedalHome}"; exit 1; }
 

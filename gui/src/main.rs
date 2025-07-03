@@ -74,6 +74,75 @@ enum CommandMode {
     LiveMode,
 }
 
+// Button to nute the mixer
+#[derive(Debug)]
+struct MuteButton {
+    corners: [f64; 4],
+    colour_muted: [u8; 4],
+    colour_unmuted: [u8; 4],
+    colour_pressed: [u8; 4],
+    pressed: bool,
+    muted: bool,
+    osc: Rc<OscSender>, // Shared OSC transmitter
+}
+impl MuteButton {
+    fn new(osc: Rc<OscSender>, x: f64, y: f64, w: f64, h: f64) -> Self {
+        eprintln!("DBG MuteButton.new");
+        Self {
+            corners: [x, y, w, h],
+            colour_muted: COLOUR_RED,
+            colour_unmuted: COLOUR_GREEN,
+            colour_pressed: COLOUR_BLUE,
+            pressed: false,
+            muted: false,
+            osc,
+        }
+    }
+}
+impl TouchRectFn for MuteButton {
+    fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
+        eprintln!("DBG MuteButton.event");
+        if self.pressed && !is_down {
+            // Take action
+
+            self.muted = !self.muted;
+            let value = if self.muted { 0.0 } else { 1.0 };
+            let osc_msg = "/M/{}".to_string();
+            if let Err(err) = self.osc.send(osc_msg.as_str(), value) {
+                eprintln!("Error: Sending OSC: {osc_msg}  Value: {value}  Error: {err}");
+            }
+        }
+        self.pressed = is_down;
+    }
+    fn paint(&mut self, app: &mut App) {
+        let colour = if !self.pressed {
+            if self.muted {
+                eprintln!("DBG MuteButton.paint muted");
+                self.colour_muted
+            } else {
+                eprintln!("DBG MuteButton.paint unmuted");
+                self.colour_unmuted
+            }
+        } else {
+            eprintln!("DBG MuteButton.paint pressed");
+            self.colour_pressed
+        };
+        app.set_colour(&colour);
+        let x = self.corners[0];
+        let y = self.corners[1];
+        let w = self.corners[2];
+        let h = self.corners[3];
+        let x = (x * app.width as f64) as i32;
+        let y = (y * app.height as f64) as i32;
+        let w = (w * app.width as f64) as u32;
+        let h = (h * app.height as f64) as u32;
+        let fill_rect = Rect::new(x, y, w, h);
+        app.window.fill_rect(fill_rect);
+    }
+    fn point_inside(&self, x: f64, y: f64) -> bool {
+        point_inside_rect(x, y, self.corners)
+    }
+}
 // Button that is highlighted while pressed, and is used to add (or
 // subtract) a value
 #[derive(Debug)]
@@ -408,7 +477,7 @@ struct EffectMixer {
     pedal_state: PedalState,
 }
 impl EffectMixer {
-    fn new(pedal_state: PedalState, x: f64, y: f64, w: f64, h: f64) -> Self {
+    fn new(osc: Rc<OscSender>, pedal_state: PedalState, x: f64, y: f64, w: f64, h: f64) -> Self {
         let channels = pedal_state.choices.clone();
         // Sliders
         let mut sliders: Vec<Slider> = Vec::new();
@@ -426,13 +495,6 @@ impl EffectMixer {
             let y = y + h * margin;
             let h = h - 2.0 * h * margin;
             let mut idx: usize = 1;
-            let test_port = 5020;
-            let test_addr = format!("127.0.0.1:{}", test_port);
-            let osc = match OscSender::new("127.0.0.1:5200", &test_addr) {
-                Ok(o) => o,
-                Err(err) => panic!("{err:?}: Failed to create OSC: {test_addr:?}"),
-            };
-            let osc = Rc::new(osc);
             for c in channels.iter() {
                 let x = x + idx as f64 * x_step;
                 sliders.push(Slider::new(
@@ -853,18 +915,36 @@ fn main() {
         exit(1);
     }
 
+    // Communicate with mixer
+    let osc_port = 5020;
+    let osc_addr = format!("127.0.0.1:{}", osc_port);
+    let osc = match OscSender::new("127.0.0.1:5200", &osc_addr) {
+        Ok(o) => o,
+        Err(err) => panic!("{err:?}: Failed to create OSC: {osc_addr:?}"),
+    };
+    let osc = Rc::new(osc);
+
     // Mute button
-    // let mut mute_button = PushButton::new(
-    // 	width as f64 *(1_f64 -  MAIN_WIDTH), 0, MAIN_WIDTH, MAIN_HEIGHT,
-    // 	);
+    let mute_button = MuteButton::new(osc.clone(), 1.0 - MAIN_WIDTH, 0.0, MAIN_WIDTH, MAIN_HEIGHT);
 
     // The mixer that controls the volumes of the effects
-    let effects_mixer = EffectMixer::new(pedal_state, 0.0, MAIN_HEIGHT, 1.0, 1.0 - MAIN_HEIGHT);
+    let effects_mixer = EffectMixer::new(
+        osc.clone(),
+        pedal_state,
+        0.0,
+        MAIN_HEIGHT,
+        1.0,
+        1.0 - MAIN_HEIGHT,
+    );
     effects_mixer.init();
 
     // Main screen
     let mut tsc = TouchScreenCtl {
-        rects: vec![Box::new(main_button), Box::new(effects_mixer)],
+        rects: vec![
+            Box::new(main_button),
+            Box::new(effects_mixer),
+            Box::new(mute_button),
+        ],
         width,
         height,
     };
