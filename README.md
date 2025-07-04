@@ -1,20 +1,27 @@
 # 120Pedal - MIDI Guitar Pedal Controller 🎸
 
 ![under construction](under-construction.png)
+
 **THIS BARELY WORKS**
 
 A system to control simulated guitar pedals using a MIDI foot controller. Designed primarily for Raspberry Pi 4/5, it allows real-time switching of audio effects via Jack audio connections.
 
+![GUI Screenshot](GUI.png)
+
 ## Key Features
 - Real-time audio routing (<100ms latency)
-- Supports any Jack-compatible audio processor
-- LV2 plugin integration via mod-ui
+- Supports any  effects simulator with Jack audio I/O
+  - Currently only mono effects are fully supported
+- LV2 plugin integration via `mod-host` and `mod-ui`
 - MIDI controller configuration
-- Designed for headless operation
+- GUI for setting audio levels of each effect
+  - Includes  a mute switch
 
 ## System Requirements
-- Raspberry Pi 4 or 5 (recommended)
-- Debian 12 (Patchbox OS)
+- [Raspberry Pi](https://www.raspberrypi.com/) 4 or 5 (recommended)
+  - This will probably run an any computer using Linux.  It was developed for and on a Raspberry Pi
+- Debian 12 ([Patchbox OS](https://blokas.io/patchbox-os/)) 
+  - Patchbox OS comes with the unessential but useful [Modep](https://blokas.io/modep/) software preinstalled.
 - Compatible audio interface
 - MIDI foot controller
 
@@ -26,18 +33,37 @@ A system to control simulated guitar pedals using a MIDI foot controller. Design
    - Select no additional modules during installation
    - Configure your audio interface settings
 3. Post-installation:
-   ```bash
-   sudo systemctl disable modep-mod-ui  # Prevent mod-ui from auto-starting
-   ```
+```bash
+sudo apt install modep-mod-ui # Install the very useful Modep software
+sudo systemctl disable modep-mod-ui  # Prevent mod-ui from auto-starting
+```
 
-### Optional: Remove Telemetry
+Optional: Remove Telemetry
+---
+
 Patchbox OS includes opt-out telemetry. To remove:
 ```bash
 sudo apt purge blokas-telemetry
 ```
 
+### Other distributions
+
+To run LV2 simulators an LV2 host is required.  The host [`mod-host`](https://github.com/mod-audio/mod-host) is recommended.
+
+```
+git clone https://github.com/mod-audio/mod-host
+cd mod-host
+make
+```
+
+It is possible to use Modep, and in particular, `mod-ui`, an Debian-12, but it is not trivial.  Use [this](https://github.com/worikgh/mod-ui/tree/raspberrypi-bookworm) and follow the instructions in the `README.md`.
+
+`mod-ui` will not play nicely with [Patchstorage](https://patchstorage.com/)  and it will not display the nice PNG images of pedals like it will if you install from Patchbox OS, but it is still very useful
+
 ### Software Setup
+
 1. Install required packages:
+
 ```bash
 sudo apt install dnsmasq git hostapd iw jackd2 libasound2-dev \
 libjack-jackd2-dev liblilv-dev libreadline-dev libsdl2-dev \
@@ -45,13 +71,14 @@ libsdl2-image-dev lv2-dev pkg-config python3.11-dev -y
 ```
 
 2. Install Rust:
+
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
 ## Configuration
 
-### Auto-start GUI
+### Auto-starting the GUI
 ```bash
 mkdir -p ~/.config/autostart
 cat > ~/.config/autostart/120pedal.desktop <<EOF
