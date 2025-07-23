@@ -2,3 +2,6 @@
 	path = mod-host
 	url = https://github.com/worikgh/mod-host.git
 	branch = mistress
+[submodule "gui/simple"]
+	path = gui/simple
+	url = git@github.com:worikgh/simple.git
