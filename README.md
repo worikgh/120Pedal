@@ -45,7 +45,17 @@ Patchbox OS includes opt-out telemetry. To remove:
 ```bash
 sudo apt purge blokas-telemetry
 ```
+Optional: Remove Deskotop Panels
+---
 
+The LXDE desktop, default to PachOS, takes up screen room for no purpose and can be disabled.
+
+1. Edit the file `/etc/xdg/lxsession/LXDE-pi/desktop.conf `
+  a. Remove the `launcher_manager/command=lxpanelctl` line from the [Session] section
+  b. Remove both the `sNet/IconThemeName=PiXflat` and `sGtk/CursorThemeName=PiXflat` lines from the [GTK] section
+2. Edit `~/.config/lxsession/LXDE-pi/autostart`
+  a. Remove `@lxpanel --profile LXDE-pi` line to disable default panel
+  b. Remove `@pcmanfm --desktop --profile LXDE-pi`  line to disable desktop icons
 ### Other distributions
 
 To run LV2 simulators an LV2 host is required.  The host [`mod-host`](https://github.com/mod-audio/mod-host) is recommended.
