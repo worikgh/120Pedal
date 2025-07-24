@@ -7,6 +7,6 @@ edition = "2024"
 notify = "8.0.0"
 pedal_state = { path = "../pedal_state" }
 rosc = "0.11.4"
-simple = "0.3.0"
+simple = {path = "simple"}
 sysinfo = "0.35.2"
 

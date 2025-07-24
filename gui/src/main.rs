@@ -11,6 +11,7 @@ use simple::{Event, Rect};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::env;
+use std::error::Error;
 use std::fs::metadata;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -842,7 +843,7 @@ fn pedals_dir() -> PathBuf {
     pedals_dir.canonicalize().expect("Failed to resolve path")
 }
 
-fn main() {
+fn inner_main() -> Result<(), Box<dyn Error>> {
     let _ = qzn3t_running();
     // The first argument is the command that starts the qzn3t pedals or
     // mod-ui
@@ -883,8 +884,8 @@ fn main() {
             .parse::<u16>()
             .expect("Height argument not parsed as u16");
     } else {
-        width = 475;
-        height = 250;
+        width = simple::Window::get_max_width()? as u16;
+        height = simple::Window::get_max_height()? as u16;
     }
 
     // Read in the PedalState object to set the initial state of the
@@ -972,8 +973,14 @@ fn main() {
             last_tick_time = Instant::now();
         }
     }
+    Ok(())
 }
 
+fn main() {
+    if let Err(err) = inner_main() {
+        eprintln!("Error: {err}");
+    }
+}
 /// Monitor the PedalState file to see if the selected effect has been
 /// changed.  In which case send a message to the main thread to
 /// change the selected slider

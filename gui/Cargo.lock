@@ -638,8 +638,6 @@ dependencies = [
 [[package]]
 name = "simple"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa821f780dcfc349088d15d40eec3de34e1dc6923b1e39c83041d5ca6c686087"
 dependencies = [
  "libc 0.1.12",
  "num",
