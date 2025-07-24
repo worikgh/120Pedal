@@ -46,6 +46,7 @@ struct App {
     window: simple::Window,
     width: u16,
     height: u16,
+    invert: bool,
 }
 impl App {
     fn new(name: &str, width: u16, height: u16) -> Self {
@@ -53,11 +54,27 @@ impl App {
             width,
             height,
             window: simple::Window::new(name, width, height),
+            invert: false,
         }
     }
     fn set_colour(&mut self, colour: &[u8; 4]) {
         self.window
             .set_color(colour[0], colour[1], colour[2], colour[3]);
+    }
+    fn fill_rect(&mut self, r: Rect) {
+        // If the window is inverted adjust rect
+        let r = if self.invert {
+            let y = self.height as i32 - r.y;
+            let y = y - r.height() as i32;
+            Rect::new(r.x, y, r.width(), r.height())
+        } else {
+            r
+        };
+        self.window.fill_rect(r);
+    }
+    #[allow(dead_code)]
+    fn invert(&mut self, f: bool) {
+        self.invert = f;
     }
 }
 
@@ -88,7 +105,6 @@ struct MuteButton {
 }
 impl MuteButton {
     fn new(osc: Rc<OscSender>, x: f64, y: f64, w: f64, h: f64) -> Self {
-        eprintln!("DBG MuteButton.new");
         Self {
             corners: [x, y, w, h],
             colour_muted: COLOUR_RED,
@@ -102,7 +118,6 @@ impl MuteButton {
 }
 impl TouchRectFn for MuteButton {
     fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
-        eprintln!("DBG MuteButton.event");
         if self.pressed && !is_down {
             // Take action
 
@@ -118,14 +133,11 @@ impl TouchRectFn for MuteButton {
     fn paint(&mut self, app: &mut App) {
         let colour = if !self.pressed {
             if self.muted {
-                eprintln!("DBG MuteButton.paint muted");
                 self.colour_muted
             } else {
-                eprintln!("DBG MuteButton.paint unmuted");
                 self.colour_unmuted
             }
         } else {
-            eprintln!("DBG MuteButton.paint pressed");
             self.colour_pressed
         };
         app.set_colour(&colour);
@@ -138,7 +150,7 @@ impl TouchRectFn for MuteButton {
         let w = (w * app.width as f64) as u32;
         let h = (h * app.height as f64) as u32;
         let fill_rect = Rect::new(x, y, w, h);
-        app.window.fill_rect(fill_rect);
+        app.fill_rect(fill_rect);
     }
     fn point_inside(&self, x: f64, y: f64) -> bool {
         point_inside_rect(x, y, self.corners)
@@ -233,7 +245,7 @@ impl TouchRectFn for AdjButton {
         } else {
             app.set_colour(&self.colour);
         }
-        app.window.fill_rect(fill_rect);
+        app.fill_rect(fill_rect);
 
         // Draw a "-" or "+", thin or thick....
         {
@@ -257,13 +269,13 @@ impl TouchRectFn for AdjButton {
             if plus {
                 // Vertical
                 let rect = Rect::new(x1, y, thickness as u32, h);
-                app.window.fill_rect(rect);
+                app.fill_rect(rect);
             }
 
             // horizontal
             let diff_h = w.saturating_sub(h); // Make horizontal same as vertical
             let rect = Rect::new(x + diff_h as i32 / 2, y1, w - diff_h, thickness as u32);
-            app.window.fill_rect(rect);
+            app.fill_rect(rect);
         }
     }
 }
@@ -442,7 +454,7 @@ impl TouchRectFn for Slider {
             } else {
                 app.set_colour(&COLOUR_UNSELECTED);
             }
-            app.window.fill_rect(fill_rect);
+            app.fill_rect(fill_rect);
         }
 
         // Paint the buttons
@@ -465,7 +477,7 @@ impl TouchRectFn for Slider {
             let h = 2;
             let rect = Rect::new(x, y, w, h);
             app.set_colour(&COLOUR_THUMB);
-            app.window.fill_rect(rect);
+            app.fill_rect(rect);
         }
     }
 }
@@ -554,7 +566,7 @@ impl TouchRectFn for EffectMixer {
         let h = (h * app.height as f64) as u32;
         let fill_area = simple::Rect::new(x, y, w, h);
         app.set_colour(&COLOUR_BACKGROUND);
-        app.window.fill_rect(fill_area);
+        app.fill_rect(fill_area);
 
         for s in self.sliders.iter_mut() {
             s.paint(app);
@@ -749,11 +761,11 @@ impl TouchRectFn for MainCommandRect {
         let fill_area = simple::Rect::new(x, y, w, h);
         if valid {
             app.set_colour(&colour);
-            app.window.fill_rect(fill_area);
+            app.fill_rect(fill_area);
         } else {
             // Invalid state. A cross of colour
             app.set_colour(&COLOUR_BLACK);
-            app.window.fill_rect(fill_area);
+            app.fill_rect(fill_area);
 
             // Make the cross
             app.set_colour(&colour);
@@ -770,7 +782,7 @@ impl TouchRectFn for MainCommandRect {
                 let y = y + (h as i32 / 2) - h as i32 / (adj as i32 * 2);
                 let h = h / adj as u32;
                 let fill_area = simple::Rect::new(x, y, w, h);
-                app.window.fill_rect(fill_area);
+                app.fill_rect(fill_area);
             }
 
             // Vertical
@@ -780,7 +792,7 @@ impl TouchRectFn for MainCommandRect {
                 let x = x + (w as i32 / 2) - w as i32 / (adj as i32 * 2);
                 let w = w / adj as u32;
                 let fill_area = simple::Rect::new(x, y, w, h);
-                app.window.fill_rect(fill_area);
+                app.fill_rect(fill_area);
             }
         };
     }
@@ -805,6 +817,9 @@ struct TouchScreenCtl {
     /// Over all size
     width: u16,
     height: u16,
+
+    /// If inverted
+    inverted: bool,
 }
 
 impl TouchScreenCtl {
@@ -820,6 +835,8 @@ impl TouchScreenCtl {
             for i in self.rects.iter_mut() {
                 let x = mouse_x as f64 / self.width as f64;
                 let y = mouse_y as f64 / self.height as f64;
+                let y = if self.inverted { 1.0 - y } else { y };
+
                 if i.point_inside(x, y) {
                     i.event(is_down, x, y);
                 }
@@ -845,14 +862,28 @@ fn pedals_dir() -> PathBuf {
 
 fn inner_main() -> Result<(), Box<dyn Error>> {
     let _ = qzn3t_running();
-    // The first argument is the command that starts the qzn3t pedals or
-    // mod-ui
+    // The first argument is the command that starts the qzn3t pedals
+    // or mod-ui, second is 0 for do not invert, 1 for invert, the
+    // third and fourth are width and height
     let mut args = env::args().skip(1);
     eprintln!("args: {args:?}  args.len(): {}", args.len());
     let command = match args.next() {
         Some(arg) => arg,
         None => panic!("Pass the control script as an argument"),
     };
+    let inverted: bool = match args.next() {
+        Some(arg) => {
+            if &arg == "0" {
+                false
+            } else if &arg == "1" {
+                true
+            } else {
+                panic!("Error: Second argument: {arg} is invalid")
+            }
+        }
+        None => panic!("Pass the control script as an argument"),
+    };
+
     // Check `command` is executable
     #[cfg(unix)]
     if metadata(&command)
@@ -903,7 +934,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
 
     // Main window.
     let mut app = App::new("Qzn3t", width, height);
-
+    app.invert(inverted);
     // The button that switches between `qzn3t` and `mod-ui`.  Width
     // and height are normalised.
     const MAIN_WIDTH: f64 = 0.15; // 15%
@@ -948,6 +979,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         ],
         width,
         height,
+        inverted,
     };
 
     let paint_screen = |app: &mut App, tsc: &mut TouchScreenCtl| {
@@ -981,6 +1013,7 @@ fn main() {
         eprintln!("Error: {err}");
     }
 }
+
 /// Monitor the PedalState file to see if the selected effect has been
 /// changed.  In which case send a message to the main thread to
 /// change the selected slider
