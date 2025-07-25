@@ -34,7 +34,7 @@ A system to control simulated guitar pedals using a MIDI foot controller. Design
    - Configure your audio interface settings
 3. Post-installation:
 ```bash
-sudo apt install modep-mod-ui # Install the very useful Modep software
+sudo apt install modep-mod-ui git curl build-essential 
 sudo systemctl disable modep-mod-ui  # Prevent mod-ui from auto-starting
 ```
 
@@ -53,9 +53,10 @@ The LXDE desktop, default to PachOS, takes up screen room for no purpose and can
 1. Edit the file `/etc/xdg/lxsession/LXDE-pi/desktop.conf `
   a. Remove the `launcher_manager/command=lxpanelctl` line from the [Session] section
   b. Remove both the `sNet/IconThemeName=PiXflat` and `sGtk/CursorThemeName=PiXflat` lines from the [GTK] section
-2. Edit `~/.config/lxsession/LXDE-pi/autostart`
-  a. Remove `@lxpanel --profile LXDE-pi` line to disable default panel
-  b. Remove `@pcmanfm --desktop --profile LXDE-pi`  line to disable desktop icons
+<!-- 2. Edit `~/.config/lxsession/LXDE-pi/autostart` -->
+<!--   a. Remove `@lxpanel --profile LXDE-pi` line to disable default panel -->
+<!--   b. Remove `@pcmanfm --desktop --profile LXDE-pi`  line to disable desktop icons -->
+
 ### Other distributions
 
 To run LV2 simulators an LV2 host is required.  The host [`mod-host`](https://github.com/mod-audio/mod-host) is recommended.
@@ -140,9 +141,7 @@ sudo systemctl enable jackd
 
 ### mod-host Setup
 
-If using Patchbox OS: `sudo apt install modep-mod-host`
-
-Otherwise:
+If not using Patchbox OS:
 
 ```bash
 cd
@@ -154,11 +153,8 @@ make
 
 ### mod-ui Installation
 
-If using Patchbox OS: `sudo apt install modep-mod-ui`
+If not using Patchbox OS
 
-Access the interface at `http://<your-pi-ip>` (**Not HTTPS**)
-
-Otherwise:
 
 ```bash
 cd
@@ -177,12 +173,14 @@ python3 ./server.py
 
 Access the interface at `http://<your-pi-ip>:8888`  (**Not HTTPS**)
 
+If using Pathbox OS access the interface at `http://<your-pi-ip>` (**Not HTTPS**)
+
 ## Setting Up Pedals
 
 1. Clone the repository:
 ```bash
 cd
-git clone https://github.com/worikgh/120Pedal.git
+git clone https://github.com/worikgh/120Pedal.git --recurse-submodules
 cd 120Pedal
 ```
 
@@ -193,6 +191,10 @@ cd 120Pedal
 ./getLV2  # Reads mod-ui pedal configurations
 ./setLV2  # Sets up LV2 simulators and Jack connections
 ```
+
+**Error: `ERROR qzn3t_mixer:output_1 not a valid port`**
+**Must mke some pdals**
+**TODO: Making pedals documentation**
 
 ## MIDI Pedal Configuration
 
