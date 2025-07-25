@@ -20,7 +20,7 @@ A system to control simulated guitar pedals using a MIDI foot controller. Design
 ## System Requirements
 - [Raspberry Pi](https://www.raspberrypi.com/) 4 or 5 (recommended)
   - This will probably run an any computer using Linux.  It was developed for and on a Raspberry Pi
-- Debian 12 ([Patchbox OS](https://blokas.io/patchbox-os/)) 
+- Debian 12 ([Patchbox OS](https://blokas.io/patchbox-os/))
   - Patchbox OS comes with the unessential but useful [Modep](https://blokas.io/modep/) software preinstalled.
 - Compatible audio interface
 - MIDI foot controller
@@ -34,7 +34,7 @@ A system to control simulated guitar pedals using a MIDI foot controller. Design
    - Configure your audio interface settings
 3. Post-installation:
 ```bash
-sudo apt install modep-mod-ui git curl build-essential 
+sudo apt install modep-mod-ui git curl build-essential
 sudo systemctl disable modep-mod-ui  # Prevent mod-ui from auto-starting
 ```
 
@@ -181,7 +181,12 @@ If using Pathbox OS access the interface at `http://<your-pi-ip>` (**Not HTTPS**
 ```bash
 cd
 git clone https://github.com/worikgh/120Pedal.git --recurse-submodules
-cd 120Pedal
+cd 120Pedal/gui 
+cargo build --release
+cd ../midi_driver 
+cargo build --release
+
+
 ```
 
 2. Configure your pedal setups in the `PEDALS/` directory (see [PEDALS/README.md](PEDALS/README.md))
