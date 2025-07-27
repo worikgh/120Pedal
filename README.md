@@ -45,10 +45,10 @@ Patchbox OS includes opt-out telemetry. To remove:
 ```bash
 sudo apt purge blokas-telemetry
 ```
-Optional: Remove Deskotop Panels
+Optional: Remove Desktop Panels
 ---
 
-The LXDE desktop, default to PachOS, takes up screen room for no purpose and can be disabled.
+The LXDE desktop, default to Patchbox OS, takes up screen room for no purpose and can be disabled.
 
 1. Edit the file `/etc/xdg/lxsession/LXDE/desktop.conf `
   a. Remove the `launcher_manager/command=lxpanelctl` line from the [Session] section if it is there
@@ -97,9 +97,10 @@ cd LCD-show
 sudo ./LCD35-show
 ```
 
-### Auotlogin for `patch`
+### Auto-login for `patch`
 
 Ensure `patch` is in group `lightdm`: `sudo usermod -aG lightdm patch`
+
 Ensure the `autologin-session` parameter in `/etc/lightdm/lightdm.conf` exists in `/usr/share/xsessions/` (E.g: `/usr/share/xsessions/LXDE.desktop` so `autologin-session=LXDE`)
 
 `sudo systemctl restart lightdm`
@@ -157,7 +158,7 @@ sudo systemctl enable jackd
 
 ### mod-host Setup
 
-If not using Patchbox OS:
+Patchbox OS provides a version of `mod-host` but this uses a forked version
 
 ```bash
 cd
@@ -170,7 +171,6 @@ make
 ### mod-ui Installation
 
 If not using Patchbox OS
-
 
 ```bash
 cd
@@ -189,7 +189,7 @@ python3 ./server.py
 
 Access the interface at `http://<your-pi-ip>:8888`  (**Not HTTPS**)
 
-If using Pathbox OS access the interface at `http://<your-pi-ip>` (**Not HTTPS**)
+If using Patchbox OS access the interface at `http://<your-pi-ip>` (**Not HTTPS**)
 
 ## Setting Up Pedals
 
@@ -211,8 +211,8 @@ cargo build --release
 ./setLV2  # Sets up LV2 simulators and Jack connections
 ```
 
-**Error: `ERROR qzn3t_mixer:output_1 not a valid port`**
-**Must mke some pdals**
+**TODO: Make some pedals**
+
 **TODO: Making pedals documentation**
 
 ## MIDI Pedal Configuration
@@ -258,3 +258,4 @@ effect_13:Out1 system:playback_1
 - Ensure Jack is running before starting mod-host
 - Verify your audio interface is properly detected
 - Check MIDI device permissions
+- Using SSH log into the Pi and `tail /tmp/gui.log` (**TODO: Integrate with systemd logging**)
