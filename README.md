@@ -50,12 +50,12 @@ Optional: Remove Deskotop Panels
 
 The LXDE desktop, default to PachOS, takes up screen room for no purpose and can be disabled.
 
-1. Edit the file `/etc/xdg/lxsession/LXDE-pi/desktop.conf `
-  a. Remove the `launcher_manager/command=lxpanelctl` line from the [Session] section
+1. Edit the file `/etc/xdg/lxsession/LXDE/desktop.conf `
+  a. Remove the `launcher_manager/command=lxpanelctl` line from the [Session] section if it is there
   b. Remove both the `sNet/IconThemeName=PiXflat` and `sGtk/CursorThemeName=PiXflat` lines from the [GTK] section
-<!-- 2. Edit `~/.config/lxsession/LXDE-pi/autostart` -->
-<!--   a. Remove `@lxpanel --profile LXDE-pi` line to disable default panel -->
-<!--   b. Remove `@pcmanfm --desktop --profile LXDE-pi`  line to disable desktop icons -->
+2. Edit `~/.config/lxsession/LXDE/autostart`
+  a. Remove `@lxpanel` line to disable default panel
+  b. Remove `@pcmanfm`  line to disable desktop icons
 
 ### Other distributions
 
@@ -88,6 +88,22 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
 ## Configuration
+
+### 3.5" Screen Driver
+
+```sh
+git clone https://github.com/goodtft/LCD-show.git
+cd LCD-show
+sudo ./LCD35-show
+```
+
+### Auotlogin for `patch`
+
+Ensure `patch` is in group `lightdm`: `sudo usermod -aG lightdm patch`
+Ensure the `autologin-session` parameter in `/etc/lightdm/lightdm.conf` exists in `/usr/share/xsessions/` (E.g: `/usr/share/xsessions/LXDE.desktop` so `autologin-session=LXDE`)
+
+`sudo systemctl restart lightdm`
+
 
 ### Auto-starting the GUI
 ```bash
@@ -185,8 +201,6 @@ cd 120Pedal/gui
 cargo build --release
 cd ../midi_driver 
 cargo build --release
-
-
 ```
 
 2. Configure your pedal setups in the `PEDALS/` directory (see [PEDALS/README.md](PEDALS/README.md))
