@@ -104,7 +104,7 @@ pub fn make_table(
 
         if number == 0 {
             // Invalid pedal file name
-            eprintln!("jack_midi: Error: File pedal_0 is invalid");
+            eprintln!("Error jack_midi: File pedal_0 is invalid");
             continue;
         }
         activation_files.insert(number, path);
@@ -116,7 +116,7 @@ pub fn make_table(
         let mut file = match File::open(file_name) {
             Ok(f) => f,
             Err(err) => {
-                eprintln!("jack_midi: Failed to open file:{file_name}. Err: {err:?}");
+                eprintln!("Error jack_midi: Failed to open file:{file_name}. Err: {err:?}");
                 return Err(Box::new(err));
             }
         };
@@ -138,7 +138,7 @@ pub fn make_table(
                 .ok_or(format!("A bad jack description: {line}"))?;
 
             if !src.contains("system:capture") && !dst.contains("system:playback") {
-                eprintln!("jack_midi: Error. Invalid Jack I/O: src{src} -> dst: {dst}");
+                eprintln!("Error jack_midi. Invalid Jack I/O: src{src} -> dst: {dst}");
                 continue;
             }
 
@@ -240,6 +240,8 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
                     state.selected = Some(byte);
                     state_clean = false;
                     effect = Some(byte);
+                } else {
+                    eprintln!("Error jack_midi: No command for byte: {byte:x}");
                 }
             }
         }
@@ -263,7 +265,7 @@ pub fn load_configuration(
     let mut file = match File::open(cfg_file_name) {
         Ok(f) => f,
         Err(err) => {
-            eprintln!("jack_midi: Error opening configuration: {err:?}");
+            eprintln!("Error jack_midi: Opening configuration: {err:?}");
             return Err(Box::new(err));
         }
     };
@@ -288,7 +290,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
 
 fn main() {
     if let Err(err) = inner_main() {
-        eprintln!("jack_midi failed: {err:?}");
+        eprintln!("Error jack_midi failed: {err:?}");
     }
 }
 #[cfg(test)]
@@ -434,7 +436,7 @@ mod tests {
             struct ErrorReader;
             impl Read for ErrorReader {
                 fn read(&mut self, _buf: &mut [u8]) -> io::Result<usize> {
-                    Err(io::Error::new(io::ErrorKind::Other, "test error"))
+                    Err(io::Error::other("test error"))
                 }
             }
 
@@ -479,11 +481,11 @@ mod tests {
             ];
             let mut reader = Cursor::new(midi_data);
             eprintln!(
-                "jack_midi: mock_jack.unmade_connections.len(): {}",
+                "DBG jack_midi: mock_jack.unmade_connections.len(): {}",
                 mock_jack.unmade_connections.len()
             );
             eprintln!(
-                "jack_midi: mock_jack.made_connections.len(): {}",
+                "DBG jack_midi: mock_jack.made_connections.len(): {}",
                 mock_jack.made_connections.len()
             );
 

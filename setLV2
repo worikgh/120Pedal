@@ -38,7 +38,8 @@ if(!defined($pedal_dir)){
     $pedal_dir =~ s/\/[^\/]*$/\/PEDALS/;
 }
 -d $pedal_dir or die "setLV2: '$pedal_dir' not a directory";
-print STDERR " * Initialise the pedal definitions\n * Pedal Dir: $pedal_dir\n";
+print STDERR "DBG setLv2: Initialise the pedal definitions\n";
+print STDERR "DBG setLv2: Pedal Dir: $pedal_dir\n";
 
 ## The initial;isation of Jack Pipes and simulation programmes
 my $initialise_fn = "$pedal_dir/Initialise";
@@ -121,13 +122,12 @@ sub handle_mh_cmd( $$ ) {
 	#     value field currently only exists for the param_get
 	#     command.
 	if($1 < 0 and $1 != -2){
-	    print  STDERR ">> FAIL $cmd >>  $result\n";
+	    print  STDERR "Error setLv2: Fail command: $cmd >>  $result\n";
 	}else{
-	    # print  STDERR ">> SUCCESS $cmd >>  $result\n";
 	    return 1;
 	}
     }else{
-	print STDERR ">> Unexpected result: '$result' \n";
+	print STDERR "Error setLv2: Unexpected result: '$result' \n";
     }
     return 0;
 }
@@ -155,8 +155,6 @@ sub mod_host( $ ){
 	}
 	## If command was an `add` check the effects got added
 	if($cmd =~ /^add.+\s(\d+)/){
-	    # print STDERR "$cmd\n";
-	    # warn "Before jack_lsp\n";
 	    my $max_retries = 5;
 	    my $retry_delay = 0.1;  # seconds
 	    my $i = 0;
@@ -190,12 +188,11 @@ sub handle_jack_3( $$$ ){
 	## Commanded to make a connection.  Check first if it exists
 	## and there is nothing to do
 	if( ! &test_jack_connection($lhs, $rhs)){
-	    # print STDERR "connect $1\t$2\n";
-	    print `jack_connect '$lhs' '$rhs'`;
+	    `jack_connect '$lhs' '$rhs'`;
 	}
     }elsif($cmd =~ /^disconnect (\S+)\s+(\S+)\s*$/){
 	if(  &test_jack_connection($1, $2)){
-	    print `jack_disconnect '$lhs' '$rhs'`;
+	    `jack_disconnect '$lhs' '$rhs'`;
 	}
     }
 }

@@ -125,7 +125,7 @@ impl TouchRectFn for MuteButton {
             let value = if self.muted { 0.0 } else { 1.0 };
             let osc_msg = "/M/{}".to_string();
             if let Err(err) = self.osc.send(osc_msg.as_str(), value) {
-                eprintln!("Error: Sending OSC: {osc_msg}  Value: {value}  Error: {err}");
+                eprintln!("Error qzn3t_gui: Sending OSC: {osc_msg}  Value: {value}  Error: {err}");
             }
         }
         self.pressed = is_down;
@@ -219,7 +219,9 @@ impl TouchRectFn for AdjButton {
             *self.target.value.borrow_mut() = new_value;
             let osc_msg = format!("/v/{}", self.target.idx);
             if let Err(err) = self.target.osc.send(osc_msg.as_str(), new_value) {
-                eprintln!("Error: Sending OSC: {osc_msg}  Value: {new_value}  Error: {err}");
+                eprintln!(
+                    "Error qzn3t_gui: Sending OSC: {osc_msg}  Value: {new_value}  Error: {err}"
+                );
             }
         }
         self.pressed = is_down;
@@ -356,7 +358,7 @@ impl Slider {
         let osc_msg = format!("/v/{}", idx);
         if let Err(err) = osc.send(osc_msg.as_str(), value) {
             eprintln!(
-                "Error: Sending OSC initialising EffectMixer: {osc_msg}  Value: {value}  Error: {err}"
+                "Error qzn3t_gui: Sending OSC initialising EffectMixer: {osc_msg}  Value: {value}  Error: {err}"
             );
         }
 
@@ -592,7 +594,7 @@ impl TouchRectFn for EffectMixer {
                     let old_selected = s.idx_selected.borrow().selected;
                     let new_selected = if r_state.selected.is_some() {
                         let res = r_state.selected.as_ref().unwrap() == &idx;
-                        eprintln!("DBG EffectMixer.tick idx: {idx} new_selected: {res}",);
+                        eprintln!("DBG qzn3t_gui: EffectMixer.tick idx: {idx} new_selected: {res}",);
                         res
                     } else {
                         false
@@ -600,7 +602,7 @@ impl TouchRectFn for EffectMixer {
                     s.select(new_selected);
                     if old_selected != new_selected {
                         eprintln!(
-                            "DBG EffectMixer.tick idx: {idx} old: {old_selected} -> {}  r_state: {r_state:?}",
+                            "DBG qzn3t_gui: EffectMixer.tick idx: {idx} old: {old_selected} -> {}  r_state: {r_state:?}",
                             s.idx_selected.borrow().selected
                         );
                         dirty = true;
@@ -673,13 +675,13 @@ impl MainCommandRect {
         self.valid = match std::process::Command::new(command).arg(argument).status() {
             Ok(s) => {
                 eprintln!(
-                    "DBG Run command: {command} Ok.  Arg: {argument}: Success: {}",
+                    "DBG qzn3t_gui: Run command: {command} Ok.  Arg: {argument}: Success: {}",
                     s.success(),
                 );
                 s.success()
             }
             Err(err) => {
-                eprintln!("DBG Run command Err {argument}: {err:?}");
+                eprintln!("DBG qzn3t_gui: Run command Err {argument}: {err:?}");
                 false
             }
         };
@@ -723,7 +725,7 @@ impl TouchRectFn for MainCommandRect {
                 };
                 self.run_command();
                 eprintln!(
-                    "DBG gui BoolCommandRect State change: {dbg_state:?} -> {:?}",
+                    "DBG gui qzn3t_gui: BoolCommandRect State change: {dbg_state:?} -> {:?}",
                     self.mode
                 );
             }
@@ -800,7 +802,7 @@ impl TouchRectFn for MainCommandRect {
         let valid = self.qzn3t_beacon.load(Ordering::Relaxed);
         if valid != self.valid {
             eprintln!(
-                "DBG gui: MainCommandRect.tick self.valid: {} -> {valid}",
+                "DBG qzn3t_gui: MainCommandRect.tick self.valid: {} -> {valid}",
                 self.valid
             );
             self.valid = valid;
@@ -866,7 +868,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     // or mod-ui, second is 0 for do not invert, 1 for invert, the
     // third and fourth are width and height
     let mut args = env::args().skip(1);
-    eprintln!("args: {args:?}  args.len(): {}", args.len());
+    eprintln!("DBG qzn3t_gui: args: {args:?}  args.len(): {}", args.len());
     let command = match args.next() {
         Some(arg) => arg,
         None => panic!("Pass the control script as an argument"),
@@ -893,7 +895,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         & 0o111
         == 0
     {
-        eprintln!("{command} is not executable");
+        eprintln!("Error qzn3t_gui: {command} is not executable");
         exit(1);
     }
 
@@ -943,7 +945,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
 
     // Run the command once to initialise Pi in mod-ui
     if !main_button.run_command() {
-        eprintln!("Error: Failed to run main command");
+        eprintln!("Error qzn3t_gui: Failed main_button.run_command");
         exit(1);
     }
 
@@ -1010,7 +1012,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
 
 fn main() {
     if let Err(err) = inner_main() {
-        eprintln!("Error: {err}");
+        eprintln!("Error qzn3t_gui: inner_main: {err}");
     }
 }
 
@@ -1038,7 +1040,10 @@ pub fn monitor_pedal_state(
             .watch(path, RecursiveMode::NonRecursive)
             .expect("Failed to watch file");
 
-        eprintln!("Monitoring pedal state at: {}", path.display());
+        eprintln!(
+            "DBG qzn3t_gui: Monitoring pedal state at: {}",
+            path.display()
+        );
         for event in watcher_rx.into_iter().flatten() {
             if let EventKind::Modify(_modify_kind) = event.kind {
                 // State file changed
@@ -1046,12 +1051,13 @@ pub fn monitor_pedal_state(
                 let new_state = match read_state(path.to_str().expect("Statefile path invalid")) {
                     Ok(state) => state,
                     Err(e) => {
-                        eprintln!("gui: Failed to read initial state: {}", e);
+                        // Is this an error?
+                        eprintln!("DBG qzn3t_gui: Failed to read initial state: {}", e);
                         continue;
                     }
                 };
                 if new_state.is_none() {
-                    eprintln!("Error gui: Failed to read pedal state in file monitor");
+                    eprintln!("Error qzn3t_gui: Failed to read pedal state in file monitor");
                     continue;
                 }
                 let new_state = new_state.unwrap();

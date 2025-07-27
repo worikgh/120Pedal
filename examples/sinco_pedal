@@ -3,7 +3,7 @@
 # The effects are jack pipe definitions for connections to
 # system:playback_1 and system_capture_1
 
-echo "  ** examples/sinco_pedal"
+echo "DBG examples/sinco_pedal:"
 set -e
 
 # Get the script's directory, 
@@ -14,47 +14,47 @@ PARENTDIR=$(CDPATH='' cd -- "${THISDIR}/.." && pwd -P)
 # Configuration
 CFGDIR="${PARENTDIR}/midi_driver/examples"
 if [ ! -d "${CFGDIR}" ]; then
-    echo "  ** Error: Configuration path not found: ${CFGDIR}" >&2
+    echo "Error examples/sinco_pedal: Configuration path not found: ${CFGDIR}" >&2
     exit 1
 fi
-echo "* Have configuration directory: ${CFGDIR}"
+echo "DBG examples/sinco_pedal: Have configuration directory: ${CFGDIR}"
 
 # Configuration files
 TRANS_CFG="${CFGDIR}/sinco.cfg" ## SINCO MIDI pedal
 JACK_CFG="${CFGDIR}/pedal.cfg" ## The set of Jack pipes 
 for cfg in  "${JACK_CFG}" "${TRANS_CFG}"; do
     if [ ! -f "${cfg}" ]; then
-        echo "  ** Error: Config file not found: ${cfg}" >&2
+        echo "Error examples/sinco_pedal: Config file not found: ${cfg}" >&2
         exit 1
     fi
 done
-echo "* Configuration files found"
+echo "DBG examples/sinco_pedal: Configuration files found"
 
 # Set paths to executables
 MIDI_DRIVER_PATH="${PARENTDIR}/midi_driver/target/release"
 if [ ! -d "${MIDI_DRIVER_PATH}" ]; then
-    echo "  ** Error: MIDI driver path not found: ${MIDI_DRIVER_PATH}" >&2
+    echo "Error examples/sinco_pedal: MIDI driver path not found: ${MIDI_DRIVER_PATH}" >&2
     exit 1
 fi
-echo "* Found executable directory: ${MIDI_DRIVER_PATH}"
+echo "DBG examples/sinco_pedal: Found executable directory: ${MIDI_DRIVER_PATH}"
 READ="${MIDI_DRIVER_PATH}"/read_midi
 TRANS="${MIDI_DRIVER_PATH}"/translate_midi
 JACK="${MIDI_DRIVER_PATH}"/jack_midi
 
 if pgrep -x "read_midi" >/dev/null; then
-    echo -n "  ** examples/sinco_pedal: "
-    pkill -x "read_midi" && echo "Stopped read_midi" || echo "Failed to stop read_midi"
+    echo -n "DBG examples/sinco_pedal: Kill read_midi"
+    pkill -x "read_midi" && echo "DBG examples/sinco_pedal: Stopped read_midi" || echo "Error examples/sinco_pedal: Failed to stop read_midi"
 fi
 
 for cmd in "$READ" "$TRANS" "$JACK"; do
     if ! [ -x "${cmd}" ]; then
-        echo "  ** Error: Command not found: ${cmd}" >&2
+        echo "Error examples/sinco_pedal: Command not found: ${cmd}" >&2
         exit 1
     fi
 done
-echo "* All required executables found"
-echo "($READ SINCO | $TRANS \"${TRANS_CFG}\" | $JACK \"${JACK_CFG}\")"
+echo "DBG examples/sinco_pedal: All required executables found"
+echo "DBG  examples/sinco_pedal: Running: ($READ SINCO | $TRANS \"${TRANS_CFG}\" | $JACK \"${JACK_CFG}\")"
 # Run the pipeline
 ($READ SINCO | $TRANS "${TRANS_CFG}" | $JACK "${JACK_CFG}")&
 
-echo "DBG sinco_pedal pipeline started"
+echo "DBG examples/sinco_pedal: sinco_pedal pipeline started"

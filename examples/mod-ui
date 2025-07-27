@@ -1,12 +1,12 @@
 #!/bin/sh
 set -e
-echo "  ** examples/modui: Kill mod-host"
+echo "DBG examples/mod-ui examples/modui: Kill mod-host"
 sudo pkill -x mod-host || true
-echo "  ** examples/modui: Kill pd"
+echo "DBG examples/mod-ui examples/modui: Kill pd"
 pkill -x pd ||true
-# echo "  ** examples/modui: Restart mod-host"
+# echo "DBG examples/mod-ui examples/modui: Restart mod-host"
 # sudo systemctl stop modep-mod-host
 # Must sleep here or it will not work
 sleep 1
-echo "  ** examples/modui: Restart mod-ui"
+echo "DBG examples/mod-ui examples/modui: Restart mod-ui"
 sudo systemctl restart modep-mod-ui

@@ -10,7 +10,7 @@ const THIS_MIDI_NAME: &str = "120Pedal";
 
 fn main() {
     if let Err(err) = inner_main() {
-        eprintln!("read_midi  inner_main failed: {err:?}");
+        eprintln!("Error read_midi: inner_main failed: {err:?}");
     }
 }
 fn inner_main() -> Result<(), Box<dyn Error>> {
@@ -50,7 +50,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
                 "midi_read.rs: {}",
                 midi_in
                     .port_name(mp)
-                    .unwrap_or("Failed to get a port's name".to_string())
+                    .unwrap_or("Error midi_read --list: Failed to get a port's name".to_string())
             );
         }
         return Ok(());
@@ -58,11 +58,11 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     let name = matches
         .get_one::<String>("port")
         .expect("Must pass port name");
-    eprintln!("DBG read_midi name: {name}");
+    eprintln!("DBG read_midi: name: {name}");
     let this_port: MidiInputPort = match get_midi_port(name, &midi_in) {
         Ok(p) => p,
         Err(err) => {
-            eprintln!("Error read_midi; Failed to get MIDI port: {err}");
+            eprintln!("Error read_midi: Failed to get MIDI port: {err}");
             return Err(err);
         }
     };
@@ -84,7 +84,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     ) {
         Ok(c) => c,
         Err(err) => {
-            eprintln!("Error: read_midi: Failed to connect to MIDI: {err}");
+            eprintln!("Error read_midi: Failed to connect to MIDI: {err}");
             return Err(Box::new(err));
         }
     };

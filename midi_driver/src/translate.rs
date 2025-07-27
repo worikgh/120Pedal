@@ -188,7 +188,7 @@ impl Translator {
             // report it
             if !self.is_empty() {
                 eprintln!(
-                    "Error: translate.rs: Working memory not empty: input: {byte:x} working: {:?}",
+                    "Error translate_midi: Working memory not empty: input: {byte:x} working: {:?}",
                     self.working
                 );
                 self.truncate();
@@ -246,7 +246,7 @@ impl Translator {
 
 fn main() {
     if let Err(err) = inner_main() {
-        eprintln!("read_midi failed: {err:?}");
+        eprintln!("Error translate_midi failed: {err:?}");
     }
 }
 fn inner_main() -> Result<(), Box<dyn Error>> {
@@ -283,7 +283,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         translator.write_working();
         translator.truncate();
     }
-    eprintln!("DBG translate.rs: main after main loop");
+    eprintln!("DBG translate_midi: main after main loop");
     Ok(())
 }
 

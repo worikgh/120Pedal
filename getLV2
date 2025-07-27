@@ -51,7 +51,6 @@ foreach my $fn (@fn){
     $index = $ex{index};
 
     my $board_name = $ex{pedal_board_name};
-    # print "> $board_name\n";
 
     my $effects = $ex{effects};
     my @lv2_names = sort keys %$effects;
@@ -61,12 +60,9 @@ foreach my $fn (@fn){
     my  @j_activation_pipes = @{$ex{jack_activation_pipes}};
 
     foreach my $name (@lv2_names){
-	# print "\t$name\n";
 	my $h = $effects->{$name};
 	my @k = sort keys %$h;
 	my $add = $h->{add} or die "No `add` for $name";
-	# print "\t\t$add\n";
-	# print "\t\t".join("", map{"\t\t$_\n"} @param)."\n";
 	push(@add, $add);
 	push(@param, @{$h->{param}});
     }
@@ -87,7 +83,7 @@ print $initfh map{"mh $_\n"} @param;
 ## Jack pipes prefixed with "jack"
 print $initfh map{"jack $_\n"} @jack_init;
 close $initfh or die "$!";
-warn "Written $pedal_init_fn\n";
+warn "DBG getLV2: Written $pedal_init_fn\n";
 ## The activation data.  Pedals use this.  
 foreach my $name (sort keys %jack_activation){
     my @activation_pipes = 
@@ -101,7 +97,7 @@ foreach my $name (sort keys %jack_activation){
 	open(my $actfh, ">$pedal_dir/$name") or die "$!";
 	print $actfh join("\n", @activation_pipes);
     }else{
-	warn "Pedal $name has no activation\n";
+	warn "Error getLV2: Pedal $name has no activation\n";
     }
 	
 }
@@ -152,7 +148,7 @@ sub process_lv2_turtle( $$ ) {
         if($name_port =~ /^(\S+)\/(\S+)/){
             return [$1, $2];
         }else{
-            print "$pedal_board_name bad: $name_port\n";
+            print STDERR "Error getLv2: $pedal_board_name bad: $name_port\n";
             return undef;
         }
     };
@@ -360,11 +356,10 @@ sub process_lv2_turtle( $$ ) {
 	    # For now we only handle pipes to `system:playback_1`
 	    if($1 != 1){
 		$fn =~ /\/([^\/]+)$/;
-		warn "Pipes to outputs other than system:playback_1 not well supported: $1 \n";
+		warn "DBG getLV2: Pipes to outputs other than system:playback_1 not well supported: $1 \n";
 		# next;
 	    }
 	    my $connection = "system:$tail[0]->[2] system:$head[0]->[2]";
-	    ## warn "Direct connection: $connection\n";
             push(@jack_activation_pipes, $connection);
             next;
         }elsif($tail[0]->[2] =~ /^capture_\d+$/ ){
@@ -378,7 +373,7 @@ sub process_lv2_turtle( $$ ) {
 	    # Output pipe.
 	    # For now we only handle pipes to `system:playback_1`
 	    if($1 != 1){
-		warn "Pipes to outputs other than system:playback_1 not supported: $pipe\n";
+		warn "DBG getLV2: Pipes to outputs other than system:playback_1 not supported: $pipe\n";
 		next;
 	    }
 	    my $name_port = &$name_port($tail[0]->[2]) or die;
