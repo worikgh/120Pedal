@@ -195,7 +195,7 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
             Ok(o) => match o {
                 Some(b) => b,
                 None => {
-                    eprintln!("DBG jack_midi: Break");
+                    eprintln!("DBG jack_midi: Break from main loop  No byte from pedal");
                     break;
                 }
             },
@@ -242,6 +242,7 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
                     effect = Some(byte);
                 } else {
                     eprintln!("Error jack_midi: No command for byte: {byte:x}");
+                    eprintln!("Error jack_midi: command_table: {command_table:?}");
                 }
             }
         }
@@ -262,6 +263,7 @@ pub fn load_configuration(
     cfg_file_name: &str,
 ) -> Result<(HashMap<u8, Vec<(String, String)>>, u8), Box<dyn Error>> {
     let mut s = String::new();
+    eprintln!("DBG jack_midi: Configuration file name: {cfg_file_name}");
     let mut file = match File::open(cfg_file_name) {
         Ok(f) => f,
         Err(err) => {

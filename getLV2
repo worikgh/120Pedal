@@ -66,6 +66,7 @@ foreach my $fn (@fn){
 	push(@add, $add);
 	push(@param, @{$h->{param}});
     }
+    warn "DBG getLV2: Add activation pipes for $board_name from file: $fn\n";
     $jack_activation{$board_name} = $ex{jack_activation_pipes};
     push(@jack_init, @{$ex{jack_internal_pipes}});
 }
@@ -97,7 +98,7 @@ foreach my $name (sort keys %jack_activation){
 	open(my $actfh, ">$pedal_dir/$name") or die "$!";
 	print $actfh join("\n", @activation_pipes);
     }else{
-	warn "Error getLV2: Pedal $name has no activation\n";
+	warn "Error getLV2: Pedal \$name $name has no activation. \$jack_activation{$name} $jack_activation{$name} \n";
     }
 	
 }
