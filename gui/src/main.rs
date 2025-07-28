@@ -1045,14 +1045,13 @@ pub fn monitor_pedal_state(
             path.display()
         );
         for event in watcher_rx.into_iter().flatten() {
-            if let EventKind::Modify(_modify_kind) = event.kind {
+            if let EventKind::Modify(modify_kind) = event.kind {
                 // State file changed
                 // Check selected slider has changed
                 let new_state = match read_state(path.to_str().expect("Statefile path invalid")) {
                     Ok(state) => state,
                     Err(e) => {
-                        // Is this an error?
-                        eprintln!("DBG qzn3t_gui: Failed to read initial state: {}", e);
+                        eprintln!("DBG qzn3t_gui: State file event: {modify_kind:?}. Read error:  state: {}", e);
                         continue;
                     }
                 };
