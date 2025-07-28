@@ -34,8 +34,8 @@ defined $modep_pedal_dir or $modep_pedal_dir = '/var/modep/pedalboards';
 ## Get the pedal board definitions
 my @fn = map{chomp;$_}
 grep {$_ !~ /manifest.ttl$/}
-grep{/\.ttl$/}
-`find $modep_pedal_dir -type f`;
+grep {$_ !~ /effect.ttl$/}
+`find $modep_pedal_dir -type f -name "*.ttl"`;
 
 ## Each effect is uniquely identified bu `$index`
 my $index = 1;
