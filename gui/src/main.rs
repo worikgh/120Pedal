@@ -3,9 +3,9 @@
 //! PLANNED: Allow editing the volume of effects
 extern crate simple;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use pedal_state::PedalState;
 use pedal_state::read_state;
 use pedal_state::write_state;
+use pedal_state::PedalState;
 use send_osc::OscSender;
 use simple::{Event, Rect};
 use std::cell::RefCell;
@@ -19,10 +19,10 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
-use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::{channel, Sender};
 use std::sync::{
-    Arc,
     atomic::{AtomicBool, Ordering},
+    Arc,
 };
 use std::thread;
 use std::time::{Duration, Instant};
@@ -310,7 +310,7 @@ struct Slider {
     // Value displayed
     slider_value: Rc<SliderValue>,
 
-    // The index of the slider that identifies it and the flag toset
+    // The index of the slider that identifies it and the flag to set
     // when selected.  This is shared with `main` so sliders can be
     // selected externally
     idx_selected: Rc<RefCell<IdxSelected>>,
@@ -581,6 +581,7 @@ impl TouchRectFn for EffectMixer {
         // 2. Check if the volume on any slider has changed
         let mut selected_slider: Option<u8> = self.pedal_state.selected;
         {
+            // Thing 1: selected channel
             let mut dirty = false;
             if let Ok(r_state) = self.state_rx.try_recv() {
                 let new_selected_slider = r_state.selected;
@@ -614,6 +615,7 @@ impl TouchRectFn for EffectMixer {
             }
         }
         {
+            // Thing 2: volume
             let mut dirty = false;
             for s in self.sliders.iter() {
                 let idx = s.idx_selected.borrow().idx;
