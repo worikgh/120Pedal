@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::{self, Write};
+use std::path::{Path, PathBuf};
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct PedalState {
     // The selected effect
@@ -28,27 +29,24 @@ impl PedalState {
         }
     }
 }
-fn state_file_name(pedal_dir: &str) -> String {
-    format!("{pedal_dir}/.state")
+fn get_sf_path(pedal_dir: &Path) -> PathBuf {
+    PathBuf::from(pedal_dir).join(".state")
 }
-pub fn write_state(state: &PedalState, pedal_dir: &str) -> io::Result<()> {
+pub fn write_state(state: &PedalState, pedal_dir: &Path) -> io::Result<()> {
     let json =
         serde_json::to_string(state).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-    let fname = state_file_name(pedal_dir);
+    let sf_path = get_sf_path(pedal_dir);
     let mut file = OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
-        .open(fname)?;
+        .open(sf_path)?;
     file.lock_exclusive()?;
     file.write_all(&json.into_bytes())?;
     Ok(())
 }
-pub fn read_state(pedal_dir: &str) -> io::Result<Option<PedalState>> {
-    match OpenOptions::new()
-        .read(true)
-        .open(state_file_name(pedal_dir))
-    {
+pub fn read_state(pedal_dir: &Path) -> io::Result<Option<PedalState>> {
+    match OpenOptions::new().read(true).open(get_sf_path(pedal_dir)) {
         Ok(mut file) => {
             file.lock_exclusive()?;
             let mut json = String::new();
