@@ -3,9 +3,9 @@
 //! PLANNED: Allow editing the volume of effects
 extern crate simple;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use pedal_state::PedalState;
 use pedal_state::read_state;
 use pedal_state::write_state;
-use pedal_state::PedalState;
 use send_osc::OscSender;
 use simple::{Event, Rect};
 use std::cell::RefCell;
@@ -19,10 +19,10 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{Sender, channel};
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
 };
 use std::thread;
 use std::time::{Duration, Instant};
@@ -596,16 +596,14 @@ impl TouchRectFn for EffectMixer {
                 }
             }
             if dirty {
-                write_state(
-                    &self.pedal_state,
-                    pedals_dir().to_str().expect("Pedals path to write"),
-                )
-                .expect("Writing state");
+                eprintln!("DBG gui: Volume changed. Updating state");
+                if let Err(err) = write_state(&self.pedal_state, &pedals_dir()) {
+                    eprintln!("Error gui:  Cannot write state: {err}");
+                }
             }
         }
     }
 }
-
 /// The "button" that switches between `EditMode` where the pedal has
 /// no effect and the web interface is offered for adjusting pedal
 /// parameters adn `LiveMode` where the pedlal does have an efect and
@@ -896,7 +894,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     // Read in the PedalState object to set the initial state of the
     // pedals.  The state file must exist.
     let pedals_path = pedals_dir();
-    let pedal_state = match read_state(pedals_path.to_str().expect("Cannot convert path to string"))
+    let pedal_state = match read_state(&pedals_path)
         .expect("gui: Failed reading PedalState from: {pedals_path}")
     {
         Some(p) => p,
@@ -1054,7 +1052,7 @@ pub fn monitor_pedal_state(
             if let EventKind::Modify(modify_kind) = event.kind {
                 // State file changed
                 // Check selected slider has changed
-                let new_state = match read_state(path.to_str().expect("Statefile path invalid")) {
+                let new_state = match read_state(path) {
                     Ok(state) => state,
                     Err(e) => {
                         eprintln!(
@@ -1064,11 +1062,13 @@ pub fn monitor_pedal_state(
                         continue;
                     }
                 };
-                if new_state.is_none() {
-                    eprintln!("Error qzn3t_gui: Failed to read pedal state in file monitor");
-                    continue;
-                }
-                let new_state = new_state.unwrap();
+                let new_state = match new_state {
+                    Some(s) => s,
+                    None => {
+                        eprintln!("Error qzn3t_gui: Failed to read pedal state in file monitor");
+                        continue;
+                    }
+                };
                 let last_selected: Option<u8> = stored_state.selected;
                 let new_selected: Option<u8> = new_state.selected;
                 if last_selected != new_selected {
