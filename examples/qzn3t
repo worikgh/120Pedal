@@ -22,7 +22,6 @@ MOD_HOST_PID=$!
 # Give mod-host a moment to start
 sleep 1
 
-echo "DBG examples/qzn3t: Use pgrep ** "
 # Check if mod-host is still running
 if ! pgrep mod-host 2>/dev/null; then
     echo "Error examples/qzn3t: mod-host failed to start $MOD_HOST_PID"
@@ -34,6 +33,7 @@ pd -jack -jackname qzn3t_mixer  -inchannels 4 -outchannels 1 -r 48000 -realtime 
 
 cd "${One20PedalHome}" || { echo "Error examples/qzn3t: Failed to cd to ${One20PedalHome}"; exit 1; }
 
+./getLV2 || { echo "Error examples/qzn3t: setLV2 failed"; exit 1; }
 ./setLV2 || { echo "Error examples/qzn3t: setLV2 failed"; exit 1; }
 
 ./examples/sinco_pedal || { echo "Error examples/qzn3t: sinco_pedal failed"; exit 1; }
