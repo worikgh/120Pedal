@@ -3,9 +3,9 @@
 //! PLANNED: Allow editing the volume of effects
 extern crate simple;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use pedal_state::PedalState;
 use pedal_state::read_state;
 use pedal_state::write_state;
-use pedal_state::PedalState;
 use send_osc::OscSender;
 use simple::{Event, Rect};
 use std::cell::RefCell;
@@ -19,10 +19,10 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::{Sender, channel};
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
 };
 use std::thread;
 use std::time::{Duration, Instant};
@@ -92,7 +92,7 @@ enum CommandMode {
     LiveMode,
 }
 
-// Button to nute the mixer
+// Button to mute the mixer
 #[derive(Debug)]
 struct MuteButton {
     corners: [f64; 4],
@@ -593,9 +593,8 @@ impl TouchRectFn for EffectMixer {
 
                     let old_selected = s.idx_selected.borrow().selected;
                     let new_selected = if r_state.selected.is_some() {
-                        let res = r_state.selected.as_ref().unwrap() == &idx;
+                        r_state.selected.as_ref().unwrap() == &idx
                         // eprintln!("DBG qzn3t_gui: EffectMixer.tick idx: {idx} new_selected: {res}",);
-                        res
                     } else {
                         false
                     };
@@ -692,10 +691,12 @@ impl MainCommandRect {
         // Set up thread to monitor Qzn3t health
         let qzn3t_beacon_read = Arc::new(AtomicBool::new(false));
         let qzn3t_beacon_write = Arc::clone(&qzn3t_beacon_read);
-        let _jh = std::thread::spawn(move || loop {
-            let qz3t_beacon_value = qzn3t_running();
-            qzn3t_beacon_write.store(qz3t_beacon_value, Ordering::Relaxed);
-            thread::sleep(Duration::from_millis(100));
+        let _jh = std::thread::spawn(move || {
+            loop {
+                let qz3t_beacon_value = qzn3t_running();
+                qzn3t_beacon_write.store(qz3t_beacon_value, Ordering::Relaxed);
+                thread::sleep(Duration::from_millis(100));
+            }
         });
 
         Self {
@@ -867,11 +868,12 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     // The first argument is the command that starts the qzn3t pedals
     // or mod-ui, second is 0 for do not invert, 1 for invert, the
     // third and fourth are width and height
+    let usage = || -> String { "Usage: gui <configuration file> [01]".to_string() };
     let mut args = env::args().skip(1);
     eprintln!("DBG qzn3t_gui: args: {args:?}  args.len(): {}", args.len());
     let command = match args.next() {
         Some(arg) => arg,
-        None => panic!("Pass the control script as an argument"),
+        None => panic!("{}", usage()),
     };
     let inverted: bool = match args.next() {
         Some(arg) => {
@@ -880,16 +882,17 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
             } else if &arg == "1" {
                 true
             } else {
-                panic!("Error: Second argument: {arg} is invalid")
+                panic!("Error gui: Second argument: {arg} is invalid")
             }
         }
-        None => panic!("Pass the control script as an argument"),
+        // Default
+        None => false,
     };
 
     // Check `command` is executable
     #[cfg(unix)]
     if metadata(&command)
-        .unwrap_or_else(|e| panic!("{e}: Cannot get metadata for {command}"))
+        .unwrap_or_else(|e| panic!("Error gui: {e}: Cannot get metadata for {command}"))
         .permissions()
         .mode()
         & 0o111
@@ -954,7 +957,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     let osc_addr = format!("127.0.0.1:{}", osc_port);
     let osc = match OscSender::new("127.0.0.1:5200", &osc_addr) {
         Ok(o) => o,
-        Err(err) => panic!("{err:?}: Failed to create OSC: {osc_addr:?}"),
+        Err(err) => panic!("Error gui: {err:?}: Failed to create OSC: {osc_addr:?}"),
     };
     let osc = Rc::new(osc);
 
@@ -1051,7 +1054,10 @@ pub fn monitor_pedal_state(
                 let new_state = match read_state(path.to_str().expect("Statefile path invalid")) {
                     Ok(state) => state,
                     Err(e) => {
-                        eprintln!("DBG qzn3t_gui: State file event: {modify_kind:?}. Read error:  state: {}", e);
+                        eprintln!(
+                            "DBG qzn3t_gui: State file event: {modify_kind:?}. Read error:  state: {}",
+                            e
+                        );
                         continue;
                     }
                 };
