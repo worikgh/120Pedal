@@ -38,6 +38,12 @@ sudo apt install modep-mod-ui git curl build-essential
 sudo systemctl disable modep-mod-ui  # Prevent mod-ui from auto-starting
 ```
 
+For getting the Hot Point to work (that you can set up using `patchbox-config`) it may be necessary to do:
+```sh
+sudo systemctl disable dnsmasq
+sudo systemctl stop dnsmasq
+```
+
 Optional: Remove Telemetry
 ---
 
