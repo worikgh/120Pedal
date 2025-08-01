@@ -492,40 +492,7 @@ struct EffectMixer {
     pedal_state: PedalState,
 }
 impl EffectMixer {
-    fn new(osc: Rc<OscSender>, pedal_state: PedalState, x: f64, y: f64, w: f64, h: f64) -> Self {
-        let channels = pedal_state.choices.clone();
-        // Sliders
-        let mut sliders: Vec<Slider> = Vec::new();
-        {
-            // For the sliders the `y`, `h`, `w`, `w_f`, `margin` and
-            // `x_step` are constant
-
-            // Scale for width of the drawn slider
-            let w_f = 0.2;
-
-            // Top and bottom
-            let margin = 0.1;
-
-            let x_step = 1.0 / (1.0 + channels.len() as f64);
-            let y = y + h * margin;
-            let h = h - 2.0 * h * margin;
-            let mut idx: usize = 1;
-            for c in channels.iter() {
-                let x = x + idx as f64 * x_step;
-                sliders.push(Slider::new(
-                    x,
-                    y,
-                    x_step,
-                    h,
-                    margin,
-                    w_f,
-                    c.1,
-                    c.0,
-                    osc.clone(),
-                ));
-                idx += 1;
-            }
-        }
+    fn new(pedal_state: PedalState, sliders: Vec<Slider>, x: f64, y: f64, w: f64, h: f64) -> Self {
         let (state_tx, state_rx) = channel();
         let _jh = monitor_pedal_state(state_tx.clone(), pedal_state.clone());
         Self {
@@ -966,15 +933,49 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     // Mute button
     let mute_button = MuteButton::new(osc.clone(), 1.0 - MAIN_WIDTH, 0.0, MAIN_WIDTH, MAIN_HEIGHT);
 
+    let x = 0.0;
+    let y = MAIN_HEIGHT;
+    let w = 1.0;
+    let h = 1.0 - MAIN_HEIGHT;
+    // Sliders
+    let channels = pedal_state.choices.clone();
+
+    let mut sliders: Vec<Slider> = Vec::new();
+    {
+        // For the sliders the `y`, `h`, `w`, `w_f`, `margin` and
+        // `x_step` are constant
+
+        // Scale for width of the drawn slider
+        let w_f = 0.2;
+
+        // Top and bottom
+        let margin = 0.1;
+        let x_step = 1.0 / (1.0 + channels.len() as f64);
+        let y = y + h * margin;
+        let h = h - 2.0 * h * margin;
+        let mut idx: usize = 1;
+        for c in channels.iter() {
+            let x = x + idx as f64 * x_step;
+            sliders.push(Slider::new(
+                x,
+                y,
+                x_step,
+                h,
+                margin,
+                w_f,
+                c.1,
+                if inverted {
+                    channels.len() as u8 - c.0
+                } else {
+                    c.0
+                },
+                osc.clone(),
+            ));
+            idx += 1;
+        }
+    }
     // The mixer that controls the volumes of the effects
-    let effects_mixer = EffectMixer::new(
-        osc.clone(),
-        pedal_state,
-        0.0,
-        MAIN_HEIGHT,
-        1.0,
-        1.0 - MAIN_HEIGHT,
-    );
+    let effects_mixer = EffectMixer::new(pedal_state, sliders, x, y, w, h);
     effects_mixer.init();
 
     // Main screen
