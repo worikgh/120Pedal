@@ -125,7 +125,7 @@ impl TouchRectFn for MuteButton {
             let value = if self.muted { 0.0 } else { 1.0 };
             let osc_msg = "/M/{}".to_string();
             if let Err(err) = self.osc.send(osc_msg.as_str(), value) {
-                eprintln!("Error qzn3t_gui: Sending OSC: {osc_msg}  Value: {value}  Error: {err}");
+                eprintln!("Error qzn3t_gui: Sending OSC: {osc_msg}  Value: {value}  err: {err}");
             }
         }
         self.pressed = is_down;
@@ -220,7 +220,7 @@ impl TouchRectFn for AdjButton {
             let osc_msg = format!("/v/{}", self.target.idx);
             if let Err(err) = self.target.osc.send(osc_msg.as_str(), new_value) {
                 eprintln!(
-                    "Error qzn3t_gui: Sending OSC: {osc_msg}  Value: {new_value}  Error: {err}"
+                    "Error qzn3t_gui: Sending OSC: {osc_msg}  Value: {new_value}  err: {err}"
                 );
             }
         }
@@ -358,7 +358,7 @@ impl Slider {
         let osc_msg = format!("/v/{}", idx);
         if let Err(err) = osc.send(osc_msg.as_str(), value) {
             eprintln!(
-                "Error qzn3t_gui: Sending OSC initialising EffectMixer: {osc_msg}  Value: {value}  Error: {err}"
+                "Error qzn3t_gui: Sending OSC initialising EffectMixer: {osc_msg}  Value: {value}  err: {err}"
             );
         }
 
@@ -895,7 +895,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     // pedals.  The state file must exist.
     let pedals_path = pedals_dir();
     let pedal_state = match read_state(&pedals_path)
-        .expect("gui: Failed reading PedalState from: {pedals_path}")
+        .expect("Error gui: Failed reading PedalState from: {pedals_path}")
     {
         Some(p) => p,
         None => PedalState {
