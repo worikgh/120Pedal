@@ -958,10 +958,10 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         let x_step = 1.0 / (1.0 + channels.len() as f64);
         let y = y + h * margin;
         let h = h - 2.0 * h * margin;
-        let mut idx: usize = 1;
+        let mut idx: u8 = 1;
         for c in channels.iter() {
             let x = x + idx as f64 * x_step;
-            sliders.push(Slider::new(
+            let slider = Slider::new(
                 x,
                 y,
                 x_step,
@@ -970,12 +970,13 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
                 w_f,
                 c.1,
                 if inverted {
-                    channels.len() as u8 - c.0
+                    1 + channels.len() as u8 - idx
                 } else {
-                    c.0
+                    idx
                 },
                 osc.clone(),
-            ));
+            );
+            sliders.push(slider);
             idx += 1;
         }
     }
