@@ -1,12 +1,17 @@
 #!/bin/sh
 
-set -e
+set -ue
 
 sudo systemctl stop modep-mod-ui
 sudo systemctl stop modep-mod-host
 
 MOD_HOST_HOME="${HOME}/mod-host"
-One20PedalHome="${HOME}/120Pedal"
+# Get the root directory from the pedal from this script's absolute
+# path
+SCRIPT_PATH=$(realpath "$0")
+SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
+One20PedalHome=$(dirname "$SCRIPT_DIR")
+echo DBG qzn3t: One20PedalHome: ${One20PedalHome}
 
 # Start mod-host
 cd "${MOD_HOST_HOME}" || { echo "Failed to cd to ${MOD_HOST_HOME}"; exit 1; }
