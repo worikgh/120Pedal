@@ -588,11 +588,18 @@ impl TouchRectFn for EffectMixer {
                 let idx = s.idx_selected.borrow().idx;
                 let value = *s.slider_value.value.borrow();
                 if let Some(choice) = self.pedal_state.choices.iter_mut().find(|x| x.0 == idx) {
-                    if choice.1 != value {
+                    const EPSILON: f32 = 0.00000001;
+                    if (choice.1 - value).abs() > EPSILON {
                         choice.1 = value;
                         dirty = true;
                         break;
                     }
+                } else {
+                    // The pedal cannot be found
+                    panic!(
+                        "Error gui: In EffectMixer.tick slider {idx} could not be found in the PedalState: {:?}",
+                        self.pedal_state
+                    );
                 }
             }
             if dirty {
