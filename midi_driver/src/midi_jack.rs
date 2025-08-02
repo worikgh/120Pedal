@@ -247,10 +247,11 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
             }
         }
         if !state_clean {
-            if let Some(old_state) = read_state(PEDAL_DIR)? {
+            let pedal_dir = PathBuf::from(PEDAL_DIR);
+            if let Some(old_state) = read_state(&pedal_dir)? {
                 state.choices = old_state.choices;
             }
-            write_state(&state, PEDAL_DIR)?;
+            write_state(&state, &pedal_dir)?;
             state_clean = true;
         }
     }
