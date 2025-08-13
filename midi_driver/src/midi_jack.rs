@@ -11,11 +11,9 @@ use crate::midi_status::MidiStatus;
 use pedal_state::read_state;
 use pedal_state::write_state;
 use pedal_state::PedalState;
-use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::error::Error;
-use std::fs;
 use std::fs::File;
 use std::io::Read;
 use std::io::{self};
@@ -69,42 +67,22 @@ pub fn make_table(
 
     let dir_path = Path::new(PEDAL_DIR);
 
-    // This defines the files that contain the activation Jack pipes
-    // for a pedal.  Often it is symbolic link to the actual file
-    let pattern = Regex::new(r"pedal_(\d+)")?;
-
-    // The paths to pedal_N files indexed by `N`
+    // The paths to PEDAL files indexed by `u8`
     let mut activation_files: HashMap<u8, PathBuf> = HashMap::new();
 
-    // All files in the PEDALS directory that match the pattern...
-    for entry in fs::read_dir(dir_path)? {
-        let entry = entry?;
-        let path = entry.path();
+    for line in description.lines().filter(|l| l.starts_with("j ")) {
+        let nf: Vec<&str> = line.split_whitespace().collect();
 
+        let f_name = nf[1];
+        let path = dir_path.join(f_name);
         if !path.is_file() {
-            continue;
+            return Err(format!("Invalid name for PEDAL file: {f_name}").into());
         }
-        let file_name = path
-            .file_name()
-            .and_then(|f| f.to_str())
-            .ok_or_else(|| format!("Error: Failed converting oath {path:?} to a file name"))?;
-        let number = if let Some(captures) = pattern.captures(file_name) {
-            captures
-                .get(1)
-                .ok_or(format!("No capture group found in filename: {file_name}"))?
-                .as_str()
-                .parse::<u8>()
-                .map_err(|e| {
-                    format!("Error: {e}. Failed to get number from file name: {file_name}")
-                })?
-        } else {
-            // An other file.  Do not care
-            continue;
-        };
 
+        let number = nf[0].parse::<u8>()?;
         if number == 0 {
             // Invalid pedal file name
-            eprintln!("Error jack_midi: File pedal_0 is invalid");
+            eprintln!("Error jack_midi: Invalid configuration line: {line}");
             continue;
         }
         activation_files.insert(number, path);
