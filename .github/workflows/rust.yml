@@ -16,8 +16,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install dependencies (ALSA)
-      run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libasound2-dev \
+          libjack-dev \
+          jackd2
+
     - name: Build midi_driver
       working-directory: ./midi_driver
       run: cargo build --verbose
