@@ -38,8 +38,8 @@ pd -jack -jackname qzn3t_mixer  -inchannels 4 -outchannels 1 -r 48000 -realtime 
 
 cd "${One20PedalHome}" || { echo "Error examples/qzn3t: Failed to cd to ${One20PedalHome}"; exit 1; }
 
-./getLV2 || { echo "Error examples/qzn3t: setLV2 failed"; exit 1; }
-./setLV2 || { echo "Error examples/qzn3t: setLV2 failed"; exit 1; }
+./getLV2 || { echo "Error examples/qzn3t: getLV2 failed"; exit 1; }
+./cfgEffects || { echo "Error examples/qzn3t: cfgEffects failed"; exit 1; }
 
 ./examples/sinco_pedal || { echo "Error examples/qzn3t: sinco_pedal failed"; exit 1; }
 

@@ -214,7 +214,7 @@ cargo build --release
 3. For LV2 simulators:
 ```bash
 ./getLV2  # Reads mod-ui pedal configurations
-./setLV2  # Sets up LV2 simulators and Jack connections
+./cfgEffects  # Sets up LV2 simulators and Jack connections
 ```
 
 **TODO: Make some pedals**
