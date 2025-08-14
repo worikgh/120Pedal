@@ -8,29 +8,10 @@ use IO::Socket::INET;
 ## Ensure Jack is running
 `jack_wait -w`;
 
-## Ensure mod-host is running.  It must be running, listening on port
-## 5555, and no other port
+## Ensure mod-host is running.
 my $MH_PID = qx(pgrep -x mod-host);
 chomp $MH_PID;
-$MH_PID or die "setLV2: mod-host not running";
-
-## Get all ports the programme with the PID has open
-sub get_listening_ports {
-    my $pid = shift or die "Pass non-zero pid";
-    my %ports = ();
-
-    if (open my $LSOF, '-|', "lsof -Pan -p $pid -i 2>/dev/null") {
-	while (<$LSOF>) {
-	    next unless /(TCP|UDP).*?:\d+/;
-	    my ($port) = /:(\d+)/;
-	    $ports{$port} = 1 if $port;
-	}
-	close $LSOF;
-    }
-
-    return keys(%ports);
-}
-my @ports = get_listening_ports($MH_PID);
+$MH_PID or die "cfgEffects: mod-host not running";
 
 my $pedal_dir = $ENV{PEDAL_DIR};
 if(!defined($pedal_dir)){
@@ -136,12 +117,13 @@ sub mod_host( $ ){
     my @cmds = @$cmds;
 
     my $remote = "localhost";
-
-    my $mod_host_port_p = 5555; #$ports[0];
+    my $port = $ENV{MOD_HOST_PORT};
+    defined $port or $port = 5555;
+    my $mod_host_port_p = $port;
     my $sock = new IO::Socket::INET( PeerAddr => 'localhost',
 				     PeerPort => $mod_host_port_p,
 				     Proto => 'tcp') or
-	die "setLV2: $!: Failed to connect to mod-host localhost:$mod_host_port_p ";
+	die "cfgEffects: $!: Failed to connect to mod-host localhost:$mod_host_port_p ";
 
     ## Debugging why some effects randomly fail to be added
     my $failed = 0;
