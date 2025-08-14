@@ -1,10 +1,10 @@
-For each pedal that the hardware has create a file in this directory `pedal_<N>`. E.g: the SINCO pedal in the [examples](../examples/sinco_pedal) has four switches, 0..3. So create:
+For each pedal that the hardware has create a file in this directory `pedal_<N>`. E.g: the SINCO pedal in the [examples](../examples/sinco_pedal) has four switches, 1..4. So create:
 
 ```
-pedal_0
 pedal_1
 pedal_2
 pedal_3
+pedal_4
 ```
 
 This is important so the system will know how to allocate pedals and display them in the UI
