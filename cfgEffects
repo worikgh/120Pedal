@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 use IO::Socket::INET;
+use IO::Select;
 
 ## Set up the simulators and jack pipes between them.
 
@@ -48,7 +49,7 @@ if(!defined($pedal_dir)){
 opendir(my $dir, $pedal_dir) or die "$!: $pedal_dir";
 foreach my $fn (readdir($dir)){
     $fn =~ /^\./ and next;
-    $fn eq 'README.md' and continue;
+    $fn eq 'README.md' and next;
     my $path_to_delete = $pedal_dir .'/'. $fn;
     unlink($path_to_delete) or die "$!: $path_to_delete";
 }
@@ -56,7 +57,7 @@ foreach my $fn (readdir($dir)){
 # The new files that define effects: Initialisation
 my $initialise_fn = $pedal_dir.'/Initialise';
 {
-    open(my $fh, $initialise_fn, ">") or die "$!: $initialise_fn";
+    open(my $fh, ">", $initialise_fn) or die "$!: $initialise_fn";
     print $fh join("\n", @lv2_init)."\n";
     close($fh) or die  "$!: $initialise_fn";
 }
@@ -64,7 +65,7 @@ my $initialise_fn = $pedal_dir.'/Initialise';
 # The new files that define effects: Activation
 foreach my $pedal_name (sort keys %lv2_activation){
     my $activation_fn = $pedal_dir."/$pedal_name";
-    open(my $fh, $activation_fn) or die "$!: $activation_fn";
+    open(my $fh, ">", $activation_fn) or die "$!: $activation_fn";
     my @activaton_cmd = @{$lv2_activation{$pedal_name}};
     print $fh join("\n", @activaton_cmd)."\n";
     close($fh) or die "$!: $activation_fn";
@@ -90,21 +91,24 @@ sub handle_mh_cmd( $$ ) {
     print $sock "$cmd\n";
 
     my $result = '';
-    my $r = &fhbits($sock);
-    my $res = '';
-    my ($nfound, $timeleft) =
-	select(my $rout = $r, my $wout = undef, my $eout = undef,
-	       0.5);
-    if($nfound){
-	my $os = 0;
-	while(my $c = read($sock, $res, 1)){
-	    if($c != 1 or
-	       ord($res) == 0){
-		last;
-	    }
-	    $result .=  $res;
-	}
+    my $timeout = 0.1;
+
+    my $sel = IO::Select->new();
+    $sel->add($sock);
+    if ($sel->can_read($timeout)) {
+        # Read up to 4096 bytes at once
+        my $bytes_read = sysread($sock, $result, 4096);
+        if (!defined $bytes_read) {
+            die "Read error: $!";
+        }
+        # Handle potential remaining data
+        while ($sel->can_read(0)) {  # Non-blocking check
+            my $more_data;
+            $bytes_read = sysread($sock, $more_data, 4096);
+            $result .= $more_data;
+        }
     }
+
     # warn "handle_mh_cmd: \$result $result\n";
     if($result =~ /resp ([\-0-9]+)/){
 	# If status is a negative number an error has
