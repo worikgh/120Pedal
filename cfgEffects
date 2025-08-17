@@ -4,6 +4,16 @@ use IO::Socket::INET;
 
 ## Set up the simulators and jack pipes between them.
 
+## Ensure Jack is running
+if(`jack_wait -c 2>/dev/null` !~ /^running$/m){
+    die "Jack Audio Server is not running";
+};
+
+## Ensure mod-host is running.
+my $MH_PID = qx(pgrep -x mod-host);
+chomp $MH_PID;
+$MH_PID or die "cfgEffects: mod-host not running";
+
 ## Pass the configuration file for `jack_midi` so only pedals required
 ## are created
 my $jack_midi_cfg = shift or die "Pass the configuration file for `jack_midi`";
@@ -16,8 +26,13 @@ my @cfg_names = map{
     $_
 } grep {/^j \d+ /} `cat $jack_midi_cfg`;
 
-&getLV2(@cfg_names);
+## Get the set of commands to initialise the LV2 effect simulators and
+## the commands to activate them.
+my ($lv2_init_ref, $lv2_activation_ref) = &getLV2(@cfg_names);
+my @lv2_init = @$lv2_init_ref;
+my %lv2_activation = %$lv2_activation_ref;
 
+## TODO: Alternative (non-LV2) effects
 
 ## The directory to write pedal definitions to.  Ensure it exists
 my $pedal_dir = $ENV{PEDAL_DIR};
@@ -28,14 +43,8 @@ if(!defined($pedal_dir)){
 -e $pedal_dir or mkdir $pedal_dir;
 -d $pedal_dir or die "'$pedal_dir' not a directory";
 
-
-## Clear out old files.  There are two files that are in the directory
-## but are not pedal definitions:
-## 1. README.md  Documentation
-## 2. Initialise Defines the initialisation time actions to prepare
-## the effects
-## Delete Initialise, and then create an empty version of it so that
-## no effect definition can be called "Initialise"
+## Clear out old files.  There are is a README.md documentation file
+## that should not be deleted.
 opendir(my $dir, $pedal_dir) or die "$!: $pedal_dir";
 foreach my $fn (readdir($dir)){
     $fn =~ /^\./ and next;
@@ -43,32 +52,30 @@ foreach my $fn (readdir($dir)){
     my $path_to_delete = $pedal_dir .'/'. $fn;
     unlink($path_to_delete) or die "$!: $path_to_delete";
 }
+
+# The new files that define effects: Initialisation
 my $initialise_fn = $pedal_dir.'/Initialise';
-`touch $initialise_fn`;
--f $initialise_fn or die "$!: Cannot create $initialise_fn";
+{
+    open(my $fh, $initialise_fn, ">") or die "$!: $initialise_fn";
+    print $fh join("\n", @lv2_init)."\n";
+    close($fh) or die  "$!: $initialise_fn";
+}
 
-## Process LV2 `modep-mod-ui` generated simulators
+# The new files that define effects: Activation
+foreach my $pedal_name (sort keys %lv2_activation){
+    my $activation_fn = $pedal_dir."/$pedal_name";
+    open(my $fh, $activation_fn) or die "$!: $activation_fn";
+    my @activaton_cmd = @{$lv2_activation{$pedal_name}};
+    print $fh join("\n", @activaton_cmd)."\n";
+    close($fh) or die "$!: $activation_fn";
+}
 
-## Ensure Jack is running
-`jack_wait -w`;
-
-## Ensure mod-host is running.
-my $MH_PID = qx(pgrep -x mod-host);
-chomp $MH_PID;
-$MH_PID or die "cfgEffects: mod-host not running";
-
-open(my $fh, $initialise_fn) or die "cfgEffects: $!: $initialise_fn";
-my @config = map{chomp ; $_} <$fh>;
-my @add = grep{s/^mh //} map{chomp ; $_} grep {/^mh add/} @config;
-my @param = grep{s/^mh //} map{chomp ; $_} grep {/^mh param_set /} @config;
-my @jack_initial = grep{s/^jack //} map{chomp ; $_} grep {/^jack /} @config;
-close $fh or die $!;
+## Initialise the effects
 
 ## Set up the effects, and the parameters
-my @mh_commands = ();
-push(@mh_commands, @add);
-push(@mh_commands, @param);
+my @mh_commands = map{chomp; s/^mh //; $_} grep {/^mh /} `cat $initialise_fn`;
 &mod_host(\@mh_commands);
+my @jack_initial = map{chomp; s/^jack //; $_} grep {/^jack /} `cat $initialise_fn`;
 foreach my $jcmd ( @jack_initial ) {
     &handle_jack( "connect $jcmd" );
 }
@@ -144,6 +151,7 @@ sub handle_mh_cmd( $$ ) {
     }
     return 0;
 }
+
 sub mod_host( $ ){
     my $cmds = shift or die;
     my @cmds = @$cmds;
@@ -267,7 +275,7 @@ sub process_lv2_turtle( $$ ) {
         if($name_port =~ /^(\S+)\/(\S+)/){
             return [$1, $2];
         }else{
-            print STDERR "Error getLv2: $pedal_board_name bad: $name_port\n";
+            print STDERR "Error cfgEffects: $pedal_board_name bad: $name_port\n";
             return undef;
         }
     };
@@ -475,7 +483,7 @@ sub process_lv2_turtle( $$ ) {
 	    # For now we only handle pipes to `system:playback_1`
 	    if($1 != 1){
 		$fn =~ /\/([^\/]+)$/;
-		warn "DBG getLV2: Pipes to outputs other than system:playback_1 not well supported: $1 \n";
+		warn "DBG cfgEffects: Pipes to outputs other than system:playback_1 not well supported: $1 \n";
 		# next;
 	    }
 	    my $connection = "system:$tail[0]->[2] system:$head[0]->[2]";
@@ -492,7 +500,7 @@ sub process_lv2_turtle( $$ ) {
 	    # Output pipe.
 	    # For now we only handle pipes to `system:playback_1`
 	    if($1 != 1){
-		warn "DBG getLV2: Pipes to outputs other than system:playback_1 not supported: $pipe\n";
+		warn "DBG cfgEffects: Pipes to outputs other than system:playback_1 not supported: $pipe\n";
 		next;
 	    }
 	    my $name_port = &$name_port($tail[0]->[2]) or die;
@@ -636,7 +644,8 @@ sub getLV2 {
 
     my @add = ();
     my @param = ();
-    my @jack_init = ();
+    my @jack = ();
+    my @initialise_cmds = ();
     my %jack_activation = ();
     foreach my $fn (@fn){
 
@@ -657,12 +666,15 @@ sub getLV2 {
 	    my $h = $effects->{$name};
 	    my @k = sort keys %$h;
 	    my $add = $h->{add} or die "No `add` for $name";
-	    push(@add, $add);
-	    push(@param, @{$h->{param}});
+	    push(@add, "mh $add");
+	    push(@param, map{"mh $_"} @{$h->{param}});
 	}
-	warn "DBG getLV2: Add activation pipes for $board_name from file: $fn\n";
+	warn "DBG cfgEffects: Add activation pipes for $board_name from file: $fn\n";
 	$jack_activation{$board_name} = $ex{jack_activation_pipes};
-	push(@jack_init, @{$ex{jack_internal_pipes}});
+	push(@jack, map{"jack $_"} @{$ex{jack_internal_pipes}});
     }
-    print "Up to here\n";
+    push(@initialise_cmds, @add);
+    push(@initialise_cmds, @param);
+    push(@initialise_cmds, @jack);
+    return (\@initialise_cmds, \%jack_activation);
 }
