@@ -38,8 +38,14 @@ pd -jack -jackname qzn3t_mixer  -inchannels 4 -outchannels 1 -r 48000 -realtime 
 
 cd "${One20PedalHome}" || { echo "Error examples/qzn3t: Failed to cd to ${One20PedalHome}"; exit 1; }
 
-./getLV2 || { echo "Error examples/qzn3t: getLV2 failed"; exit 1; }
-./cfgEffects || { echo "Error examples/qzn3t: cfgEffects failed"; exit 1; }
+# Get the script's directory, 
+THISDIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
+## ...and the parent
+PARENTDIR=$(CDPATH='' cd -- "${THISDIR}/.." && pwd -P)
+CFGDIR="${PARENTDIR}/midi_driver/examples"
+JACK_CFG="${CFGDIR}/pedal.cfg" ## The set of Jack pipes 
+
+./cfgEffects ${JACK_CFG} || { echo "Error examples/qzn3t: cfgEffects failed"; exit 1; }
 
 ./examples/sinco_pedal || { echo "Error examples/qzn3t: sinco_pedal failed"; exit 1; }
 
