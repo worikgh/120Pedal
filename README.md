@@ -65,7 +65,9 @@ The LXDE desktop, default to Patchbox OS, takes up screen room for no purpose an
 
 ### Other distributions
 
-To run LV2 simulators an LV2 host is required.  The host [`mod-host`](https://github.com/mod-audio/mod-host) is recommended.
+To run LV2 simulators an LV2 host is required.  The host [`mod-host`](https://github.com/worikgh/mod-host) is recommended.
+
+It is a sub mdule of `120Pedal`
 
 ```
 git clone https://github.com/mod-audio/mod-host
@@ -73,7 +75,7 @@ cd mod-host
 make
 ```
 
-It is possible to use Modep, and in particular, `mod-ui`, an Debian-12, but it is not trivial.  Use [this](https://github.com/worikgh/mod-ui/tree/raspberrypi-bookworm) and follow the instructions in the `README.md`.
+It is possible to use Modep, and in particular, `mod-ui`, an Debian-12, (Debian-13 is unknown) but it is not trivial.  Use [this](https://github.com/worikgh/mod-ui/tree/raspberrypi-bookworm) and follow the instructions in the `README.md`.
 
 `mod-ui` will not play nicely with [Patchstorage](https://patchstorage.com/)  and it will not display the nice PNG images of pedals like it will if you install from Patchbox OS, but it is still very useful
 
@@ -265,3 +267,10 @@ effect_13:Out1 system:playback_1
 - Verify your audio interface is properly detected
 - Check MIDI device permissions
 - Using SSH log into the Pi and `tail /tmp/gui.log` (**TODO: Integrate with systemd logging**)
+
+## Non-LV2 Effects
+
+### Pure Data
+
+* Sub module: `basic-pure-data-audio-effects`
+  * `mono/chorus` utilises `chorus4896~.pd`
