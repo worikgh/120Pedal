@@ -1,0 +1,10 @@
+#N canvas 1035 -35 467 291 12;
+#X obj 6 33 chorus4896~;
+#X obj 6 1 adc~;
+#X obj 6 108 dac~ 1;
+#X obj 77 1 r speed;
+#X obj 149 1 r depth;
+#X connect 0 0 2 0;
+#X connect 1 0 0 0;
+#X connect 3 0 0 1;
+#X connect 4 0 0 2;

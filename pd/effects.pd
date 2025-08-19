@@ -1,6 +1,0 @@
-#N canvas 624 1272 694 361 12;
-#X obj 58 59 chorus4896~;
-#X obj 58 27 adc~;
-#X obj 58 134 dac~ 1;
-#X connect 0 0 2 0;
-#X connect 1 0 0 0;
