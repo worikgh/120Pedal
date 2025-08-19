@@ -205,9 +205,9 @@ If using Patchbox OS access the interface at `http://<your-pi-ip>` (**Not HTTPS*
 ```bash
 cd
 git clone https://github.com/worikgh/120Pedal.git --recurse-submodules
-cd 120Pedal/gui 
+cd 120Pedal/gui
 cargo build --release
-cd ../midi_driver 
+cd ../midi_driver
 cargo build --release
 ```
 
@@ -270,7 +270,12 @@ effect_13:Out1 system:playback_1
 
 ## Non-LV2 Effects
 
+### Mono Effects
+
+In the directory `mono/`
+See the [README](mono/README.md) in that file for description of how they work
+
+
 ### Pure Data
 
 * Sub module: `basic-pure-data-audio-effects`
-  * `mono/chorus` utilises `chorus4896~.pd`
