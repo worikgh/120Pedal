@@ -4,10 +4,10 @@ set -eu
 DIR=$(cd "$(dirname "$0")" && pwd)
 source "${DIR}/common.sh"
 
-SPEED=2.5
-DEPTH=4
+SPEED=4.898
+DEPTH=0.510
 
 HOME=$(get_120Home)
 JACKNAME=$(get_jackname)
-pd -path "${HOME}/basic-pure-data-audio-effects/"  -nogui -jack  -jackname ${JACKNAME} -rt -send "; pd dsp 1 ; speed ${SPEED} ; depth ${DEPTH}" "${HOME}/pd/chorus~.pd"
+pd -path "${HOME}/basic-pure-data-audio-effects/"  -nogui -jack  -jackname ${JACKNAME} -rt -send "; pd dsp 1 ; speed ${SPEED} ; depth ${DEPTH}"  -outchannels 1  -inchannels 1 "${HOME}/pd/chorus~.pd"
 
