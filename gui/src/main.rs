@@ -597,11 +597,8 @@ impl TouchRectFn for EffectMixer {
                     );
                 }
             }
-            if dirty {
-                eprintln!("DBG gui: Volume changed. Updating state");
-                if let Err(err) = write_state(&self.pedal_state, &pedals_dir()) {
-                    eprintln!("Error gui:  Cannot write state: {err}");
-                }
+            if dirty && let Err(err) = write_state(&self.pedal_state, &pedals_dir()) {
+                eprintln!("Error gui:  Cannot write state: {err}");
             }
         }
     }

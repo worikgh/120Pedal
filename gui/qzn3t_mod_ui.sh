@@ -15,6 +15,8 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
+
+
 COMMAND="$1"
 
 # Get the root directory from the pedal from this script's absolute

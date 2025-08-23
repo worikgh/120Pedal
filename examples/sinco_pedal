@@ -6,7 +6,7 @@
 echo "DBG examples/sinco_pedal:"
 set -e
 
-# Get the script's directory, 
+# Get the script's directory,
 THISDIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd -P)
 ## ...and the parent
 PARENTDIR=$(CDPATH='' cd -- "${THISDIR}/.." && pwd -P)
@@ -20,11 +20,11 @@ fi
 
 # Configuration files
 TRANS_CFG="${CFGDIR}/sinco.cfg" ## SINCO MIDI pedal
-JACK_CFG="${CFGDIR}/pedal.cfg" ## The set of Jack pipes 
+JACK_CFG="${CFGDIR}/pedal.cfg" ## The set of Jack pipes
 for cfg in  "${JACK_CFG}" "${TRANS_CFG}"; do
     if [ ! -f "${cfg}" ]; then
-        echo "Error examples/sinco_pedal: Config file not found: ${cfg}" >&2
-        exit 1
+	echo "Error examples/sinco_pedal: Config file not found: ${cfg}" >&2
+	exit 1
     fi
 done
 

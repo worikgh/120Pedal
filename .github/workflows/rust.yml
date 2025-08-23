@@ -30,5 +30,3 @@ jobs:
     - name: Run tests
       working-directory: ./midi_driver
       run: cargo test --verbose
-
-      

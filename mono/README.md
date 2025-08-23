@@ -14,5 +14,3 @@ DEPTH=3
 The parameters can then be changed programmatically using `sed`
 
 `sed -i 's/SPEED=.*$/SPEED=1.5/' mono/chorus`
-
-

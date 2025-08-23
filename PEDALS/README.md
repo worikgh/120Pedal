@@ -16,4 +16,3 @@ effect_9:output qzn3t_mixer:input_1
 ```
 
 Each line can be used as an argument to `jack_connect`.  That will activate the pedal simulator.
-
