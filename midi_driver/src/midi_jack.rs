@@ -72,14 +72,13 @@ pub fn make_table(
 
     for line in description.lines().filter(|l| l.starts_with("j ")) {
         let nf: Vec<&str> = line.split_whitespace().collect();
-
-        let f_name = nf[1];
+        let f_name = nf[3];
         let path = dir_path.join(f_name);
         if !path.is_file() {
             return Err(format!("Invalid name for PEDAL file: {f_name}").into());
         }
 
-        let number = nf[0].parse::<u8>()?;
+        let number = nf[2].parse::<u8>()?;
         if number == 0 {
             // Invalid pedal file name
             eprintln!("Error jack_midi: Invalid configuration line: {line}");
