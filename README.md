@@ -86,7 +86,7 @@ It is possible to use Modep, and in particular, `mod-ui`, an Debian-12, (Debian-
 ```bash
 sudo apt install dnsmasq git hostapd iw jackd2 libasound2-dev \
 libjack-jackd2-dev liblilv-dev libreadline-dev libsdl2-dev \
-libsdl2-image-dev lv2-dev pkg-config python3.11-dev -y
+libsdl2-image-dev lv2-dev pkg-config python3.11-dev libipc-run-perl -y
 ```
 
 2. Install Rust:
