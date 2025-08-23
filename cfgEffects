@@ -1,8 +1,14 @@
 #!/usr/bin/perl -w
 use strict;
-use IO::Socket::INET;
+use Cwd qw(realpath);
+use FindBin;
 use IO::Select;
-
+use IO::Socket::INET;
+use IPC::Run qw(run);
+use POSIX qw(setsid);
+use Try::Tiny;
+use autodie;
+warn "DBG cfgEffects: Start\n";
 ## Set up the simulators and jack pipes between them.
 
 ## Ensure Jack is running
@@ -20,26 +26,38 @@ $MH_PID or die "cfgEffects: mod-host not running";
 my $jack_midi_cfg = shift or die "Pass the configuration file for `jack_midi`";
 -r $jack_midi_cfg or die "$!: Cannot read $jack_midi_cfg";
 
-# Get the names of the pedals that need to be created
-my @cfg_names = map{
+# Get the names of the LV2 pedals that need to be created
+my @lv2_names = map{
     chomp;
-    s/^j \d+ //;
+    s/^j +LV2 +\d+ +//;
     $_
-} grep {/^j \d+ /} `cat $jack_midi_cfg`;
+} grep {/^j +LV2 +\d+ +/} `cat $jack_midi_cfg`;
+
+# Get the names of the MONO pedals that need to be created
+my @mono_names = map{
+    chomp;
+    s/^j +MONO +\d+ +//;
+    $_
+} grep {/^j +MONO +\d+ +/} `cat $jack_midi_cfg`;
 
 ## Get the set of commands to initialise the LV2 effect simulators and
 ## the commands to activate them.
-my ($lv2_init_ref, $lv2_activation_ref) = &getLV2(@cfg_names);
+my ($lv2_init_ref, $lv2_activation_ref) = &getLV2(@lv2_names);
 my @lv2_init = @$lv2_init_ref;
 my %lv2_activation = %$lv2_activation_ref;
 
-## TODO: Alternative (non-LV2) effects
+## Get the set of commands to initialise the MONO effect simulators and
+## the commands to activate them.
+my ($mono_init_ref, $mono_activation_ref) = &getMONO(@mono_names);
+my @mono_init = @$mono_init_ref;
+my %mono_activation = %$mono_activation_ref;
 
+## The directory this scrip is in
+my $HOME = realpath($FindBin::RealBin);
 ## The directory to write pedal definitions to.  Ensure it exists
 my $pedal_dir = $ENV{PEDAL_DIR};
 if(!defined($pedal_dir)){
-    $pedal_dir = $0;
-    $pedal_dir =~ s/\/[^\/]*$/\/PEDALS/;
+    $pedal_dir = "$HOME/PEDALS";
 }
 -e $pedal_dir or mkdir $pedal_dir;
 -d $pedal_dir or die "'$pedal_dir' not a directory";
@@ -55,10 +73,14 @@ foreach my $fn (readdir($dir)){
 }
 
 # The new files that define effects: Initialisation
+# TODO: The initialisation file is a hang over from when this was two
+# processes that ran at different times.  Now this is one process the
+# initialisation file can be dispensed with.
 my $initialise_fn = $pedal_dir.'/Initialise';
 {
     open(my $fh, ">", $initialise_fn) or die "$!: $initialise_fn";
     print $fh join("\n", @lv2_init)."\n";
+    print $fh join("\n", @mono_init)."\n";
     close($fh) or die  "$!: $initialise_fn";
 }
 
@@ -70,12 +92,39 @@ foreach my $pedal_name (sort keys %lv2_activation){
     print $fh join("\n", @activaton_cmd)."\n";
     close($fh) or die "$!: $activation_fn";
 }
+foreach my $pedal_name (sort keys %mono_activation){
+    my $activation_fn = $pedal_dir."/$pedal_name";
+    open(my $fh, ">", $activation_fn) or die "$!: $activation_fn";
+    my @activaton_cmd = @{$mono_activation{$pedal_name}};
+    print $fh join("\n", @activaton_cmd)."\n";
+    close($fh) or die "$!: $activation_fn";
+}
 
 ## Initialise the effects
 
-## Set up the effects, and the parameters
-my @mh_commands = map{chomp; s/^mh //; $_} grep {/^mh /} `cat $initialise_fn`;
-&mod_host(\@mh_commands);
+# Function to extract data from the initialisation file.  Mod-host and
+# mono are handled differently
+my $get_cmds = sub {
+    my $key = shift or die; # 'mh' or 'mono'
+    my @result = map{
+	chomp;
+	s/^$key //;
+	$_
+    } grep {/^$key /} `cat $initialise_fn`;
+    return @result;
+};
+
+my @mh_commands = &$get_cmds('mh');
+&mod_host(@mh_commands);
+my @mono_commands = map {
+    # This is a command to pass to the shell, do some sanitising
+    quotemeta($_) ne $_ and die "cfgEffects: Bad command: '$_' in $initialise_fn";
+    my $res = "$HOME/mono/$_";
+    -x $res or die "cfgEffects: Invalid mono command: $res ";
+    $res;
+}&$get_cmds('mono');
+&run_mono(@mono_commands);
+
 my @jack_initial = map{chomp; s/^jack //; $_} grep {/^jack /} `cat $initialise_fn`;
 foreach my $jcmd ( @jack_initial ) {
     &handle_jack( "connect $jcmd" );
@@ -160,9 +209,89 @@ sub handle_mh_cmd( $$ ) {
     return 0;
 }
 
-sub mod_host( $ ){
-    my $cmds = shift or die;
-    my @cmds = @$cmds;
+## Run a script in the background for mono effects
+## $cmd: Absolute path to an executable script
+## Returns: PID of the background process or undef on failure
+sub run_mono_inner {
+    my $cmd = shift or die "run_mono_inner: No command specified";
+    # Validate the path
+    unless (-x $cmd) {
+	die "cfgEffects run_mono: '$cmd' is not an executable file: $!";
+    }
+
+    # Kill any previous instances of this command
+    kill_previous_instances($cmd);
+
+    warn "DBG cfgEffects: Run $cmd\n";
+    my $pid = fork();
+
+    if (!defined $pid) {
+	die "cfgEffects run_mono: fork failed: $!";
+    }
+    elsif ($pid == 0) {
+	# Child process
+	open STDOUT, '>', '/dev/null' or die "Cannot redirect STDOUT: $!";
+	open STDERR, '>', '/dev/null' or die "Cannot redirect STDERR: $!";
+
+	# Execute the command directly without shell interpolation
+	exec($cmd) or die "cfgEffects run_mono: exec failed for '$cmd': $!";
+    }
+
+    # Parent process returns the PID
+    return $pid;
+}
+
+# Graceful process cleanup with polling
+sub kill_previous_instances {
+    my $cmd = shift;
+
+    system('pkill', '-TERM', '-f', $cmd);
+
+    # Wait for processes to terminate with polling
+    my $timeout = 2;
+    my $interval = 0.1;
+    my $elapsed = 0;
+
+    while ($elapsed < $timeout) {
+	# Check if any processes are still running
+	last unless are_processes_running($cmd);
+
+	# Sleep for a short interval
+	select(undef, undef, undef, $interval);
+	$elapsed += $interval;
+    }
+    if($elapsed >= $timeout){
+	die "cfgEffects: Could not kill: $cmd";
+    }
+}
+
+# Check if any processes matching the command are still running
+sub are_processes_running {
+    my $cmd = shift or die;
+
+    # Check for full command
+    return 1 if system("pgrep -f ".quotemeta($cmd)." >/dev/null 2>&1") == 0;
+    return 0;
+}
+
+# Utility function for safe usage
+sub run_mono{
+    my @commands = @_;
+    my @childs = ();
+    foreach my $cmd (@commands){
+	try {
+
+	    push(@childs,  run_mono_inner($cmd));
+	}
+	catch {
+	    die "Failed to run mono effect: $_";
+	};
+    }
+}
+
+sub mod_host {
+
+    my @cmds = @_;
 
     my $remote = "localhost";
     my $port = $ENV{MOD_HOST_PORT};
@@ -621,12 +750,33 @@ sub read_turtle( $ ){
     return @comma_processed;
 }
 
+## Return the @Initialise and pedal file definitions for MONO pedals.
+## Pass the names of the pedals required.  Only process a pedal if it
+## is in that list.  MONO pedals in Qzn3t are defined in the `mono/`
+## directory as executables that set up the effect simulator with a
+## single input and single output Jack connection named for the
+## script.  For the script "mono/foobar" the in/out Jack pipes are
+## "foobar:input_1" and "foobar:output_1" respectively
+sub getMONO {
+    my @mono_names = @_;
+    my @mono_init = ();
+    my %mono_activate = ();
+    foreach my $name (@mono_names){
+	my $jack_in = $name . "_mono:input_1";
+	my $jack_out = $name . "_mono:output_1";
+	$mono_activate{$name} = ["system:capture_1 $jack_in",
+				 "$jack_out system:playback_1"];
+	push @mono_init, "mono $name";
+    }
+    return (\@mono_init, \%mono_activate);
+}
+
 ## Return the @Initialise and pedal file definitions for LV2 pedals.
 ## Pass the names of the pedals required.  Only process a pedal if it
 ## is in that list.  LV2 pedals in Qzn3t are named for the
 ## `modep-mod-ui` definition name
 sub getLV2 {
-    my @cfg_names = @_;
+    my @lv2_names = @_;
     my $modep_pedal_dir = $ENV{MODEP_PEDALS};
     defined $modep_pedal_dir or $modep_pedal_dir = '/var/modep/pedalboards';
     -d $modep_pedal_dir or $modep_pedal_dir = "$ENV{HOME}/.pedalboards";
@@ -661,8 +811,8 @@ sub getLV2 {
 	$index = $ex{index};
 
 	my $board_name = $ex{pedal_board_name};
-	grep {$_ eq $board_name} @cfg_names or next;
-	
+	grep {$_ eq $board_name} @lv2_names or next;
+
 	my $effects = $ex{effects};
 	my @lv2_names = sort keys %$effects;
 	my %number_name = %{$ex{number_name}};
