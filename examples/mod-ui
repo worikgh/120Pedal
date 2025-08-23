@@ -10,3 +10,4 @@ pkill -x pd ||true
 sleep 1
 echo "DBG examples/mod-ui examples/modui: Restart mod-ui"
 sudo systemctl restart modep-mod-ui
+echo "DBG examples/mod-ui End"

@@ -562,16 +562,11 @@ impl TouchRectFn for EffectMixer {
                     let old_selected = s.idx_selected.borrow().selected;
                     let new_selected = if r_state.selected.is_some() {
                         r_state.selected.as_ref().unwrap() == &idx
-                        // eprintln!("DBG qzn3t_gui: EffectMixer.tick idx: {idx} new_selected: {res}",);
                     } else {
                         false
                     };
                     s.select(new_selected);
                     if old_selected != new_selected {
-                        // eprintln!(
-                        //     "DBG qzn3t_gui: EffectMixer.tick idx: {idx} old: {old_selected} -> {}  r_state: {r_state:?}",
-                        //     s.idx_selected.borrow().selected
-                        // );
                         dirty = true;
                     }
                 }
@@ -654,7 +649,7 @@ impl MainCommandRect {
                 s.success()
             }
             Err(err) => {
-                eprintln!("DBG qzn3t_gui: Run command Err {argument}: {err:?}");
+                eprintln!("Error qzn3t_gui: Run command Err {argument}: {err:?}");
                 false
             }
         };
@@ -776,10 +771,6 @@ impl TouchRectFn for MainCommandRect {
     fn tick(&mut self, app: &mut App) {
         let valid = self.qzn3t_beacon.load(Ordering::Relaxed);
         if valid != self.valid {
-            eprintln!(
-                "DBG qzn3t_gui: MainCommandRect.tick self.valid: {} -> {valid}",
-                self.valid
-            );
             self.valid = valid;
         }
         self.paint(app);

@@ -17,7 +17,6 @@ if [ ! -d "${CFGDIR}" ]; then
     echo "Error examples/sinco_pedal: Configuration path not found: ${CFGDIR}" >&2
     exit 1
 fi
-echo "DBG examples/sinco_pedal: Have configuration directory: ${CFGDIR}"
 
 # Configuration files
 TRANS_CFG="${CFGDIR}/sinco.cfg" ## SINCO MIDI pedal
@@ -28,7 +27,6 @@ for cfg in  "${JACK_CFG}" "${TRANS_CFG}"; do
         exit 1
     fi
 done
-echo "DBG examples/sinco_pedal: Configuration files found"
 
 # Set paths to executables
 MIDI_DRIVER_PATH="${PARENTDIR}/midi_driver/target/release"
@@ -36,7 +34,6 @@ if [ ! -d "${MIDI_DRIVER_PATH}" ]; then
     echo "Error examples/sinco_pedal: MIDI driver path not found: ${MIDI_DRIVER_PATH}" >&2
     exit 1
 fi
-echo "DBG examples/sinco_pedal: Found executable directory: ${MIDI_DRIVER_PATH}"
 READ="${MIDI_DRIVER_PATH}"/read_midi
 TRANS="${MIDI_DRIVER_PATH}"/translate_midi
 JACK="${MIDI_DRIVER_PATH}"/jack_midi
@@ -48,12 +45,10 @@ fi
 
 for cmd in "$READ" "$TRANS" "$JACK"; do
     if ! [ -x "${cmd}" ]; then
-        echo "Error examples/sinco_pedal: Command not found: ${cmd}" >&2
-        exit 1
+	echo "Error examples/sinco_pedal: Command not found: ${cmd}" >&2
+	exit 1
     fi
 done
-echo "DBG examples/sinco_pedal: All required executables found"
-echo "DBG  examples/sinco_pedal: Running: ($READ SINCO | $TRANS \"${TRANS_CFG}\" | $JACK \"${JACK_CFG}\")"
 # Run the pipeline
 ($READ SINCO | $TRANS "${TRANS_CFG}" | $JACK "${JACK_CFG}")&
 

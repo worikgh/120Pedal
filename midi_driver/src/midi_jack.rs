@@ -190,11 +190,9 @@ pub fn run<B: MidiByteReader, J: JackConnectionHandler + std::fmt::Debug>(
         } else {
             // Data byte
             if let Some(MidiStatus::ProgramChange(_)) = status.as_ref() {
-                eprintln!("DBG jack_midi: Got byte: {byte:x}");
                 if let Some(jack_pipes) = command_table.get(&byte) {
                     // Changing the pedal to byte
                     // Have jack connections to establish in `jack_pipes`
-                    eprintln!("DBG jack_midi: Got pipes: {jack_pipes:?}");
 
                     for jc in jack_pipes.iter() {
                         if !connected.contains(&(&jc.0, &jc.1)) {
@@ -242,7 +240,7 @@ pub fn load_configuration(
     cfg_file_name: &str,
 ) -> Result<(HashMap<u8, Vec<(String, String)>>, u8), Box<dyn Error>> {
     let mut s = String::new();
-    eprintln!("DBG jack_midi: Configuration file name: {cfg_file_name}");
+    eprintln!("DBG test jack_midi: Configuration file name: {cfg_file_name}");
     let mut file = match File::open(cfg_file_name) {
         Ok(f) => f,
         Err(err) => {
@@ -462,11 +460,11 @@ mod tests {
             ];
             let mut reader = Cursor::new(midi_data);
             eprintln!(
-                "DBG jack_midi: mock_jack.unmade_connections.len(): {}",
+                "DBG test jack_midi: mock_jack.unmade_connections.len(): {}",
                 mock_jack.unmade_connections.len()
             );
             eprintln!(
-                "DBG jack_midi: mock_jack.made_connections.len(): {}",
+                "DBG test jack_midi: mock_jack.made_connections.len(): {}",
                 mock_jack.made_connections.len()
             );
 

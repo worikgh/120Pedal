@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -ue
+echo DBG examples/qzn3t: Start
 
 sudo systemctl stop modep-mod-ui
 sudo systemctl stop modep-mod-host
@@ -11,11 +12,10 @@ MOD_HOST_HOME="${HOME}/mod-host"
 SCRIPT_PATH=$(realpath "$0")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 One20PedalHome=$(dirname "$SCRIPT_DIR")
-echo DBG qzn3t: One20PedalHome: ${One20PedalHome}
 
 # Start mod-host
 cd "${MOD_HOST_HOME}" || { echo "Failed to cd to ${MOD_HOST_HOME}"; exit 1; }
-echo "DBG examples/qzn3t examples/qzn3t: Kill mod-host"
+
 pkill -x mod-host || true  # Prevent exit if process not found
 
 make || { echo "Error examples/qzn3t Make failed for mod-host"; exit 1; }
@@ -49,4 +49,4 @@ JACK_CFG="${CFGDIR}/pedal.cfg" ## The set of Jack pipes
 
 ./examples/sinco_pedal || { echo "Error examples/qzn3t: sinco_pedal failed"; exit 1; }
 
-echo "DBG examples/qzn3t: qzn3t started"
+echo DBG qzn3t: End
