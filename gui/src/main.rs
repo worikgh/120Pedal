@@ -161,7 +161,7 @@ struct AdjButton {
     colour: [u8; 4],
     colour_pressed: [u8; 4],
     pressed: bool,
-    target: Rc<SliderValue>,
+    target: Rc<SliderState>,
     value: ButtonIncrement, // Add (or subtract) this value
 }
 
@@ -190,7 +190,7 @@ impl AdjButton {
         w: f64,
         h: f64,
         value: ButtonIncrement,
-        target: Rc<SliderValue>,
+        target: Rc<SliderState>,
     ) -> Self {
         let colour: [u8; 4] = match value {
             ButtonIncrement::NegativeSmall | ButtonIncrement::PositiveSmall => COLOUR_BLUE,
@@ -278,14 +278,14 @@ impl TouchRectFn for AdjButton {
 }
 
 #[derive(Debug)]
-struct SliderValue {
+struct SliderState {
     value: RefCell<f32>, // Value of slider
     osc: Rc<OscSender>,  // Shared OSC transmitter
     idx: u8,             // Identifier
 }
-impl SliderValue {
+impl SliderState {
     pub fn new(osc: Rc<OscSender>, initial_value: f32, idx: u8) -> Self {
-        SliderValue {
+        SliderState {
             value: RefCell::new(initial_value),
             osc,
             idx,
@@ -306,7 +306,7 @@ struct Slider {
     sub_ten: AdjButton,
 
     // Value displayed
-    slider_value: Rc<SliderValue>,
+    slider_state: Rc<SliderState>,
 
     // The index of the slider that identifies it and the flag to set
     // when selected.  This is shared with `main` so sliders can be
@@ -363,7 +363,7 @@ impl Slider {
             );
         }
 
-        let slider_value = SliderValue::new(osc, value, idx);
+        let slider_value = SliderState::new(osc, value, idx);
         let slider_value = Rc::new(slider_value);
         let add_one = AdjButton::new(
             but_one_x,
@@ -400,7 +400,7 @@ impl Slider {
 
         Self {
             corners: [x, y, w, h],
-            slider_value,
+            slider_state: slider_value,
             idx_selected,
             w_f,
             add_one,
@@ -470,7 +470,7 @@ impl TouchRectFn for Slider {
         {
             let x = self.corners[0] - self.corners[2] / 2.0;
             let y = self.corners[1]
-                + self.corners[3] * (1.0 - *self.slider_value.value.borrow() as f64);
+                + self.corners[3] * (1.0 - *self.slider_state.value.borrow() as f64);
             // let y = 1.0 - y;
             let w = self.corners[2];
 
@@ -486,14 +486,16 @@ impl TouchRectFn for Slider {
 }
 
 #[derive(Debug)]
-struct EffectMixer {
+/// Holder for the sliders that represent the volume (and selected
+/// state) of each effect.
+struct EffectContainer {
     corners: [f64; 4],
 
     pedal_state: PedalState,
     sliders: Vec<Slider>,
     state_rx: Receiver<PedalState>,
 }
-impl EffectMixer {
+impl EffectContainer {
     fn new(pedal_state: PedalState, sliders: Vec<Slider>, x: f64, y: f64, w: f64, h: f64) -> Self {
         let (state_tx, state_rx) = channel();
         let _jh = monitor_pedal_state(state_tx.clone(), pedal_state.clone());
@@ -507,7 +509,7 @@ impl EffectMixer {
     }
     fn init(&self) {}
 }
-impl TouchRectFn for EffectMixer {
+impl TouchRectFn for EffectContainer {
     fn event(&mut self, is_down: bool, x: f64, y: f64) {
         // Pass to sliders
         let mut dirty = false;
@@ -583,7 +585,7 @@ impl TouchRectFn for EffectMixer {
             let mut dirty = false;
             for s in self.sliders.iter() {
                 let idx = s.idx_selected.borrow().idx;
-                let value = *s.slider_value.value.borrow();
+                let value = *s.slider_state.value.borrow();
                 if let Some(choice) = self.pedal_state.choices.iter_mut().find(|x| x.0 == idx) {
                     const EPSILON: f32 = 0.00000001;
                     if (choice.1 - value).abs() > EPSILON {
@@ -979,7 +981,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         }
     }
     // The mixer that controls the volumes of the effects
-    let effects_mixer = EffectMixer::new(pedal_state, sliders, x, y, w, h);
+    let effects_mixer = EffectContainer::new(pedal_state, sliders, x, y, w, h);
     effects_mixer.init();
 
     // Main screen
