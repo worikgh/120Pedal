@@ -85,23 +85,17 @@ trait TouchRectFn {
     fn tick(&mut self, _app: &mut App) {}
 }
 
-/// The command modes for MainCommandRect
-#[derive(Debug, Clone)]
-enum CommandMode {
-    EditMode,
-    LiveMode,
-}
-
 // Button to mute the mixer
 #[derive(Debug)]
 struct MuteButton {
     corners: [f64; 4],
+
     colour_muted: [u8; 4],
-    colour_unmuted: [u8; 4],
     colour_pressed: [u8; 4],
-    pressed: bool,
+    colour_unmuted: [u8; 4],
     muted: bool,
     osc: Rc<OscSender>, // Shared OSC transmitter
+    pressed: bool,
 }
 impl MuteButton {
     fn new(osc: Rc<OscSender>, x: f64, y: f64, w: f64, h: f64) -> Self {
@@ -156,18 +150,18 @@ impl TouchRectFn for MuteButton {
         point_inside_rect(x, y, self.corners)
     }
 }
+
 // Button that is highlighted while pressed, and is used to add (or
 // subtract) a value
 #[derive(Debug)]
 struct AdjButton {
-    // Add (or subtract) this value
-    value: ButtonIncrement,
-
     corners: [f64; 4],
+
     colour: [u8; 4],
     colour_pressed: [u8; 4],
     pressed: bool,
     target: Rc<SliderValue>,
+    value: ButtonIncrement, // Add (or subtract) this value
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -301,6 +295,8 @@ impl SliderValue {
 /// Adjusting one parameter.
 #[derive(Debug)]
 struct Slider {
+    corners: [f64; 4],
+
     // Graphical widgets
     add_one: AdjButton,
     add_ten: AdjButton,
@@ -315,7 +311,6 @@ struct Slider {
     // selected externally
     idx_selected: Rc<RefCell<IdxSelected>>,
 
-    corners: [f64; 4],
     // `w_f` is width factor.  If it is 1.0 there is no space
     // between sliders
     w_f: f64,
@@ -486,10 +481,11 @@ impl TouchRectFn for Slider {
 
 #[derive(Debug)]
 struct EffectMixer {
-    sliders: Vec<Slider>,
     corners: [f64; 4],
-    state_rx: Receiver<PedalState>,
+
     pedal_state: PedalState,
+    sliders: Vec<Slider>,
+    state_rx: Receiver<PedalState>,
 }
 impl EffectMixer {
     fn new(pedal_state: PedalState, sliders: Vec<Slider>, x: f64, y: f64, w: f64, h: f64) -> Self {
@@ -603,6 +599,7 @@ impl TouchRectFn for EffectMixer {
         }
     }
 }
+
 /// The "button" that switches between `EditMode` where the pedal has
 /// no effect and the web interface is offered for adjusting pedal
 /// parameters adn `LiveMode` where the pedlal does have an efect and
@@ -772,6 +769,13 @@ impl TouchRectFn for MainCommandRect {
         }
         self.paint(app);
     }
+}
+
+/// The command modes for MainCommandRect
+#[derive(Debug, Clone)]
+enum CommandMode {
+    EditMode,
+    LiveMode,
 }
 
 /// `TouchScreenCtl` Control surface for the device.  The main screen
