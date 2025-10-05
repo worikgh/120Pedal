@@ -278,6 +278,7 @@ impl TouchRectFn for AdjButton {
 }
 
 #[derive(Debug)]
+/// The state of a [Slider]
 struct SliderState {
     value: RefCell<f32>, // Value of slider
     osc: Rc<OscSender>,  // Shared OSC transmitter
