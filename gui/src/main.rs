@@ -42,6 +42,7 @@ const COLOUR_THUMB: [u8; 4] = COLOUR_RED;
 /// The background of the slider
 const COLOUR_BACKGROUND: [u8; 4] = [0xf8, 0xf0, 0xf0, 255];
 
+/// The outer structure
 struct App {
     window: simple::Window,
     width: u16,
@@ -85,7 +86,7 @@ trait TouchRectFn {
     fn tick(&mut self, _app: &mut App) {}
 }
 
-// Button to mute the mixer
+/// Button to mute the mixer
 #[derive(Debug)]
 struct MuteButton {
     corners: [f64; 4],
@@ -151,8 +152,8 @@ impl TouchRectFn for MuteButton {
     }
 }
 
-// Button that is highlighted while pressed, and is used to add (or
-// subtract) a value
+/// Button that is highlighted while pressed, and is used to add (or
+/// subtract) a value
 #[derive(Debug)]
 struct AdjButton {
     corners: [f64; 4],
@@ -292,7 +293,8 @@ impl SliderValue {
     }
 }
 
-/// Adjusting one parameter.
+/// Adjusting one parameter.  Herein this controls the volume of one
+/// effect One slider per effect.
 #[derive(Debug)]
 struct Slider {
     corners: [f64; 4],
@@ -316,6 +318,10 @@ struct Slider {
     w_f: f64,
 }
 #[derive(Debug)]
+/// Hold the selected state of [Slider].  TODO: Conceptually only one
+/// [Slider] can be selected at a time - that is the "active effect".
+/// This is a poor representation of that concept, as any number of
+/// sliders can be selected.
 struct IdxSelected {
     idx: u8,
     selected: bool,
