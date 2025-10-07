@@ -18,16 +18,25 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::exit;
 use std::rc::Rc;
+use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{
-    Arc,
+    Arc, Mutex,
     atomic::{AtomicBool, Ordering},
 };
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use sysinfo::System;
+use tuner_support::char_to_bitmap;
+
+// use qzn3t_tuner::TunerArgs;
+use tuner::TunerArgs;
+use tuner::TunerData;
+use tuner::TunerNote;
+use tuner::get_results;
 mod send_osc;
+mod tuner_support;
 
 const COLOUR_BLUE: [u8; 4] = [0, 0, 0xff, 0xff];
 const COLOUR_GREEN: [u8; 4] = [0, 0xff, 0, 0xff];
@@ -73,6 +82,20 @@ impl App {
         };
         self.window.fill_rect(r);
     }
+
+    /// Wrapper around `simple.window.draw_rect` that allows inverting
+    #[allow(dead_code)]
+    fn draw_rect(&mut self, r: &Rect) {
+        // If the window is inverted adjust rect
+        let r = if self.invert {
+            let y = self.height as i32 - r.y;
+            let y = y - r.height() as i32;
+            &Rect::new(r.x, y, r.width(), r.height())
+        } else {
+            r
+        };
+        self.window.draw_rect(*r);
+    }
     #[allow(dead_code)]
     fn invert(&mut self, f: bool) {
         self.invert = f;
@@ -86,6 +109,225 @@ trait TouchRectFn {
     fn tick(&mut self, _app: &mut App) {}
 }
 
+/// The tuner display
+#[derive(Debug)]
+struct TunerDisplay {
+    corners: [f64; 4],
+    handle: JoinHandle<()>,
+    tuner_data: Arc<Mutex<Option<TunerData>>>,
+}
+impl TouchRectFn for TunerDisplay {
+    fn tick(&mut self, app: &mut App) {
+        self.paint(app);
+    }
+    fn event(&mut self, _is_down: bool, _x: f64, _y: f64) {}
+    fn point_inside(&self, _x: f64, _y: f64) -> bool {
+        false
+    }
+    fn paint(&mut self, app: &mut App) {
+        let (x, y, w, h) = pixel_boundary(self.corners, app);
+
+        // Background
+        {
+            // The background.  A gradient colour
+            for yy in 0..h / 2 {
+                let d = (yy * 2 * h * 255 / h) as u8;
+                let colour: [u8; 4] = [d, 255, 255 - d, 255];
+                app.set_colour(&colour);
+                let fr = Rect::new(x, yy as i32, w, 1);
+                app.fill_rect(fr);
+            }
+            for yy in h / 2..h {
+                let d = (yy * 2 * (h - h / 2) * 255 / h) as u8;
+                let colour: [u8; 4] = [255 - d, 255, d, 255];
+                app.set_colour(&colour);
+                let fr = Rect::new(x, yy as i32, w, 1);
+                app.fill_rect(fr);
+            }
+        }
+
+        // The bounding boxes
+        // Rectangle for note and rect for modifier
+        let ww = 2 * w / 3;
+        let hh = 2 * h / 3;
+        let margin = 5;
+        // The note letter
+        let note_rect = {
+            let xx = x + margin;
+            let yy = y + h as i32 / 3;
+            Rect::new(xx, yy, ww, hh)
+        };
+        // The sharp symbol
+        let mod_rect = {
+            let xx = x + w as i32 / 3;
+            let yy = margin + y + h as i32 / 3 - hh as i32 / 2;
+            Rect::new(xx, yy, ww, hh)
+        };
+        // The octave
+        let ww = w / 3;
+        let hh = h / 3;
+        let oct_rect = Rect::new(x + margin, y + margin, ww, hh);
+        // The cents scale
+        let xx = x + w as i32 * 3 / 4;
+        let yy = y;
+        let hh = h;
+        let ww = w / 4;
+        let cents_rect = Rect::new(xx, yy, ww, hh);
+        // app.set_colour(&COLOUR_BLACK);
+        // app.draw_rect(&mod_rect);
+        // app.draw_rect(&note_rect);
+        // app.draw_rect(&oct_rect);
+        // app.draw_rect(&cents_rect);
+
+        match &*self.tuner_data.lock().unwrap() {
+            None => {
+                // No data to display yet
+            }
+            Some(data) => {
+                // Got some data to display.
+                let tuner_note = data.note.clone();
+                let note: char = match tuner_note {
+                    TunerNote::A | TunerNote::ASharp => 'A',
+                    TunerNote::B => 'B',
+                    TunerNote::C | TunerNote::CSharp => 'C',
+                    TunerNote::D | TunerNote::DSharp => 'D',
+                    TunerNote::E => 'E',
+                    TunerNote::F | TunerNote::FSharp => 'F',
+                    TunerNote::G | TunerNote::GSharp => 'G',
+                };
+                let modifier = if tuner_note == TunerNote::A
+                    || tuner_note == TunerNote::B
+                    || tuner_note == TunerNote::C
+                    || tuner_note == TunerNote::D
+                    || tuner_note == TunerNote::E
+                    || tuner_note == TunerNote::F
+                    || tuner_note == TunerNote::G
+                {
+                    None
+                } else {
+                    Some('#')
+                };
+                let octave = data.octave;
+                if !(0..=9).contains(&octave) {
+                    panic!("Error gui: TunerDisplay.paint Octave {octave} should be in 0-9");
+                }
+                let octave = (data.octave as u8 + 0x0030) as char;
+                draw_char(
+                    oct_rect.x,
+                    oct_rect.y,
+                    oct_rect.w,
+                    oct_rect.h,
+                    octave,
+                    app,
+                    &COLOUR_BLACK,
+                );
+                let cents_offset = data.cents_offset;
+                let mut cents = cents_offset.round();
+                cents = cents.clamp(-100.0, 100.0);
+                let x = cents_rect.x;
+                let hh = (cents.abs() / 100.0) * h as f64 / 2.0;
+                if cents < 0.0 {
+                    let y = cents_rect.h / 2;
+                    let h = hh as u32;
+                    let w = cents_rect.w as u32;
+                    let fill_rect = Rect::new(x, y, w, h);
+                    app.set_colour(&COLOUR_RED);
+                    app.fill_rect(fill_rect);
+                } else {
+                    let y = cents_rect.height() as i32 / 2 - hh as i32;
+                    let h = hh as u32;
+                    let w = cents_rect.w as u32;
+                    let fill_rect = Rect::new(x, y, w, h);
+                    app.set_colour(&COLOUR_GREEN);
+                    app.fill_rect(fill_rect);
+                }
+                draw_char(
+                    note_rect.x,
+                    note_rect.y,
+                    note_rect.w,
+                    note_rect.h,
+                    note,
+                    app,
+                    &COLOUR_BLACK,
+                );
+                if let Some(m) = modifier {
+                    draw_char(
+                        mod_rect.x,
+                        mod_rect.y,
+                        mod_rect.w,
+                        mod_rect.h,
+                        m,
+                        app,
+                        &COLOUR_BLACK,
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// Draw a character on the screen.
+fn draw_char(x: i32, y: i32, w: i32, h: i32, c: char, app: &mut App, colour: &[u8; 4]) {
+    let bitmap =
+        char_to_bitmap(c, w as usize, h as usize).expect("Get bitmap for note_rect: {note_rect:?}");
+    app.set_colour(colour);
+    for xx in 0..w {
+        for yy in 0..h {
+            let idx = (w * yy + xx) as usize;
+            match bitmap.get(idx) {
+                Some(0) => (),
+                Some(_) => {
+                    let fr = Rect::new(x + xx, y + yy, 1, 1);
+                    app.fill_rect(fr);
+                }
+                None => panic!("Error gui: draw_char idx: {idx}  c {c}"),
+            }
+        }
+    }
+}
+
+impl TunerDisplay {
+    fn new(x: f64, y: f64, w: f64, h: f64) -> Self {
+        let (tx, rx) = mpsc::channel::<TunerData>();
+        let _ = get_results(
+            &TunerArgs {
+                interval: 200,
+                count: 2_048_000,
+                max_vol_min: 0.2,
+                mean_min: 0.1,
+            },
+            tx,
+        );
+        let tuner_data = Arc::new(Mutex::new(None));
+        let tuner_data_arc = tuner_data.clone();
+
+        let handle = thread::spawn(move || {
+            loop {
+                match rx.try_recv() {
+                    Ok(td) => {
+                        // eprintln!(
+                        //     "DBG gui: TunerDisplay loop. TunerData: {:?} {} {:0.3}",
+                        //     td.note, td.octave, td.cents_offset,
+                        // );
+                        let mut t = tuner_data_arc.lock().unwrap();
+                        *t = Some(td);
+                    }
+                    Err(mpsc::TryRecvError::Disconnected) => {
+                        eprintln!("Error tuner: Tuner channel disconnected");
+                        break;
+                    }
+                    Err(mpsc::TryRecvError::Empty) => (),
+                };
+                thread::sleep(Duration::from_millis(100));
+            }
+        });
+        Self {
+            corners: [x, y, w, h],
+            handle,
+            tuner_data,
+        }
+    }
+}
 /// Button to mute the mixer
 #[derive(Debug)]
 struct MuteButton {
@@ -936,6 +1178,8 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     };
     let osc = Rc::new(osc);
 
+    let tuner_display = TunerDisplay::new(0.5 - MAIN_WIDTH / 2.0, 0.0, MAIN_WIDTH, MAIN_HEIGHT);
+
     // Mute button
     let mute_button = MuteButton::new(osc.clone(), 1.0 - MAIN_WIDTH, 0.0, MAIN_WIDTH, MAIN_HEIGHT);
 
@@ -988,6 +1232,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     // Main screen
     let mut tsc = TouchScreenCtl {
         rects: vec![
+            Box::new(tuner_display),
             Box::new(main_button),
             Box::new(effects_mixer),
             Box::new(mute_button),
@@ -1003,6 +1248,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
             i.paint(app);
         }
     };
+
     paint_screen(&mut app, &mut tsc);
 
     // Doing about 60 frames a second.  Arrange a `tick()` every 100ms
@@ -1112,4 +1358,16 @@ fn qzn3t_running() -> bool {
         }
     }
     c.contains("jack_midi") && c.contains("translate_midi") && c.contains("read_midi")
+}
+
+fn pixel_boundary(corners: [f64; 4], app: &App) -> (i32, i32, u32, u32) {
+    let x = corners[0];
+    let y = corners[1];
+    let w = corners[2];
+    let h = corners[3];
+    let x = (x * app.width as f64) as i32;
+    let y = (y * app.height as f64) as i32;
+    let w = (w * app.width as f64) as u32;
+    let h = (h * app.height as f64) as u32;
+    (x, y, w, h)
 }

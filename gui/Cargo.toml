@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+ab_glyph = "0.2.32"
 notify = "8.0.0"
 pedal_state = { path = "../pedal_state" }
+qzn3t_tuner = "0.1.1"
 rosc = "0.11.4"
 simple = {path = "simple"}
 sysinfo = "0.35.2"
-
