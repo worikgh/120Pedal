@@ -294,9 +294,10 @@ impl TunerDisplay {
         let _ = get_results(
             &TunerArgs {
                 interval: 200,
-                count: 2_048_000,
+                buffer_size: 2_048_000,
                 max_vol_min: 0.2,
                 mean_min: 0.1,
+                connect_port: Some("system:capture_1".to_string()),
             },
             tx,
         );

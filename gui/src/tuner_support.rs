@@ -1,9 +1,24 @@
 //! Code to support the tuner
+
+use std::{
+    fs::File,
+    io::{Read, Write},
+};
+
 use ab_glyph::{Font, FontRef, Point, PxScale};
 
+/// Convert a Unicode character into a bit map width and height `w` and `h`
 pub fn char_to_bitmap(c: char, w: usize, h: usize) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    // Load a font (you'll need to provide a font file)
-    let font_data = std::fs::read("DejaVuSerif-Bold.ttf")?;
+    // Get font first
+    let font_fn = "assets/DejaVuSerif-Bold.ttf";
+    let font_data = match File::open(font_fn) {
+        Ok(mut f) => {
+            let mut v = Vec::new();
+            f.read_to_end(&mut v).expect("Reading djv font from file");
+            v
+        }
+        Err(err) => panic!("Error gui: Font {font_fn} could not be loaded. {err}"),
+    };
     let font_ref = FontRef::try_from_slice(font_data.as_slice())?;
 
     // Scale the font to fit the desired dimensions
