@@ -71,6 +71,8 @@ impl App {
         self.window
             .set_color(colour[0], colour[1], colour[2], colour[3]);
     }
+
+    /// Wrapper around `simple.window.fill_rect` that allows inverting
     fn fill_rect(&mut self, r: Rect) {
         // If the window is inverted adjust rect
         let r = if self.invert {
@@ -990,7 +992,7 @@ impl TouchRectFn for MainCommandRect {
             // Adjustment factor.  Increase this to make the cross
             // (that indicates invalid) skinnier. Too skinney and the
             // cross will disappear
-            let adj: usize = 4;
+            let adj: usize = 3;
 
             // Horizontal
             // `x` and `w` constant
@@ -1270,6 +1272,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
 }
 
 fn main() {
+    eprintln!("DBG gui: PID {}", std::process::id());
     if let Err(err) = inner_main() {
         eprintln!("Error qzn3t_gui: inner_main: {err}");
     }
