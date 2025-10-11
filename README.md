@@ -28,11 +28,13 @@ A system to control simulated guitar pedals using a MIDI foot controller. Design
 ## Installation
 
 ### Recommended OS: Patchbox OS
-1. Download [Patchbox OS](https://blokas.io/patchbox-os/)
-2. Install with these settings:
+* Download [Patchbox OS](https://blokas.io/patchbox-os/)
+* Ensure the sound card is connected before installing the OS
+* Patchbox OS default user/password is patch/blokaslabs
+* Install with these settings:
    - Select no additional modules during installation
    - Configure your audio interface settings
-3. Post-installation:
+* Post-installation:
 ```bash
 sudo apt install modep-mod-ui git curl build-essential
 sudo systemctl disable modep-mod-ui  # Prevent mod-ui from auto-starting
@@ -51,23 +53,28 @@ Patchbox OS includes opt-out telemetry. To remove:
 ```bash
 sudo apt purge blokas-telemetry
 ```
-Optional: Remove Desktop Panels
+Remove Desktop Panel, Icons and Screensaver
 ---
 
+Qzn3t-gui will occupy the whole screen.
+
+* The panel takes up screen realestate that makes some of the buttons on Qzn3t-gui unusable
+* The icons (and wall paper) have no purpose, so deactivating them is optional
+* The screensaver will be an irritation, making the widgets on Qzn3t-gui invisible when the musician's hands are full.
 The LXDE desktop, default to Patchbox OS, takes up screen room for no purpose and can be disabled.
 
-1. Edit the file `/etc/xdg/lxsession/LXDE/desktop.conf `
-  a. Remove the `launcher_manager/command=lxpanelctl` line from the [Session] section if it is there
-  b. Remove both the `sNet/IconThemeName=PiXflat` and `sGtk/CursorThemeName=PiXflat` lines from the [GTK] section
-2. Edit `~/.config/lxsession/LXDE/autostart`
-  a. Remove `@lxpanel` line to disable default panel
-  b. Remove `@pcmanfm`  line to disable desktop icons
+1. Edit the file `/home/patch/.config/lxsession/LXDE/autostart`
+2. Remove the line `@lxpanel --profile LXDE` to disable the panel
+3. Remove the line `@pcmanfm --desktop --profile LXDE` to remove the icons and wall paper
+4. Remove the line `@xscreensaver -no-splash` to disable the screen saver.
+5. Remove the packages to make this permanent
+  * `sudo apt remove pcmanfm xscreensaver lxpanel`
 
 ### Other distributions
 
 To run LV2 simulators an LV2 host is required.  The host [`mod-host`](https://github.com/worikgh/mod-host) is recommended.
 
-It is a sub mdule of `120Pedal`
+It is a sub module of `120Pedal`
 
 ```
 git clone https://github.com/mod-audio/mod-host
@@ -93,6 +100,7 @@ libsdl2-image-dev lv2-dev pkg-config python3.11-dev libipc-run-perl -y
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.profile
 ```
 
 ## Configuration
@@ -102,17 +110,31 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```sh
 git clone https://github.com/goodtft/LCD-show.git
 cd LCD-show
-sudo ./LCD35-show
+sudo ./LCD35-show 180
 ```
+
+That will reboot the computer
+
+The configuration of the Raspberry Pi with the 3.5" screen make it convenient to rotate the screen 180 degrees.  Thisis what the argument `180` to `LCD-35-show` does
+
 
 ### Auto-login for `patch`
 
 Ensure `patch` is in group `lightdm`: `sudo usermod -aG lightdm patch`
 
-Ensure the `autologin-session` parameter in `/etc/lightdm/lightdm.conf` exists in `/usr/share/xsessions/` (E.g: `/usr/share/xsessions/LXDE.desktop` so `autologin-session=LXDE`)
+In the `[Seat:*]` part of the file `/etc/lightdm/lightdm.conf` specify `autologin-session` and `autologin-user`
+
+* `autologin-session` is the sessin to run for autologin.  The file must exist in `/usr/share/xsessions/`
+  - E.g: `autologin-session=LXDE` implies the file `/usr/share/xsessions/LXDE.desktop` exists
+* `auologin-user` is the user that will be logged in automatically
+
+```
+[Seat:*]
+autologin-session=LXDE
+autologin-user=patch
+```
 
 `sudo systemctl restart lightdm`
-
 
 ### Auto-starting the GUI
 ```bash
