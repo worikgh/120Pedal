@@ -177,10 +177,12 @@ impl TouchRectFn for TunerDisplay {
                     Some('#')
                 };
                 let octave = data.octave;
-                if !(0..=9).contains(&octave) {
-                    panic!("Error gui: TunerDisplay.paint Octave {octave} should be in 0-9");
-                }
-                let octave = (data.octave as u8 + 0x0030) as char;
+                let octave = if !(0..=9).contains(&octave) {
+                    (data.octave as u8 + 0x0030) as char
+                } else {
+                    '?'
+                };
+
                 // Correct
                 draw_char(
                     oct_rect.x,
