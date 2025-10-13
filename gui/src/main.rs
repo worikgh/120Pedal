@@ -77,8 +77,8 @@ impl App {
 }
 
 trait TouchRectFn {
-    fn event(&mut self, is_down: bool, x: f64, y: f64);
-    fn point_inside(&self, x: f64, y: f64) -> bool;
+    fn event(&mut self, is_down: bool, x: f32, y: f32);
+    fn point_inside(&self, x: f32, y: f32) -> bool;
     fn paint(&mut self, app: &mut App);
     fn tick(&mut self, _app: &mut App) {}
 }
@@ -86,7 +86,7 @@ trait TouchRectFn {
 /// The tuner display
 #[derive(Debug)]
 struct TunerDisplay {
-    corners: [f64; 4],
+    corners: [f32; 4],
     _handle: JoinHandle<()>,
     tuner_data: Arc<Mutex<Option<TunerData>>>,
 }
@@ -94,8 +94,8 @@ impl TouchRectFn for TunerDisplay {
     fn tick(&mut self, app: &mut App) {
         self.paint(app);
     }
-    fn event(&mut self, _is_down: bool, _x: f64, _y: f64) {}
-    fn point_inside(&self, _x: f64, _y: f64) -> bool {
+    fn event(&mut self, _is_down: bool, _x: f32, _y: f32) {}
+    fn point_inside(&self, _x: f32, _y: f32) -> bool {
         false
     }
     fn paint(&mut self, app: &mut App) {
@@ -191,11 +191,11 @@ impl TouchRectFn for TunerDisplay {
                     app,
                     &COLOUR_BLACK,
                 );
-                let cents_offset = data.cents_offset;
+                let cents_offset = data.cents_offset as f32;
                 let mut cents = cents_offset.round();
                 cents = cents.clamp(-100.0, 100.0);
                 let x = cents_rect.x;
-                let hh = (cents.abs() / 100.0) * h as f64 / 2.0;
+                let hh = (cents.abs() / 100.0) * h as f32 / 2.0;
                 if cents < 0.0 {
                     let y = cents_rect.h / 2;
                     let h = hh as u32;
@@ -258,7 +258,7 @@ fn draw_char(x: i32, y: i32, w: i32, h: i32, c: char, app: &mut App, colour: &[u
 }
 
 impl TunerDisplay {
-    fn new(x: f64, y: f64, w: f64, h: f64) -> Self {
+    fn new(x: f32, y: f32, w: f32, h: f32) -> Self {
         let (tx, rx) = mpsc::channel::<TunerData>();
         let _ = get_results(
             &TunerArgs {
@@ -303,7 +303,7 @@ impl TunerDisplay {
 /// Button to mute the mixer
 #[derive(Debug)]
 struct MuteButton {
-    corners: [f64; 4],
+    corners: [f32; 4],
 
     colour_muted: [u8; 4],
     colour_pressed: [u8; 4],
@@ -313,7 +313,7 @@ struct MuteButton {
     pressed: bool,
 }
 impl MuteButton {
-    fn new(osc: Rc<OscSender>, x: f64, y: f64, w: f64, h: f64) -> Self {
+    fn new(osc: Rc<OscSender>, x: f32, y: f32, w: f32, h: f32) -> Self {
         Self {
             corners: [x, y, w, h],
             colour_muted: COLOUR_RED,
@@ -326,7 +326,7 @@ impl MuteButton {
     }
 }
 impl TouchRectFn for MuteButton {
-    fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
+    fn event(&mut self, is_down: bool, _x: f32, _y: f32) {
         if self.pressed && !is_down {
             // Take action
 
@@ -354,14 +354,14 @@ impl TouchRectFn for MuteButton {
         let y = self.corners[1];
         let w = self.corners[2];
         let h = self.corners[3];
-        let x = (x * app.width as f64) as i32;
-        let y = (y * app.height as f64) as i32;
-        let w = (w * app.width as f64) as u32;
-        let h = (h * app.height as f64) as u32;
+        let x = (x * app.width as f32) as i32;
+        let y = (y * app.height as f32) as i32;
+        let w = (w * app.width as f32) as u32;
+        let h = (h * app.height as f32) as u32;
         let fill_rect = Rect::new(x, y, w, h);
         app.fill_rect(fill_rect);
     }
-    fn point_inside(&self, x: f64, y: f64) -> bool {
+    fn point_inside(&self, x: f32, y: f32) -> bool {
         point_inside_rect(x, y, self.corners)
     }
 }
@@ -370,7 +370,7 @@ impl TouchRectFn for MuteButton {
 /// subtract) a value
 #[derive(Debug)]
 struct AdjButton {
-    corners: [f64; 4],
+    corners: [f32; 4],
 
     colour: [u8; 4],
     colour_pressed: [u8; 4],
@@ -399,10 +399,10 @@ impl ButtonIncrement {
 }
 impl AdjButton {
     fn new(
-        x: f64,
-        y: f64,
-        w: f64,
-        h: f64,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
         value: ButtonIncrement,
         target: Rc<SliderState>,
     ) -> Self {
@@ -421,7 +421,7 @@ impl AdjButton {
     }
 }
 impl TouchRectFn for AdjButton {
-    fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
+    fn event(&mut self, is_down: bool, _x: f32, _y: f32) {
         if self.pressed && !is_down {
             let new_value = *self.target.value.borrow() + (self.value.value() as f32 / 127.0);
             let new_value = new_value.clamp(0.0, 1.0);
@@ -436,7 +436,7 @@ impl TouchRectFn for AdjButton {
         self.pressed = is_down;
     }
 
-    fn point_inside(&self, x: f64, y: f64) -> bool {
+    fn point_inside(&self, x: f32, y: f32) -> bool {
         point_inside_rect(x, y, self.corners)
     }
 
@@ -445,10 +445,10 @@ impl TouchRectFn for AdjButton {
         let h = self.corners[3];
         let x = self.corners[0];
         let y = self.corners[1];
-        let x = (x * app.width as f64) as i32;
-        let y = (y * app.height as f64) as i32;
-        let w = (w * app.width as f64) as u32;
-        let h = (h * app.height as f64) as u32;
+        let x = (x * app.width as f32) as i32;
+        let y = (y * app.height as f32) as i32;
+        let w = (w * app.width as f32) as u32;
+        let h = (h * app.height as f32) as u32;
         let fill_rect = Rect::new(x, y, w, h);
         // For now plus/sub one is blue and plus/sub ten is green
         if self.pressed {
@@ -512,7 +512,7 @@ impl SliderState {
 /// effect One slider per effect.
 #[derive(Debug)]
 struct Slider {
-    corners: [f64; 4],
+    corners: [f32; 4],
 
     // Graphical widgets
     add_one: AdjButton,
@@ -530,7 +530,7 @@ struct Slider {
 
     // `w_f` is width factor.  If it is 1.0 there is no space
     // between sliders
-    w_f: f64,
+    w_f: f32,
 }
 #[derive(Debug)]
 /// Hold the selected state of [Slider].  TODO: Conceptually only one
@@ -544,12 +544,12 @@ struct IdxSelected {
 #[allow(clippy::too_many_arguments)]
 impl Slider {
     fn new(
-        x: f64,
-        y: f64,
-        w: f64,
-        h: f64,
-        margin: f64,
-        w_f: f64,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        margin: f32,
+        w_f: f32,
         value: f32,
         idx: u8,
         osc: Rc<OscSender>,
@@ -563,8 +563,8 @@ impl Slider {
         // Calculate the positions of the buttons.  The buttons for
         // adding go on top, the buttons for subtracting at the
         // bottom.  The buttons for one on left, ten on right
-        let but_one_x: f64 = x - w / 2.0;
-        let but_ten_x: f64 = x;
+        let but_one_x: f32 = x - w / 2.0;
+        let but_ten_x: f32 = x;
         let but_h = (h + 2.0 * margin) * margin;
         let but_w = w / 2.0;
         let but_add_y = y - but_h;
@@ -645,7 +645,7 @@ impl TouchRectFn for Slider {
     }
 
     /// Check slider and buttons
-    fn point_inside(&self, x: f64, y: f64) -> bool {
+    fn point_inside(&self, x: f32, y: f32) -> bool {
         point_inside_rect(x, y, self.corners)
             || self.add_one.point_inside(x, y)
             || self.add_ten.point_inside(x, y)
@@ -661,10 +661,10 @@ impl TouchRectFn for Slider {
             let x = self.corners[0] - w / 2.0;
             let y = self.corners[1];
 
-            let x = (x * app.width as f64) as i32;
-            let y = (y * app.height as f64) as i32;
-            let w = (w * app.width as f64) as u32;
-            let h = (h * app.height as f64) as u32;
+            let x = (x * app.width as f32) as i32;
+            let y = (y * app.height as f32) as i32;
+            let w = (w * app.width as f32) as u32;
+            let h = (h * app.height as f32) as u32;
             let fill_rect = Rect::new(x, y, w, h);
             let selected: bool = self.idx_selected.borrow().selected;
             if selected {
@@ -685,13 +685,13 @@ impl TouchRectFn for Slider {
         {
             let x = self.corners[0] - self.corners[2] / 2.0;
             let y = self.corners[1]
-                + self.corners[3] * (1.0 - *self.slider_state.value.borrow() as f64);
+                + self.corners[3] * (1.0 - *self.slider_state.value.borrow() as f32);
             // let y = 1.0 - y;
             let w = self.corners[2];
 
-            let x = (x * app.width as f64) as i32;
-            let y = (y * app.height as f64) as i32;
-            let w = (w * app.width as f64) as u32;
+            let x = (x * app.width as f32) as i32;
+            let y = (y * app.height as f32) as i32;
+            let w = (w * app.width as f32) as u32;
             let h = 2;
             let rect = Rect::new(x, y, w, h);
             app.set_colour(&COLOUR_THUMB);
@@ -704,14 +704,14 @@ impl TouchRectFn for Slider {
 /// Holder for the sliders that represent the volume (and selected
 /// state) of each effect.
 struct EffectContainer {
-    corners: [f64; 4],
+    corners: [f32; 4],
 
     pedal_state: PedalState,
     sliders: Vec<Slider>,
     state_rx: Receiver<PedalState>,
 }
 impl EffectContainer {
-    fn new(pedal_state: PedalState, sliders: Vec<Slider>, x: f64, y: f64, w: f64, h: f64) -> Self {
+    fn new(pedal_state: PedalState, sliders: Vec<Slider>, x: f32, y: f32, w: f32, h: f32) -> Self {
         let (state_tx, state_rx) = channel();
         let _jh = monitor_pedal_state(state_tx.clone(), pedal_state.clone());
         Self {
@@ -725,7 +725,7 @@ impl EffectContainer {
     fn init(&self) {}
 }
 impl TouchRectFn for EffectContainer {
-    fn event(&mut self, is_down: bool, x: f64, y: f64) {
+    fn event(&mut self, is_down: bool, x: f32, y: f32) {
         // Pass to sliders
         let mut dirty = false;
         for s in self.sliders.iter_mut() {
@@ -738,7 +738,7 @@ impl TouchRectFn for EffectContainer {
         if dirty {}
     }
 
-    fn point_inside(&self, x: f64, y: f64) -> bool {
+    fn point_inside(&self, x: f32, y: f32) -> bool {
         point_inside_rect(x, y, self.corners)
     }
 
@@ -748,10 +748,10 @@ impl TouchRectFn for EffectContainer {
         let y = self.corners[1];
         let w = self.corners[2];
         let h = self.corners[3];
-        let x = (x * app.width as f64) as i32;
-        let y = (y * app.height as f64) as i32;
-        let w = (w * app.width as f64) as u32;
-        let h = (h * app.height as f64) as u32;
+        let x = (x * app.width as f32) as i32;
+        let y = (y * app.height as f32) as i32;
+        let w = (w * app.width as f32) as u32;
+        let h = (h * app.height as f32) as u32;
         let fill_area = simple::Rect::new(x, y, w, h);
         app.set_colour(&COLOUR_BACKGROUND);
         app.fill_rect(fill_area);
@@ -835,7 +835,7 @@ struct MainCommandRect {
     /// Starts `mod-ui` or `qzn3t`
     command: String,
     /// x,y,w,h in 0..1
-    corners: [f64; 4],
+    corners: [f32; 4],
     /// Was the last event a 'mouse_down'
     down: bool,
     /// This is effectively a toggle
@@ -873,7 +873,7 @@ impl MainCommandRect {
         self.valid
     }
 
-    fn new(width: f64, height: f64, command: String) -> Self {
+    fn new(width: f32, height: f32, command: String) -> Self {
         // Set up thread to monitor Qzn3t health
         let qzn3t_beacon_read = Arc::new(AtomicBool::new(false));
         let qzn3t_beacon_write = Arc::clone(&qzn3t_beacon_read);
@@ -901,7 +901,7 @@ impl MainCommandRect {
 
 impl TouchRectFn for MainCommandRect {
     /// Touch events toggle between `mod-ui` and `qzn3t`
-    fn event(&mut self, is_down: bool, _x: f64, _y: f64) {
+    fn event(&mut self, is_down: bool, _x: f32, _y: f32) {
         if self.down != is_down {
             if !is_down {
                 // Released. Take action
@@ -919,7 +919,7 @@ impl TouchRectFn for MainCommandRect {
             self.down = is_down;
         }
     }
-    fn point_inside(&self, x: f64, y: f64) -> bool {
+    fn point_inside(&self, x: f32, y: f32) -> bool {
         point_inside_rect(x, y, self.corners)
     }
     fn paint(&mut self, app: &mut App) {
@@ -942,10 +942,10 @@ impl TouchRectFn for MainCommandRect {
         let y = self.corners[1];
         let w = self.corners[2];
         let h = self.corners[3];
-        let x = (x * app.width as f64) as i32;
-        let y = (y * app.height as f64) as i32;
-        let w = (w * app.width as f64) as u32;
-        let h = (h * app.height as f64) as u32;
+        let x = (x * app.width as f32) as i32;
+        let y = (y * app.height as f32) as i32;
+        let w = (w * app.width as f32) as u32;
+        let h = (h * app.height as f32) as u32;
 
         let fill_area = simple::Rect::new(x, y, w, h);
         if valid {
@@ -1023,8 +1023,8 @@ impl TouchScreenCtl {
         {
             for i in self.rects.iter_mut() {
                 let (x, y) = {
-                    let x = mouse_x as f64 / self.width as f64;
-                    let y = mouse_y as f64 / self.height as f64;
+                    let x = mouse_x as f32 / self.width as f32;
+                    let y = mouse_y as f32 / self.height as f32;
                     (x, y)
                 };
                 if i.point_inside(x, y) {
@@ -1114,8 +1114,8 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new("Qzn3t", width, height);
     // The button that switches between `qzn3t` and `mod-ui`.  Width
     // and height are normalised.
-    const MAIN_WIDTH: f64 = 0.15; // 15%
-    const MAIN_HEIGHT: f64 = 0.25;
+    const MAIN_WIDTH: f32 = 0.15; // 15%
+    const MAIN_HEIGHT: f32 = 0.25;
     let mut main_button = MainCommandRect::new(MAIN_WIDTH, MAIN_HEIGHT, command);
 
     // Run the command once to initialise Pi in mod-ui
@@ -1155,12 +1155,12 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
 
         // Top and bottom
         let margin = 0.1;
-        let x_step = 1.0 / (1.0 + channels.len() as f64);
+        let x_step = 1.0 / (1.0 + channels.len() as f32);
         let y = y + h * margin;
         let h = h - 2.0 * h * margin;
         let mut idx: u8 = 1;
         for c in channels.iter() {
-            let x = x + idx as f64 * x_step;
+            let x = x + idx as f32 * x_step;
             let slider = Slider::new(x, y, x_step, h, margin, w_f, c.1, idx, osc.clone());
             sliders.push(slider);
             idx += 1;
@@ -1278,7 +1278,7 @@ pub fn monitor_pedal_state(
 }
 
 /// Helper function for detecting when the mouse/pointer is inside a rectangle/window
-fn point_inside_rect(x: f64, y: f64, corners: [f64; 4]) -> bool {
+fn point_inside_rect(x: f32, y: f32, corners: [f32; 4]) -> bool {
     x > corners[0] && x <= corners[2] + corners[0] && y > corners[1] && y < corners[3] + corners[1]
 }
 
@@ -1301,14 +1301,14 @@ fn qzn3t_running() -> bool {
     c.contains("jack_midi") && c.contains("translate_midi") && c.contains("read_midi")
 }
 
-fn pixel_boundary(corners: [f64; 4], app: &App) -> (i32, i32, u32, u32) {
+fn pixel_boundary(corners: [f32; 4], app: &App) -> (i32, i32, u32, u32) {
     let x = corners[0];
     let y = corners[1];
     let w = corners[2];
     let h = corners[3];
-    let x = (x * app.width as f64) as i32;
-    let y = (y * app.height as f64) as i32;
-    let w = (w * app.width as f64) as u32;
-    let h = (h * app.height as f64) as u32;
+    let x = (x * app.width as f32) as i32;
+    let y = (y * app.height as f32) as i32;
+    let w = (w * app.width as f32) as u32;
+    let h = (h * app.height as f32) as u32;
     (x, y, w, h)
 }
