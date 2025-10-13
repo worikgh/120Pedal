@@ -1,9 +1,6 @@
 //! Code to support the tuner
 
-use std::{
-    fs::File,
-    io::{Read, Write},
-};
+use std::{fs::File, io::Read};
 
 use ab_glyph::{Font, FontRef, Point, PxScale};
 
