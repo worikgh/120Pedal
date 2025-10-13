@@ -279,10 +279,6 @@ impl TunerDisplay {
             loop {
                 match rx.try_recv() {
                     Ok(td) => {
-                        // eprintln!(
-                        //     "DBG gui: TunerDisplay loop. TunerData: {:?} {} {:0.3}",
-                        //     td.note, td.octave, td.cents_offset,
-                        // );
                         let mut t = tuner_data_arc.lock().unwrap();
                         *t = Some(td);
                     }
@@ -364,7 +360,7 @@ impl TouchRectFn for MuteButton {
         app.fill_rect(fill_rect);
     }
     fn point_inside(&self, x: f32, y: f32) -> bool {
-        point_inside_rect(x, y, self.corners)
+        point_inside_slice(x, y, self.corners)
     }
 }
 
@@ -425,7 +421,8 @@ impl AdjButton {
 impl TouchRectFn for AdjButton {
     fn event(&mut self, is_down: bool, _x: f32, _y: f32) {
         if self.pressed && !is_down {
-            let new_value = *self.target.value.borrow() + (self.value.value() as f32 / 127.0);
+            let old_value = *self.target.value.borrow();
+            let new_value = old_value + (self.value.value() as f32 / 127.0);
             let new_value = new_value.clamp(0.0, 1.0);
             *self.target.value.borrow_mut() = new_value;
             let osc_msg = format!("/v/{}", self.target.idx);
@@ -439,7 +436,7 @@ impl TouchRectFn for AdjButton {
     }
 
     fn point_inside(&self, x: f32, y: f32) -> bool {
-        point_inside_rect(x, y, self.corners)
+        point_inside_slice(x, y, self.corners)
     }
 
     fn paint(&mut self, app: &mut App) {
@@ -648,11 +645,12 @@ impl TouchRectFn for Slider {
 
     /// Check slider and buttons
     fn point_inside(&self, x: f32, y: f32) -> bool {
-        point_inside_rect(x, y, self.corners)
-            || self.add_one.point_inside(x, y)
-            || self.add_ten.point_inside(x, y)
-            || self.sub_one.point_inside(x, y)
-            || self.sub_ten.point_inside(x, y)
+        let r1 = self.point_inside_slider(x, y);
+        let r2 = self.add_one.point_inside(x, y);
+        let r3 = self.add_ten.point_inside(x, y);
+        let r4 = self.sub_one.point_inside(x, y);
+        let r5 = self.sub_ten.point_inside(x, y);
+        r1 || r2 || r3 || r4 || r5
     }
 
     fn paint(&mut self, app: &mut App) {
@@ -686,8 +684,7 @@ impl TouchRectFn for Slider {
         // Paint the value indicator
         {
             let x = self.corners[0] - self.corners[2] / 2.0;
-            let y = self.corners[1]
-                + self.corners[3] * (1.0 - *self.slider_state.value.borrow() as f32);
+            let y = self.corners[1] + self.corners[3] * (1.0 - *self.slider_state.value.borrow());
             // let y = 1.0 - y;
             let w = self.corners[2];
 
@@ -741,7 +738,7 @@ impl TouchRectFn for EffectContainer {
     }
 
     fn point_inside(&self, x: f32, y: f32) -> bool {
-        point_inside_rect(x, y, self.corners)
+        point_inside_slice(x, y, self.corners)
     }
 
     fn paint(&mut self, app: &mut App) {
@@ -922,7 +919,7 @@ impl TouchRectFn for MainCommandRect {
         }
     }
     fn point_inside(&self, x: f32, y: f32) -> bool {
-        point_inside_rect(x, y, self.corners)
+        point_inside_slice(x, y, self.corners)
     }
     fn paint(&mut self, app: &mut App) {
         let valid = match self.mode {
@@ -1098,7 +1095,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         width = simple::Window::get_max_width()? as u16;
         height = simple::Window::get_max_height()? as u16;
     }
-    eprintln!("DBG qzn3t-gui: WxH: {width}x{height}");
+
     // Read in the PedalState object to set the initial state of the
     // pedals.  The state file must exist.
     let pedals_path = pedals_dir();
@@ -1279,9 +1276,14 @@ pub fn monitor_pedal_state(
     })
 }
 
-/// Helper function for detecting when the mouse/pointer is inside a rectangle/window
-fn point_inside_rect(x: f32, y: f32, corners: [f32; 4]) -> bool {
-    x > corners[0] && x <= corners[2] + corners[0] && y > corners[1] && y < corners[3] + corners[1]
+/// Helper function for detecting when the mouse/pointer is inside a
+/// rectangle/window
+fn point_inside_slice(x: f32, y: f32, slice: [f32; 4]) -> bool {
+    let l = slice[0];
+    let t = slice[1];
+    let w = slice[2];
+    let h = slice[3];
+    x > l && x <= l + w && y > t && y <= t + h
 }
 
 /// Check if the Qzn3t pedal  simulator is running
