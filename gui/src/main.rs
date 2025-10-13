@@ -56,7 +56,6 @@ struct App {
     window: simple::Window,
     width: u16,
     height: u16,
-    invert: bool,
 }
 impl App {
     fn new(name: &str, width: u16, height: u16) -> Self {
@@ -64,7 +63,6 @@ impl App {
             width,
             height,
             window: simple::Window::new(name, width, height),
-            invert: false,
         }
     }
     fn set_colour(&mut self, colour: &[u8; 4]) {
@@ -72,35 +70,9 @@ impl App {
             .set_color(colour[0], colour[1], colour[2], colour[3]);
     }
 
-    /// Wrapper around `simple.window.fill_rect` that allows inverting
+    /// Wrapper around `simple.window.fill_rect`
     fn fill_rect(&mut self, r: Rect) {
-        // If the window is inverted adjust rect
-        let r = if self.invert {
-            let y = self.height as i32 - r.y;
-            let y = y - r.height() as i32;
-            Rect::new(r.x, y, r.width(), r.height())
-        } else {
-            r
-        };
         self.window.fill_rect(r);
-    }
-
-    /// Wrapper around `simple.window.draw_rect` that allows inverting
-    #[allow(dead_code)]
-    fn draw_rect(&mut self, r: &Rect) {
-        // If the window is inverted adjust rect
-        let r = if self.invert {
-            let y = self.height as i32 - r.y;
-            let y = y - r.height() as i32;
-            &Rect::new(r.x, y, r.width(), r.height())
-        } else {
-            r
-        };
-        self.window.draw_rect(*r);
-    }
-    #[allow(dead_code)]
-    fn invert(&mut self, f: bool) {
-        self.invert = f;
     }
 }
 
@@ -115,7 +87,7 @@ trait TouchRectFn {
 #[derive(Debug)]
 struct TunerDisplay {
     corners: [f64; 4],
-    handle: JoinHandle<()>,
+    _handle: JoinHandle<()>,
     tuner_data: Arc<Mutex<Option<TunerData>>>,
 }
 impl TouchRectFn for TunerDisplay {
@@ -175,11 +147,6 @@ impl TouchRectFn for TunerDisplay {
         let hh = h;
         let ww = w / 4;
         let cents_rect = Rect::new(xx, yy, ww, hh);
-        // app.set_colour(&COLOUR_BLACK);
-        // app.draw_rect(&mod_rect);
-        // app.draw_rect(&note_rect);
-        // app.draw_rect(&oct_rect);
-        // app.draw_rect(&cents_rect);
 
         match &*self.tuner_data.lock().unwrap() {
             None => {
@@ -214,6 +181,7 @@ impl TouchRectFn for TunerDisplay {
                     panic!("Error gui: TunerDisplay.paint Octave {octave} should be in 0-9");
                 }
                 let octave = (data.octave as u8 + 0x0030) as char;
+                // Correct
                 draw_char(
                     oct_rect.x,
                     oct_rect.y,
@@ -243,6 +211,7 @@ impl TouchRectFn for TunerDisplay {
                     app.set_colour(&COLOUR_GREEN);
                     app.fill_rect(fill_rect);
                 }
+                // Incorrect
                 draw_char(
                     note_rect.x,
                     note_rect.y,
@@ -326,7 +295,7 @@ impl TunerDisplay {
         });
         Self {
             corners: [x, y, w, h],
-            handle,
+            _handle: handle,
             tuner_data,
         }
     }
@@ -1040,9 +1009,6 @@ struct TouchScreenCtl {
     /// Over all size
     width: u16,
     height: u16,
-
-    /// If inverted
-    inverted: bool,
 }
 
 impl TouchScreenCtl {
@@ -1056,10 +1022,11 @@ impl TouchScreenCtl {
         } = *e
         {
             for i in self.rects.iter_mut() {
-                let x = mouse_x as f64 / self.width as f64;
-                let y = mouse_y as f64 / self.height as f64;
-                let y = if self.inverted { 1.0 - y } else { y };
-
+                let (x, y) = {
+                    let x = mouse_x as f64 / self.width as f64;
+                    let y = mouse_y as f64 / self.height as f64;
+                    (x, y)
+                };
                 if i.point_inside(x, y) {
                     i.event(is_down, x, y);
                 }
@@ -1086,27 +1053,13 @@ fn pedals_dir() -> PathBuf {
 fn inner_main() -> Result<(), Box<dyn Error>> {
     let _ = qzn3t_running();
     // The first argument is the command that starts the qzn3t pedals
-    // or mod-ui, second is 0 for do not invert, 1 for invert, the
-    // third and fourth are width and height
+    // or mod-ui, the second and third are width and height
     let usage = || -> String { "Usage: gui <configuration file> [01]".to_string() };
     let mut args = env::args().skip(1);
     eprintln!("DBG qzn3t_gui: args: {args:?}  args.len(): {}", args.len());
     let command = match args.next() {
         Some(arg) => arg,
         None => panic!("{}", usage()),
-    };
-    let inverted: bool = match args.next() {
-        Some(arg) => {
-            if &arg == "0" {
-                false
-            } else if &arg == "1" {
-                true
-            } else {
-                panic!("Error gui: Second argument: {arg} is invalid")
-            }
-        }
-        // Default
-        None => false,
     };
 
     // Check `command` is executable
@@ -1143,7 +1096,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         width = simple::Window::get_max_width()? as u16;
         height = simple::Window::get_max_height()? as u16;
     }
-
+    eprintln!("DBG qzn3t-gui: WxH: {width}x{height}");
     // Read in the PedalState object to set the initial state of the
     // pedals.  The state file must exist.
     let pedals_path = pedals_dir();
@@ -1159,7 +1112,6 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
 
     // Main window.
     let mut app = App::new("Qzn3t", width, height);
-    app.invert(inverted);
     // The button that switches between `qzn3t` and `mod-ui`.  Width
     // and height are normalised.
     const MAIN_WIDTH: f64 = 0.15; // 15%
@@ -1209,21 +1161,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         let mut idx: u8 = 1;
         for c in channels.iter() {
             let x = x + idx as f64 * x_step;
-            let slider = Slider::new(
-                x,
-                y,
-                x_step,
-                h,
-                margin,
-                w_f,
-                c.1,
-                if inverted {
-                    1 + channels.len() as u8 - idx
-                } else {
-                    idx
-                },
-                osc.clone(),
-            );
+            let slider = Slider::new(x, y, x_step, h, margin, w_f, c.1, idx, osc.clone());
             sliders.push(slider);
             idx += 1;
         }
@@ -1242,7 +1180,6 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         ],
         width,
         height,
-        inverted,
     };
 
     let paint_screen = |app: &mut App, tsc: &mut TouchScreenCtl| {
