@@ -627,9 +627,36 @@ impl Slider {
     fn select(&self, selected: bool) {
         self.idx_selected.borrow_mut().selected = selected;
     }
+
+    fn point_inside_slider(&self, x: f32, y: f32) -> bool {
+        let w = self.corners[2] * self.w_f;
+        let h = self.corners[3];
+        let l = self.corners[0] - w / 2.0;
+        let t = self.corners[1];
+        x > l && x <= l + w && y > t && y <= t + h
+    }
+
+    fn handle_click(&mut self, x: f32, y: f32) {
+        // 127 states for `value`.  MIDI
+        let value = *self.slider_state.value.borrow();
+        let height = self.corners[3];
+        let cnr_y = self.corners[1];
+        let mouse_v = 1.0 - (y - cnr_y) / height;
+        assert!(mouse_v > 0.0);
+        let delta_v = mouse_v - value;
+        let new_v = value + delta_v / 2.0;
+        eprintln!(
+            "DBG gui: Slider{}.handle_click({x:0.2}, {y:0.2}) value: {value:0.2}  delta_v: {delta_v:0.2} new_v: {new_v:0.2} cnr_y: {cnr_y:0.2} mouse_v: {mouse_v:0.2}",
+            self.idx_selected.borrow().idx,
+        );
+        *self.slider_state.value.borrow_mut() = new_v;
+    }
 }
 impl TouchRectFn for Slider {
-    fn event(&mut self, is_down: bool, x: f64, y: f64) {
+    fn event(&mut self, is_down: bool, x: f32, y: f32) {
+        // Set this if a button handles this, so the slider itself
+        // does not move the thumb towards the mouse event
+        let mut handled = false;
         // send to buttons
         for b in [
             &mut self.add_one,
@@ -639,7 +666,12 @@ impl TouchRectFn for Slider {
         ] {
             if b.point_inside(x, y) {
                 b.event(is_down, x, y);
+                handled = true;
             }
+        }
+
+        if !handled && !is_down && self.point_inside_slider(x, y) {
+            self.handle_click(x, y);
         }
     }
 
