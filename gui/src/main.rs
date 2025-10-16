@@ -59,10 +59,29 @@ struct App {
 }
 impl App {
     fn new(name: &str, width: u16, height: u16) -> Self {
+        Self::new_inner(name, Some((width, height)))
+    }
+    fn new_fullscreen(name: &str) -> Self {
+        Self::new_inner(name, None)
+    }
+    fn new_inner(name: &str, dim: Option<(u16, u16)>) -> Self {
+        let width: u16;
+        let height: u16;
+        let window = if let Some((w, h)) = dim {
+            width = w;
+            height = h;
+            simple::Window::new(name, width, height)
+        } else {
+            let window = simple::Window::new_fullscreen(name);
+            let (w, h) = window.drawable_size();
+            width = w as u16;
+            height = h as u16;
+            window
+        };
         Self {
             width,
             height,
-            window: simple::Window::new(name, width, height),
+            window,
         }
     }
     fn set_colour(&mut self, colour: &[u8; 4]) {
@@ -1109,24 +1128,21 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     // If there are two arguments left they are the width and height
     // of the window.  Other wise default to screen for 3.5 inch
     // Raspberry Pi screen
-    let width: u16;
-    let height: u16;
-    if args.len() == 2 {
+    let dim: Option<(u16, u16)> = if args.len() == 2 {
         // Passed width and height as arguments
-        width = args
-            .next()
-            .unwrap() // Checked this argument is here
-            .parse::<u16>()
-            .expect("Width argument not parsed as u16");
-        height = args
-            .next()
-            .unwrap() // Checked this argument is here
-            .parse::<u16>()
-            .expect("Height argument not parsed as u16");
+        Some((
+            args.next()
+                .unwrap() // Checked this argument is here
+                .parse::<u16>()
+                .expect("Width argument not parsed as u16"),
+            args.next()
+                .unwrap() // Checked this argument is here
+                .parse::<u16>()
+                .expect("Height argument not parsed as u16"),
+        ))
     } else {
-        width = simple::Window::get_max_width()? as u16;
-        height = simple::Window::get_max_height()? as u16;
-    }
+        None
+    };
 
     // Read in the PedalState object to set the initial state of the
     // pedals.  The state file must exist.
@@ -1142,7 +1158,11 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     };
 
     // Main window.
-    let mut app = App::new("Qzn3t", width, height);
+    let mut app = if let Some((width, height)) = dim {
+        App::new("Qzn3t", width, height)
+    } else {
+        App::new_fullscreen("Qzn3t")
+    };
     // The button that switches between `qzn3t` and `mod-ui`.  Width
     // and height are normalised.
     const MAIN_WIDTH: f32 = 0.15; // 15%
@@ -1209,8 +1229,8 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
             Box::new(effects_mixer),
             Box::new(mute_button),
         ],
-        width,
-        height,
+        width: app.width,
+        height: app.height,
     };
 
     let paint_screen = |app: &mut App, tsc: &mut TouchScreenCtl| {
