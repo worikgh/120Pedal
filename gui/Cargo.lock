@@ -741,9 +741,9 @@ dependencies = [
 
 [[package]]
 name = "qzn3t_tuner"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "379b10a5a951afad83051010205c86f1e9bbcd864e955bc0829a75f7473852b0"
+checksum = "f8c86926e26580596c1a51d6300e7e4f52099888edb0c932f43ed44a0334b9e0"
 dependencies = [
  "clap",
  "clap_builder",

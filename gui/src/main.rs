@@ -1108,6 +1108,14 @@ struct CmdArgs {
     )]
     pub tuner_verbose: bool,
 
+    #[arg(
+        short = 'l',
+        long,
+        help = "The interval in MS between tuner samples",
+        default_value_t = 200
+    )]
+    pub tuner_interval: u64,
+
     // Command that starts the qzn3t pedals
     // or mod-ui
     #[arg(short, long, help = "Command that starts the qzn3t pedals or mod-ui")]
@@ -1193,7 +1201,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     };
     let osc = Rc::new(osc);
     let tuner_args = TunerArgs {
-        interval: 200,
+        interval: args.tuner_interval,
         buffer_size: 2_048_000,
         max_vol_min: args.max_vol,
         mean_min: 0.1,
