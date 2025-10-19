@@ -156,15 +156,19 @@ impl TouchRectFn for TunerDisplay {
             Rect::new(xx, yy, ww, hh)
         };
         // The octave
-        let ww = w / 3;
-        let hh = h / 3;
-        let oct_rect = Rect::new(x + margin, y + margin, ww, hh);
+        let oct_rect = {
+            let ww = w / 3;
+            let hh = h / 3;
+            Rect::new(x + margin, y + margin, ww, hh)
+        };
         // The cents scale
-        let xx = x + w as i32 * 3 / 4;
-        let yy = y;
-        let hh = h;
-        let ww = w / 4;
-        let cents_rect = Rect::new(xx, yy, ww, hh);
+        let cents_rect = {
+            let xx = x + w as i32 * 3 / 4;
+            let yy = y;
+            let hh = h;
+            let ww = w / 4;
+            Rect::new(xx, yy, ww, hh)
+        };
 
         match &*self.tuner_data.lock().unwrap() {
             None => {
@@ -211,7 +215,7 @@ impl TouchRectFn for TunerDisplay {
                     app,
                     &COLOUR_BLACK,
                 );
-                let cents_offset = data.cents_offset as f32;
+                let cents_offset = data.cents_offset;
                 let mut cents = cents_offset.round();
                 cents = cents.clamp(-100.0, 100.0);
                 let x = cents_rect.x;
