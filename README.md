@@ -302,3 +302,14 @@ See the [README](mono/README.md) in that file for description of how they work
 ### Pure Data
 
 * Sub module: `basic-pure-data-audio-effects`
+
+## Backing up
+
+**Incomplete section**
+
+To back up the state of 120Pedal
+
+* Modep: `tar cfz /tmp/modep.tgz /var/modep/`
+* 120Pedal: `tar cfz /tmp/pedals.tgz /home/patch/120Pedal/PEDALS/`
+
+Copy the files `/tmp/modep.tgz` and `/tmp/pedals.tgz` to a safe place

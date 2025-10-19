@@ -5,9 +5,10 @@ edition = "2024"
 
 [dependencies]
 ab_glyph = "0.2.32"
+clap = "4.5.49"
 notify = "8.0.0"
 pedal_state = { path = "../pedal_state" }
-qzn3t_tuner = "0.1.2"
+qzn3t_tuner = "0.2.0"
 rosc = "0.11.4"
 simple = {path = "simple"}
 sysinfo = "0.35.2"
