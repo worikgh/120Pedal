@@ -282,18 +282,9 @@ fn draw_char(x: i32, y: i32, w: i32, h: i32, c: char, app: &mut App, colour: &[u
 }
 
 impl TunerDisplay {
-    fn new(x: f32, y: f32, w: f32, h: f32, max_vol: f32) -> Self {
+    fn new(x: f32, y: f32, w: f32, h: f32, tuner_args: &TunerArgs) -> Self {
         let (tx, rx) = mpsc::channel::<TunerData>();
-        let _ = get_results(
-            &TunerArgs {
-                interval: 200,
-                buffer_size: 2_048_000,
-                max_vol_min: max_vol,
-                mean_min: 0.1,
-                connect_port: Some("system:capture_1".to_string()),
-            },
-            tx,
-        );
+        let _ = get_results(tuner_args, tx);
         let tuner_data = Arc::new(Mutex::new(None));
         let tuner_data_arc = tuner_data.clone();
 
@@ -1109,6 +1100,14 @@ struct CmdArgs {
     #[arg(short, long, default_value_t = 0.3)]
     pub max_vol: f32,
 
+    #[arg(
+        short = 't',
+        long,
+        help = "Turn on debugging messages for tuner",
+        default_value_t = false
+    )]
+    pub tuner_verbose: bool,
+
     // Command that starts the qzn3t pedals
     // or mod-ui
     #[arg(short, long, help = "Command that starts the qzn3t pedals or mod-ui")]
@@ -1193,13 +1192,21 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         Err(err) => panic!("Error gui: {err:?}: Failed to create OSC: {osc_addr:?}"),
     };
     let osc = Rc::new(osc);
+    let tuner_args = TunerArgs {
+        interval: 200,
+        buffer_size: 2_048_000,
+        max_vol_min: args.max_vol,
+        mean_min: 0.1,
+        connect_port: Some("system:capture_1".to_string()),
+        verbose: args.tuner_verbose,
+    };
 
     let tuner_display = TunerDisplay::new(
         0.5 - MAIN_WIDTH / 2.0,
         0.0,
         MAIN_WIDTH,
         MAIN_HEIGHT,
-        args.max_vol,
+        &tuner_args,
     );
 
     // Mute button
