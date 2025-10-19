@@ -2,6 +2,7 @@
 //! Designed to run on a touch screen
 //! PLANNED: Allow editing the volume of effects
 extern crate simple;
+use clap::Parser;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use pedal_state::PedalState;
 use pedal_state::read_state;
@@ -277,13 +278,13 @@ fn draw_char(x: i32, y: i32, w: i32, h: i32, c: char, app: &mut App, colour: &[u
 }
 
 impl TunerDisplay {
-    fn new(x: f32, y: f32, w: f32, h: f32) -> Self {
+    fn new(x: f32, y: f32, w: f32, h: f32, max_vol: f32) -> Self {
         let (tx, rx) = mpsc::channel::<TunerData>();
         let _ = get_results(
             &TunerArgs {
                 interval: 200,
                 buffer_size: 2_048_000,
-                max_vol_min: 0.2,
+                max_vol_min: max_vol,
                 mean_min: 0.1,
                 connect_port: Some("system:capture_1".to_string()),
             },
@@ -1098,17 +1099,33 @@ fn pedals_dir() -> PathBuf {
     pedals_dir.canonicalize().expect("Failed to resolve path")
 }
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct CmdArgs {
+    #[arg(short, long, default_value_t = 0.3)]
+    pub max_vol: f32,
+
+    // Command that starts the qzn3t pedals
+    // or mod-ui
+    #[arg(short, long, help = "Command that starts the qzn3t pedals or mod-ui")]
+    pub cmd: String,
+
+    // If None then full screen, else the width ad height of the main
+    // window
+    #[arg(short = 'x')]
+    width: Option<u16>,
+
+    #[arg(short = 'y')]
+    height: Option<u16>,
+}
 fn inner_main() -> Result<(), Box<dyn Error>> {
     let _ = qzn3t_running();
+
     // The first argument is the command that starts the qzn3t pedals
     // or mod-ui, the second and third are width and height
-    let usage = || -> String { "Usage: gui <configuration file> [01]".to_string() };
-    let mut args = env::args().skip(1);
-    eprintln!("DBG qzn3t_gui: args: {args:?}  args.len(): {}", args.len());
-    let command = match args.next() {
-        Some(arg) => arg,
-        None => panic!("{}", usage()),
-    };
+    // let usage = || -> String { "Usage: gui <configuration file> [01]".to_string() };
+    let args = CmdArgs::parse();
+    let command = args.cmd;
 
     // Check `command` is executable
     #[cfg(unix)]
@@ -1126,18 +1143,9 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     // If there are two arguments left they are the width and height
     // of the window.  Other wise default to screen for 3.5 inch
     // Raspberry Pi screen
-    let dim: Option<(u16, u16)> = if args.len() == 2 {
+    let dim: Option<(u16, u16)> = if args.width.is_some() && args.height.is_some() {
         // Passed width and height as arguments
-        Some((
-            args.next()
-                .unwrap() // Checked this argument is here
-                .parse::<u16>()
-                .expect("Width argument not parsed as u16"),
-            args.next()
-                .unwrap() // Checked this argument is here
-                .parse::<u16>()
-                .expect("Height argument not parsed as u16"),
-        ))
+        Some((args.width.unwrap(), args.height.unwrap()))
     } else {
         None
     };
@@ -1182,7 +1190,13 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     };
     let osc = Rc::new(osc);
 
-    let tuner_display = TunerDisplay::new(0.5 - MAIN_WIDTH / 2.0, 0.0, MAIN_WIDTH, MAIN_HEIGHT);
+    let tuner_display = TunerDisplay::new(
+        0.5 - MAIN_WIDTH / 2.0,
+        0.0,
+        MAIN_WIDTH,
+        MAIN_HEIGHT,
+        args.max_vol,
+    );
 
     // Mute button
     let mute_button = MuteButton::new(osc.clone(), 1.0 - MAIN_WIDTH, 0.0, MAIN_WIDTH, MAIN_HEIGHT);

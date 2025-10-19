@@ -30,12 +30,15 @@ A system to control simulated guitar pedals using a MIDI foot controller. Design
 ### Recommended OS: Patchbox OS
 * Download [Patchbox OS](https://blokas.io/patchbox-os/)
 * Ensure the sound card is connected before installing the OS
+* Place the file `/ssh` on the root partition
 * Patchbox OS default user/password is patch/blokaslabs
 * Install with these settings:
    - Select no additional modules during installation
    - Configure your audio interface settings
 * Post-installation:
 ```bash
+sudo apt update
+sudo apt upgrade
 sudo apt install modep-mod-ui git curl build-essential
 sudo systemctl disable modep-mod-ui  # Prevent mod-ui from auto-starting
 ```
@@ -53,6 +56,8 @@ Patchbox OS includes opt-out telemetry. To remove:
 ```bash
 sudo apt purge blokas-telemetry
 ```
+
+
 Remove Desktop Panel, Icons and Screensaver
 ---
 
@@ -63,24 +68,18 @@ Qzn3t-gui will occupy the whole screen.
 * The screensaver will be an irritation, making the widgets on Qzn3t-gui invisible when the musician's hands are full.
 The LXDE desktop, default to Patchbox OS, takes up screen room for no purpose and can be disabled.
 
-1. Edit the file `/home/patch/.config/lxsession/LXDE/autostart`
+1. Edit the file `/home/patch/.config/lxsession/LXDE/autostart` In testing this file did not exist....
 2. Remove the line `@lxpanel --profile LXDE` to disable the panel
 3. Remove the line `@pcmanfm --desktop --profile LXDE` to remove the icons and wall paper
 4. Remove the line `@xscreensaver -no-splash` to disable the screen saver.
 5. Remove the packages to make this permanent
-  * `sudo apt remove pcmanfm xscreensaver lxpanel`
+  * `sudo apt remove pcmanfm lxpanel`
 
 ### Other distributions
 
 To run LV2 simulators an LV2 host is required.  The host [`mod-host`](https://github.com/worikgh/mod-host) is recommended.
 
 It is a sub module of `120Pedal`
-
-```
-git clone https://github.com/mod-audio/mod-host
-cd mod-host
-make
-```
 
 It is possible to use Modep, and in particular, `mod-ui`, an Debian-12, (Debian-13 is unknown) but it is not trivial.  Use [this](https://github.com/worikgh/mod-ui/tree/raspberrypi-bookworm) and follow the instructions in the `README.md`.
 
@@ -93,7 +92,8 @@ It is possible to use Modep, and in particular, `mod-ui`, an Debian-12, (Debian-
 ```bash
 sudo apt install dnsmasq git hostapd iw jackd2 libasound2-dev \
 libjack-jackd2-dev liblilv-dev libreadline-dev libsdl2-dev \
-libsdl2-image-dev lv2-dev pkg-config python3.11-dev libipc-run-perl -y
+libsdl2-image-dev lv2-dev pkg-config python3.11-dev libipc-run-perl \
+libtry-tiny-perl -y
 ```
 
 2. Install Rust:
@@ -126,6 +126,7 @@ In the `[Seat:*]` part of the file `/etc/lightdm/lightdm.conf` specify `autologi
 
 * `autologin-session` is the sessin to run for autologin.  The file must exist in `/usr/share/xsessions/`
   - E.g: `autologin-session=LXDE` implies the file `/usr/share/xsessions/LXDE.desktop` exists
+  - You may need to create it.  It can be a link to an existing file
 * `auologin-user` is the user that will be logged in automatically
 
 ```
