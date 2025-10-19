@@ -199,7 +199,7 @@ impl TouchRectFn for TunerDisplay {
                     Some('#')
                 };
                 let octave = data.octave;
-                let octave = if !(0..=9).contains(&octave) {
+                let octave = if (0..=9).contains(&octave) {
                     (data.octave as u8 + 0x0030) as char
                 } else {
                     '?'
