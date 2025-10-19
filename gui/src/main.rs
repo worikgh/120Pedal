@@ -28,13 +28,11 @@ use std::sync::{
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use sysinfo::System;
-use tuner_support::char_to_bitmap;
-
-// use qzn3t_tuner::TunerArgs;
 use tuner::TunerArgs;
 use tuner::TunerData;
 use tuner::TunerNote;
 use tuner::get_results;
+use tuner_support::char_to_bitmap;
 mod send_osc;
 mod tuner_support;
 
