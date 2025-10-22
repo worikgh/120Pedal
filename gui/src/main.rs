@@ -161,19 +161,10 @@ impl TouchRectFn for TunerDisplay {
 
         match &*self.tuner_data.lock().unwrap() {
             None => {
-                // No data to display yet
-                // Background
-                {
-                    // The background.  A gradient colour
-                    let h_255 = h * 255;
-                    for yy in 0..h {
-                        let d = ((yy * h_255) / h) as u8;
-                        let colour: [u8; 4] = [d, 0, 255 - d, 255];
-                        app.set_colour(&colour);
-                        let fr = Rect::new(x, yy as i32, w, 1);
-                        app.fill_rect(fr);
-                    }
-                }
+                // No data to display yet.
+                app.set_colour(&COLOUR_BLACK);
+                let fr = Rect::new(x, y, w, h);
+                app.fill_rect(fr);
             }
             Some(data) => {
                 // Got some data to display.
