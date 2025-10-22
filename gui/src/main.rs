@@ -40,7 +40,7 @@ mod tuner_support;
 const COLOUR_BLUE: [u8; 4] = [0, 0, 0xff, 0xff];
 const COLOUR_GREEN: [u8; 4] = [0, 0xff, 0, 0xff];
 const COLOUR_RED: [u8; 4] = [0xff, 0, 0, 0xff];
-const COLOUR_BLACK: [u8; 4] = [0x0, 0, 0, 0xff];
+const COLOUR_BLACK: [u8; 4] = [0, 0, 0, 0xff];
 const COLOUR_WHITE: [u8; 4] = [0xff, 0xff, 0xff, 0xff];
 
 /// Colours for the sliders.
@@ -1145,9 +1145,9 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     };
     // The button that switches between `qzn3t` and `mod-ui`.  Width
     // and height are normalised.
-    const MAIN_WIDTH: f32 = 0.15; // 15%
-    const MAIN_HEIGHT: f32 = 0.25;
-    let mut main_button = MainCommandRect::new(MAIN_WIDTH, MAIN_HEIGHT, command);
+    const BUTTON_WIDTH: f32 = 0.15; // 15%
+    const BUTTON_HEIGHT: f32 = 0.25;
+    let mut main_button = MainCommandRect::new(BUTTON_WIDTH, BUTTON_HEIGHT, command);
 
     // Run the command once to initialise Pi in mod-ui
     if !main_button.run_command() {
@@ -1173,20 +1173,26 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     };
 
     let tuner_display = TunerDisplay::new(
-        0.5 - MAIN_WIDTH / 2.0,
+        0.5 - BUTTON_WIDTH / 2.0,
         0.0,
-        MAIN_WIDTH,
-        MAIN_HEIGHT,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
         &tuner_args,
     );
 
     // Mute button
-    let mute_button = MuteButton::new(osc.clone(), 1.0 - MAIN_WIDTH, 0.0, MAIN_WIDTH, MAIN_HEIGHT);
+    let mute_button = MuteButton::new(
+        osc.clone(),
+        1.0 - BUTTON_WIDTH,
+        0.0,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+    );
 
     let x = 0.0;
-    let y = MAIN_HEIGHT;
+    let y = BUTTON_HEIGHT;
     let w = 1.0;
-    let h = 1.0 - MAIN_HEIGHT;
+    let h = 1.0 - BUTTON_HEIGHT;
     // Sliders
     let channels = pedal_state.choices.clone();
 
