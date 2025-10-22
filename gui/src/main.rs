@@ -37,19 +37,29 @@ use tuner_support::char_to_bitmap;
 mod send_osc;
 mod tuner_support;
 
+/// Colours
 const COLOUR_BLUE: [u8; 4] = [0, 0, 0xff, 0xff];
 const COLOUR_GREEN: [u8; 4] = [0, 0xff, 0, 0xff];
 const COLOUR_RED: [u8; 4] = [0xff, 0, 0, 0xff];
 const COLOUR_BLACK: [u8; 4] = [0, 0, 0, 0xff];
 const COLOUR_WHITE: [u8; 4] = [0xff, 0xff, 0xff, 0xff];
-
-/// Colours for the sliders.
+/// Sliders.
 const COLOUR_SELECTED: [u8; 4] = [0xf0, 0x0f, 0xff, 0x88];
 const COLOUR_UNSELECTED: [u8; 4] = [0x0f, 0xf0, 0xff, 0x88];
 const COLOUR_THUMB: [u8; 4] = COLOUR_RED;
-
-/// The background of the slider
+/// Background of the slider
 const COLOUR_BACKGROUND: [u8; 4] = [0xf8, 0xf0, 0xf0, 255];
+
+/// The number of "cents" above or below the actual tuned frequency
+/// that is defined a s"in tune"
+const CENTS_TOLERANCE: f32 = 10.0;
+/// The limit.  If the absolute value of `cents` is above this the display is "100% out of tune"
+const CENTS_LIMIT: f32 = 20.0;
+/// The display limit: When `cents` crosses the line from "out of
+/// tune" to "in tune" this is the proportion of the display that it
+/// occupies.  Not zero, so it is still visible just before it
+/// disappears
+const CENTS_MIN_DISPLAY: f32 = 1.0 / 3.0;
 
 /// The outer structure
 struct App {
@@ -233,8 +243,33 @@ impl TouchRectFn for TunerDisplay {
                 };
 
                 let cents = data.cents_offset.round().clamp(-100.0, 100.0);
-                let hh = (cents.abs() / 100.0) * h as f32 / 2.0;
-                if cents < -10.0 {
+
+                // The size of the bar that indicates if below or
+                // above tuned.
+                let cents_display_min = CENTS_MIN_DISPLAY * h as f32;
+                let cents_display_max = h as f32;
+                let hh = if cents.abs() > CENTS_LIMIT {
+                    // If cents.abs() > CENTS_LIMIT then it is 100% There is
+                    // no point distinguishing levels if worse than
+                    // that
+                    cents_display_max
+                } else if cents.abs() < CENTS_TOLERANCE {
+                    // The minimum that is displayed before it is "in tune"
+                    // Use about a third of the display
+                    cents_display_min
+                } else {
+                    // Linearly interpolate
+
+                    // Proportion of visible area occupied
+                    let numerator = cents - CENTS_TOLERANCE;
+                    let denominator = CENTS_LIMIT - CENTS_TOLERANCE;
+                    let proportion: f32 = numerator / denominator;
+
+                    // Calculate how much of the area available to fill with colour
+                    cents_display_min + proportion * (cents_display_max - cents_display_min)
+                } / 2.0; // It is two halves, so half the calculated size
+
+                if cents < -CENTS_TOLERANCE {
                     // Flat
                     let x = cents_rect.x;
                     let y = cents_rect.h / 2;
