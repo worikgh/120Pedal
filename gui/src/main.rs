@@ -283,17 +283,26 @@ impl TunerDisplay {
         let tuner_data_arc = tuner_data.clone();
 
         let handle = thread::spawn(move || {
+            let mut last_updated = Instant::now();
             loop {
                 match rx.try_recv() {
                     Ok(td) => {
                         let mut t = tuner_data_arc.lock().unwrap();
                         *t = Some(td);
+                        last_updated = Instant::now();
                     }
                     Err(mpsc::TryRecvError::Disconnected) => {
                         eprintln!("Error tuner: Tuner channel disconnected");
                         break;
                     }
-                    Err(mpsc::TryRecvError::Empty) => (),
+                    Err(mpsc::TryRecvError::Empty) => {
+                        let elapsed = last_updated.elapsed();
+                        // TODO: Make this an argument not constant 2_000
+                        if elapsed.as_millis() > 2_000 {
+                            let mut t = tuner_data_arc.lock().unwrap();
+                            *t = None;
+                        }
+                    }
                 };
                 thread::sleep(Duration::from_millis(100));
             }
