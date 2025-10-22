@@ -109,6 +109,45 @@ struct TunerDisplay {
     _handle: JoinHandle<()>,
     tuner_data: Arc<Mutex<Option<TunerData>>>,
 }
+impl TunerDisplay {
+    fn new(x: f32, y: f32, w: f32, h: f32, tuner_args: &TunerArgs) -> Self {
+        let (tx, rx) = mpsc::channel::<TunerData>();
+        let _ = get_results(tuner_args, tx);
+        let tuner_data = Arc::new(Mutex::new(None));
+        let tuner_data_arc = tuner_data.clone();
+
+        let handle = thread::spawn(move || {
+            let mut last_updated = Instant::now();
+            loop {
+                match rx.try_recv() {
+                    Ok(td) => {
+                        let mut t = tuner_data_arc.lock().unwrap();
+                        *t = Some(td);
+                        last_updated = Instant::now();
+                    }
+                    Err(mpsc::TryRecvError::Disconnected) => {
+                        eprintln!("Error tuner: Tuner channel disconnected");
+                        break;
+                    }
+                    Err(mpsc::TryRecvError::Empty) => {
+                        let elapsed = last_updated.elapsed();
+                        // TODO: Make this an argument not constant 2_000
+                        if elapsed.as_millis() > 2_000 {
+                            let mut t = tuner_data_arc.lock().unwrap();
+                            *t = None;
+                        }
+                    }
+                };
+                thread::sleep(Duration::from_millis(100));
+            }
+        });
+        Self {
+            corners: [x, y, w, h],
+            _handle: handle,
+            tuner_data,
+        }
+    }
+}
 impl TouchRectFn for TunerDisplay {
     fn tick(&mut self, app: &mut App) {
         self.paint(app);
@@ -244,76 +283,6 @@ impl TouchRectFn for TunerDisplay {
     }
 }
 
-/// Draw a character on the screen.
-fn draw_char(r: &Rect, c: char, app: &mut App, colour: &[u8; 4]) {
-    draw_char_xywh(
-        r.x(),
-        r.y(),
-        r.width() as i32,
-        r.height() as i32,
-        c,
-        app,
-        colour,
-    );
-}
-fn draw_char_xywh(x: i32, y: i32, w: i32, h: i32, c: char, app: &mut App, colour: &[u8; 4]) {
-    let bitmap =
-        char_to_bitmap(c, w as usize, h as usize).expect("Get bitmap for note_rect: {note_rect:?}");
-    app.set_colour(colour);
-    for xx in 0..w {
-        for yy in 0..h {
-            let idx = (w * yy + xx) as usize;
-            match bitmap.get(idx) {
-                Some(0) => (),
-                Some(_) => {
-                    let fr = Rect::new(x + xx, y + yy, 1, 1);
-                    app.fill_rect(fr);
-                }
-                None => panic!("Error gui: draw_char idx: {idx}  c {c}"),
-            }
-        }
-    }
-}
-
-impl TunerDisplay {
-    fn new(x: f32, y: f32, w: f32, h: f32, tuner_args: &TunerArgs) -> Self {
-        let (tx, rx) = mpsc::channel::<TunerData>();
-        let _ = get_results(tuner_args, tx);
-        let tuner_data = Arc::new(Mutex::new(None));
-        let tuner_data_arc = tuner_data.clone();
-
-        let handle = thread::spawn(move || {
-            let mut last_updated = Instant::now();
-            loop {
-                match rx.try_recv() {
-                    Ok(td) => {
-                        let mut t = tuner_data_arc.lock().unwrap();
-                        *t = Some(td);
-                        last_updated = Instant::now();
-                    }
-                    Err(mpsc::TryRecvError::Disconnected) => {
-                        eprintln!("Error tuner: Tuner channel disconnected");
-                        break;
-                    }
-                    Err(mpsc::TryRecvError::Empty) => {
-                        let elapsed = last_updated.elapsed();
-                        // TODO: Make this an argument not constant 2_000
-                        if elapsed.as_millis() > 2_000 {
-                            let mut t = tuner_data_arc.lock().unwrap();
-                            *t = None;
-                        }
-                    }
-                };
-                thread::sleep(Duration::from_millis(100));
-            }
-        });
-        Self {
-            corners: [x, y, w, h],
-            _handle: handle,
-            tuner_data,
-        }
-    }
-}
 /// Button to mute the mixer
 #[derive(Debug)]
 struct MuteButton {
@@ -376,7 +345,7 @@ impl TouchRectFn for MuteButton {
         app.fill_rect(fill_rect);
     }
     fn point_inside(&self, x: f32, y: f32) -> bool {
-        point_inside_slice(x, y, self.corners)
+        point_inside_corners(x, y, self.corners)
     }
 }
 
@@ -392,7 +361,6 @@ struct AdjButton {
     target: Rc<SliderState>,
     value: ButtonIncrement, // Add (or subtract) this value
 }
-
 #[derive(PartialEq, Eq, Debug)]
 /// The values that can be added to the slider value
 enum ButtonIncrement {
@@ -452,7 +420,7 @@ impl TouchRectFn for AdjButton {
     }
 
     fn point_inside(&self, x: f32, y: f32) -> bool {
-        point_inside_slice(x, y, self.corners)
+        point_inside_corners(x, y, self.corners)
     }
 
     fn paint(&mut self, app: &mut App) {
@@ -506,8 +474,8 @@ impl TouchRectFn for AdjButton {
     }
 }
 
-#[derive(Debug)]
 /// The state of a [Slider]
+#[derive(Debug)]
 struct SliderState {
     value: RefCell<f32>, // Value of slider
     osc: Rc<OscSender>,  // Shared OSC transmitter
@@ -547,11 +515,11 @@ struct Slider {
     // between sliders
     w_f: f32,
 }
-#[derive(Debug)]
 /// Hold the selected state of [Slider].  TODO: Conceptually only one
 /// [Slider] can be selected at a time - that is the "active effect".
 /// This is a poor representation of that concept, as any number of
 /// sliders can be selected.
+#[derive(Debug)]
 struct IdxSelected {
     idx: u8,
     selected: bool,
@@ -786,7 +754,7 @@ impl TouchRectFn for EffectContainer {
     }
 
     fn point_inside(&self, x: f32, y: f32) -> bool {
-        point_inside_slice(x, y, self.corners)
+        point_inside_corners(x, y, self.corners)
     }
 
     fn paint(&mut self, app: &mut App) {
@@ -892,7 +860,6 @@ struct MainCommandRect {
     // jh: JoinHandle<()>,
     qzn3t_beacon: Arc<AtomicBool>,
 }
-
 impl MainCommandRect {
     /// This runs the command from MainTouchRect.  The command takes
     /// one `bool` argument.  If `true` it will run `qzn3t` otherwise
@@ -945,7 +912,6 @@ impl MainCommandRect {
         }
     }
 }
-
 impl TouchRectFn for MainCommandRect {
     /// Touch events toggle between `mod-ui` and `qzn3t`
     fn event(&mut self, is_down: bool, _x: f32, _y: f32) {
@@ -967,7 +933,7 @@ impl TouchRectFn for MainCommandRect {
         }
     }
     fn point_inside(&self, x: f32, y: f32) -> bool {
-        point_inside_slice(x, y, self.corners)
+        point_inside_corners(x, y, self.corners)
     }
     fn paint(&mut self, app: &mut App) {
         let valid = match self.mode {
@@ -1057,7 +1023,6 @@ struct TouchScreenCtl {
     width: u16,
     height: u16,
 }
-
 impl TouchScreenCtl {
     /// A window event.  Typically a touch/mouse event
     fn event(&mut self, e: &Event) {
@@ -1089,14 +1054,7 @@ impl TouchScreenCtl {
     }
 }
 
-/// Global access to the PedalState directory
-fn pedals_dir() -> PathBuf {
-    // Set up display of pedals and volume
-    let mut pedals_dir = env::current_dir().expect("Failed to get current dir");
-    pedals_dir.push("../PEDALS");
-    pedals_dir.canonicalize().expect("Failed to resolve path")
-}
-
+/// Structure to implement command line arguments with `clap`
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct CmdArgs {
@@ -1132,6 +1090,8 @@ struct CmdArgs {
     #[arg(short = 'y')]
     height: Option<u16>,
 }
+
+/// The starting point
 fn inner_main() -> Result<(), Box<dyn Error>> {
     let _ = qzn3t_running();
 
@@ -1293,7 +1253,6 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     }
     Ok(())
 }
-
 fn main() {
     eprintln!("DBG gui: PID {}", std::process::id());
     if let Err(err) = inner_main() {
@@ -1363,12 +1322,12 @@ pub fn monitor_pedal_state(
 }
 
 /// Helper function for detecting when the mouse/pointer is inside a
-/// rectangle/window
-fn point_inside_slice(x: f32, y: f32, slice: [f32; 4]) -> bool {
-    let l = slice[0];
-    let t = slice[1];
-    let w = slice[2];
-    let h = slice[3];
+/// rectangle/window.
+fn point_inside_corners(x: f32, y: f32, corners: [f32; 4]) -> bool {
+    let l = corners[0];
+    let t = corners[1];
+    let w = corners[2];
+    let h = corners[3];
     x > l && x <= l + w && y > t && y <= t + h
 }
 
@@ -1401,4 +1360,43 @@ fn pixel_boundary(corners: [f32; 4], app: &App) -> (i32, i32, u32, u32) {
     let w = (w * app.width as f32) as u32;
     let h = (h * app.height as f32) as u32;
     (x, y, w, h)
+}
+
+/// Draw a character on the screen.
+fn draw_char(r: &Rect, c: char, app: &mut App, colour: &[u8; 4]) {
+    draw_char_xywh(
+        r.x(),
+        r.y(),
+        r.width() as i32,
+        r.height() as i32,
+        c,
+        app,
+        colour,
+    );
+}
+fn draw_char_xywh(x: i32, y: i32, w: i32, h: i32, c: char, app: &mut App, colour: &[u8; 4]) {
+    let bitmap =
+        char_to_bitmap(c, w as usize, h as usize).expect("Get bitmap for note_rect: {note_rect:?}");
+    app.set_colour(colour);
+    for xx in 0..w {
+        for yy in 0..h {
+            let idx = (w * yy + xx) as usize;
+            match bitmap.get(idx) {
+                Some(0) => (),
+                Some(_) => {
+                    let fr = Rect::new(x + xx, y + yy, 1, 1);
+                    app.fill_rect(fr);
+                }
+                None => panic!("Error gui: draw_char idx: {idx}  c {c}"),
+            }
+        }
+    }
+}
+
+/// Global access to the PedalState directory
+fn pedals_dir() -> PathBuf {
+    // Set up display of pedals and volume
+    let mut pedals_dir = env::current_dir().expect("Failed to get current dir");
+    pedals_dir.push("../PEDALS");
+    pedals_dir.canonicalize().expect("Failed to resolve path")
 }
