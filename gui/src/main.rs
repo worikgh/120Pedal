@@ -41,6 +41,7 @@ const COLOUR_BLUE: [u8; 4] = [0, 0, 0xff, 0xff];
 const COLOUR_GREEN: [u8; 4] = [0, 0xff, 0, 0xff];
 const COLOUR_RED: [u8; 4] = [0xff, 0, 0, 0xff];
 const COLOUR_BLACK: [u8; 4] = [0x0, 0, 0, 0xff];
+const COLOUR_WHITE: [u8; 4] = [0xff, 0xff, 0xff, 0xff];
 
 /// Colours for the sliders.
 const COLOUR_SELECTED: [u8; 4] = [0xf0, 0x0f, 0xff, 0x88];
@@ -119,63 +120,59 @@ impl TouchRectFn for TunerDisplay {
     fn paint(&mut self, app: &mut App) {
         let (x, y, w, h) = pixel_boundary(self.corners, app);
 
-        // Background
-        {
-            // The background.  A gradient colour
-            for yy in 0..h / 2 {
-                let d = (yy * 2 * h * 255 / h) as u8;
-                let colour: [u8; 4] = [d, 255, 255 - d, 255];
-                app.set_colour(&colour);
-                let fr = Rect::new(x, yy as i32, w, 1);
-                app.fill_rect(fr);
-            }
-            for yy in h / 2..h {
-                let d = (yy * 2 * (h - h / 2) * 255 / h) as u8;
-                let colour: [u8; 4] = [255 - d, 255, d, 255];
-                app.set_colour(&colour);
-                let fr = Rect::new(x, yy as i32, w, 1);
-                app.fill_rect(fr);
-            }
-        }
-
-        // The bounding boxes
-        // Rectangle for note and rect for modifier
-        let ww = 2 * w / 3;
-        let hh = 2 * h / 3;
-        let margin = 5;
-        // The note letter
-        let note_rect = {
-            let xx = x + margin;
-            let yy = y + h as i32 / 3;
-            Rect::new(xx, yy, ww, hh)
-        };
-        // The sharp symbol
-        let mod_rect = {
-            let xx = x + w as i32 / 3;
-            let yy = margin + y + h as i32 / 3 - hh as i32 / 2;
-            Rect::new(xx, yy, ww, hh)
-        };
-        // The octave
-        let oct_rect = {
-            let ww = w / 3;
-            let hh = h / 3;
-            Rect::new(x + margin, y + margin, ww, hh)
-        };
-        // The cents scale
-        let cents_rect = {
-            let xx = x + w as i32 * 3 / 4;
-            let yy = y;
-            let hh = h;
-            let ww = w / 4;
-            Rect::new(xx, yy, ww, hh)
-        };
-
         match &*self.tuner_data.lock().unwrap() {
             None => {
                 // No data to display yet
+                // Background
+                {
+                    // The background.  A gradient colour
+                    let h_255 = h * 255;
+                    for yy in 0..h {
+                        let d = ((yy * h_255) / h) as u8;
+                        let colour: [u8; 4] = [d, 0, 255 - d, 255];
+                        app.set_colour(&colour);
+                        let fr = Rect::new(x, yy as i32, w, 1);
+                        app.fill_rect(fr);
+                    }
+                }
             }
             Some(data) => {
                 // Got some data to display.
+
+                app.set_colour(&COLOUR_WHITE);
+                app.fill_rect(Rect::new(x, y, w, h));
+
+                // The bounding boxes
+                // Rectangle for note and rect for modifier
+                let ww = 2 * w / 3;
+                let hh = 2 * h / 3;
+                let margin = 5;
+                // The note letter
+                let note_rect = {
+                    let xx = x + margin;
+                    let yy = y + h as i32 / 3;
+                    Rect::new(xx, yy, ww, hh)
+                };
+                // The sharp symbol
+                let mod_rect = {
+                    let xx = x + w as i32 / 3;
+                    let yy = margin + y + h as i32 / 3 - hh as i32 / 2;
+                    Rect::new(xx, yy, ww, hh)
+                };
+                // The octave
+                let oct_rect = {
+                    let ww = w / 3;
+                    let hh = h / 3;
+                    Rect::new(x + margin, y + margin, ww, hh)
+                };
+                // The cents scale
+                let cents_rect = {
+                    let xx = x + w as i32 / 4;
+                    let yy = y;
+                    let hh = h;
+                    let ww = 3 * w / 4;
+                    Rect::new(xx, yy, ww, hh)
+                };
                 let tuner_note = data.note.clone();
                 let note: char = match tuner_note {
                     TunerNote::A | TunerNote::ASharp => 'A',
@@ -205,56 +202,42 @@ impl TouchRectFn for TunerDisplay {
                     '?'
                 };
 
-                // Correct
-                draw_char(
-                    oct_rect.x,
-                    oct_rect.y,
-                    oct_rect.w,
-                    oct_rect.h,
-                    octave,
-                    app,
-                    &COLOUR_BLACK,
-                );
-                let cents_offset = data.cents_offset;
-                let mut cents = cents_offset.round();
-                cents = cents.clamp(-100.0, 100.0);
-                let x = cents_rect.x;
+                let cents = data.cents_offset.round().clamp(-100.0, 100.0);
                 let hh = (cents.abs() / 100.0) * h as f32 / 2.0;
-                if cents < 0.0 {
+                if cents < -10.0 {
+                    // Flat
+                    let x = cents_rect.x;
                     let y = cents_rect.h / 2;
                     let h = hh as u32;
                     let w = cents_rect.w as u32;
                     let fill_rect = Rect::new(x, y, w, h);
                     app.set_colour(&COLOUR_RED);
                     app.fill_rect(fill_rect);
-                } else {
+                } else if cents > 10.0 {
+                    // Sharp
+                    let x = cents_rect.x;
                     let y = cents_rect.height() as i32 / 2 - hh as i32;
                     let h = hh as u32;
                     let w = cents_rect.w as u32;
                     let fill_rect = Rect::new(x, y, w, h);
+                    app.set_colour(&COLOUR_BLUE);
+                    app.fill_rect(fill_rect);
+                } else {
+                    // In tune
+                    let fill_rect = Rect::new(x, y, w, h);
                     app.set_colour(&COLOUR_GREEN);
                     app.fill_rect(fill_rect);
                 }
-                // Incorrect
-                draw_char(
-                    note_rect.x,
-                    note_rect.y,
-                    note_rect.w,
-                    note_rect.h,
-                    note,
-                    app,
-                    &COLOUR_BLACK,
-                );
+
+                // Draw the octave
+                draw_char(&oct_rect, octave, app, &COLOUR_BLACK);
+
+                // Draw the note
+                draw_char(&note_rect, note, app, &COLOUR_BLACK);
+
                 if let Some(m) = modifier {
-                    draw_char(
-                        mod_rect.x,
-                        mod_rect.y,
-                        mod_rect.w,
-                        mod_rect.h,
-                        m,
-                        app,
-                        &COLOUR_BLACK,
-                    );
+                    // Draw the modifier
+                    draw_char(&mod_rect, m, app, &COLOUR_BLACK);
                 }
             }
         }
@@ -262,7 +245,18 @@ impl TouchRectFn for TunerDisplay {
 }
 
 /// Draw a character on the screen.
-fn draw_char(x: i32, y: i32, w: i32, h: i32, c: char, app: &mut App, colour: &[u8; 4]) {
+fn draw_char(r: &Rect, c: char, app: &mut App, colour: &[u8; 4]) {
+    draw_char_xywh(
+        r.x(),
+        r.y(),
+        r.width() as i32,
+        r.height() as i32,
+        c,
+        app,
+        colour,
+    );
+}
+fn draw_char_xywh(x: i32, y: i32, w: i32, h: i32, c: char, app: &mut App, colour: &[u8; 4]) {
     let bitmap =
         char_to_bitmap(c, w as usize, h as usize).expect("Get bitmap for note_rect: {note_rect:?}");
     app.set_colour(colour);
