@@ -1,25 +1,21 @@
 //! Code to support the tuner
 
-use std::{fs::File, io::Read};
-
 use ab_glyph::{Font, FontRef, Point, PxScale};
 use simple::Rect;
 
-use crate::App;
+use crate::app::App;
 
 /// Convert a Unicode character into a bit map width and height `w` and `h`
-pub fn char_to_bitmap(c: char, w: usize, h: usize) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+fn char_to_bitmap(
+    app: &App,
+    c: char,
+    w: usize,
+    h: usize,
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     // Get font first
     let font_fn = "assets/DejaVuSerif-Bold.ttf";
-    let font_data = match File::open(font_fn) {
-        Ok(mut f) => {
-            let mut v = Vec::new();
-            f.read_to_end(&mut v).expect("Reading djv font from file");
-            v
-        }
-        Err(err) => panic!("Error gui: Font {font_fn} could not be loaded. {err}"),
-    };
-    let font_ref = FontRef::try_from_slice(font_data.as_slice())?;
+    let font = app.fonts.get(font_fn).expect("Failed to load font");
+    let font_ref = FontRef::try_from_slice(font.as_slice())?;
 
     // Scale the font to fit the desired dimensions
     let scale = PxScale::from((h as f32) * 0.8); // 80% of height to allow for descent
@@ -63,8 +59,8 @@ pub fn draw_char(r: &Rect, c: char, app: &mut App, colour: &[u8; 4]) {
     );
 }
 fn draw_char_xywh(x: i32, y: i32, w: i32, h: i32, c: char, app: &mut App, colour: &[u8; 4]) {
-    let bitmap =
-        char_to_bitmap(c, w as usize, h as usize).expect("Get bitmap for note_rect: {note_rect:?}");
+    let bitmap = char_to_bitmap(app, c, w as usize, h as usize)
+        .expect("Get bitmap for note_rect: {note_rect:?}");
     app.set_colour(colour);
     for xx in 0..w {
         for yy in 0..h {

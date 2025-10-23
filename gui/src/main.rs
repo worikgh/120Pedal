@@ -2,6 +2,7 @@
 //! Designed to run on a touch screen
 //! PLANNED: Allow editing the volume of effects
 extern crate simple;
+use crate::app::App;
 use crate::tuner_support::draw_char;
 use clap::Parser;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
@@ -34,6 +35,7 @@ use tuner::TunerArgs;
 use tuner::TunerData;
 use tuner::TunerNote;
 use tuner::get_results;
+mod app;
 mod send_osc;
 mod tuner_support;
 const COLOUR_BLUE: [u8; 4] = [0, 0, 0xff, 0xff];
@@ -58,50 +60,6 @@ const CENTS_LIMIT: f32 = 20.0;
 /// occupies.  Not zero, so it is still visible just before it
 /// disappears
 const CENTS_MIN_DISPLAY: f32 = 1.0 / 3.0;
-
-/// The outer structure
-struct App {
-    window: simple::Window,
-    width: u16,
-    height: u16,
-}
-impl App {
-    fn new(name: &str, width: u16, height: u16) -> Self {
-        Self::new_inner(name, Some((width, height)))
-    }
-    fn new_fullscreen(name: &str) -> Self {
-        Self::new_inner(name, None)
-    }
-    fn new_inner(name: &str, dim: Option<(u16, u16)>) -> Self {
-        let width: u16;
-        let height: u16;
-        let window = if let Some((w, h)) = dim {
-            width = w;
-            height = h;
-            simple::Window::new(name, width, height)
-        } else {
-            let window = simple::Window::new_fullscreen(name);
-            let (w, h) = window.drawable_size();
-            width = w as u16;
-            height = h as u16;
-            window
-        };
-        Self {
-            width,
-            height,
-            window,
-        }
-    }
-    fn set_colour(&mut self, colour: &[u8; 4]) {
-        self.window
-            .set_color(colour[0], colour[1], colour[2], colour[3]);
-    }
-
-    /// Wrapper around `simple.window.fill_rect`
-    fn fill_rect(&mut self, r: Rect) {
-        self.window.fill_rect(r);
-    }
-}
 
 trait TouchRectFn {
     fn event(&mut self, is_down: bool, x: f32, y: f32);
