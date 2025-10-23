@@ -1,8 +1,0 @@
-#N canvas 649 1276 450 300 12;
-#X obj 167 125 r val;
-#X obj 3 129 print rval;
-#X floatatom 8 15 5 0 0 0 - - - 0;
-#X msg 10 97;
-#X connect 0 0 1 0;
-#X connect 0 0 2 0;
-#X connect 0 0 3 0;
