@@ -3,6 +3,9 @@
 use std::{fs::File, io::Read};
 
 use ab_glyph::{Font, FontRef, Point, PxScale};
+use simple::Rect;
+
+use crate::App;
 
 /// Convert a Unicode character into a bit map width and height `w` and `h`
 pub fn char_to_bitmap(c: char, w: usize, h: usize) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
@@ -45,4 +48,35 @@ pub fn char_to_bitmap(c: char, w: usize, h: usize) -> Result<Vec<u8>, Box<dyn st
     }
 
     Ok(bitmap)
+}
+
+/// Draw a character on the screen.
+pub fn draw_char(r: &Rect, c: char, app: &mut App, colour: &[u8; 4]) {
+    draw_char_xywh(
+        r.x(),
+        r.y(),
+        r.width() as i32,
+        r.height() as i32,
+        c,
+        app,
+        colour,
+    );
+}
+fn draw_char_xywh(x: i32, y: i32, w: i32, h: i32, c: char, app: &mut App, colour: &[u8; 4]) {
+    let bitmap =
+        char_to_bitmap(c, w as usize, h as usize).expect("Get bitmap for note_rect: {note_rect:?}");
+    app.set_colour(colour);
+    for xx in 0..w {
+        for yy in 0..h {
+            let idx = (w * yy + xx) as usize;
+            match bitmap.get(idx) {
+                Some(0) => (),
+                Some(_) => {
+                    let fr = Rect::new(x + xx, y + yy, 1, 1);
+                    app.fill_rect(fr);
+                }
+                None => panic!("Error gui: draw_char idx: {idx}  c {c}"),
+            }
+        }
+    }
 }

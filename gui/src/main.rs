@@ -2,6 +2,7 @@
 //! Designed to run on a touch screen
 //! PLANNED: Allow editing the volume of effects
 extern crate simple;
+use crate::tuner_support::draw_char;
 use clap::Parser;
 use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use pedal_state::PedalState;
@@ -33,7 +34,6 @@ use tuner::TunerArgs;
 use tuner::TunerData;
 use tuner::TunerNote;
 use tuner::get_results;
-use tuner_support::char_to_bitmap;
 mod send_osc;
 mod tuner_support;
 
@@ -1386,37 +1386,6 @@ fn pixel_boundary(corners: [f32; 4], app: &App) -> (i32, i32, u32, u32) {
     let w = (w * app.width as f32) as u32;
     let h = (h * app.height as f32) as u32;
     (x, y, w, h)
-}
-
-/// Draw a character on the screen.
-fn draw_char(r: &Rect, c: char, app: &mut App, colour: &[u8; 4]) {
-    draw_char_xywh(
-        r.x(),
-        r.y(),
-        r.width() as i32,
-        r.height() as i32,
-        c,
-        app,
-        colour,
-    );
-}
-fn draw_char_xywh(x: i32, y: i32, w: i32, h: i32, c: char, app: &mut App, colour: &[u8; 4]) {
-    let bitmap =
-        char_to_bitmap(c, w as usize, h as usize).expect("Get bitmap for note_rect: {note_rect:?}");
-    app.set_colour(colour);
-    for xx in 0..w {
-        for yy in 0..h {
-            let idx = (w * yy + xx) as usize;
-            match bitmap.get(idx) {
-                Some(0) => (),
-                Some(_) => {
-                    let fr = Rect::new(x + xx, y + yy, 1, 1);
-                    app.fill_rect(fr);
-                }
-                None => panic!("Error gui: draw_char idx: {idx}  c {c}"),
-            }
-        }
-    }
 }
 
 /// Global access to the PedalState directory
