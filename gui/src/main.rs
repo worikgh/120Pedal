@@ -348,6 +348,7 @@ impl TouchRectFn for MuteButton {
         }
         self.pressed = is_down;
     }
+
     fn paint(&mut self, app: &mut App) {
         let colour = if !self.pressed {
             if self.muted {
@@ -646,7 +647,7 @@ impl Slider {
         x > l && x <= l + w && y > t && y <= t + h
     }
 
-    fn handle_click(&mut self, x: f32, y: f32) {
+    fn handle_click(&mut self, _x: f32, y: f32) {
         // 127 states for `value`.  MIDI
         let value = *self.slider_state.value.borrow();
         let height = self.corners[3];
@@ -667,6 +668,7 @@ impl TouchRectFn for Slider {
         // Set this if a button handles this, so the slider itself
         // does not move the thumb towards the mouse event
         let mut handled = false;
+
         // send to buttons
         for b in [
             &mut self.add_one,
