@@ -341,10 +341,8 @@ impl TouchRectFn for MuteButton {
 
             self.muted = !self.muted;
             let value = if self.muted { 0.0 } else { 1.0 };
-            let osc_msg = "/M/{}".to_string();
-            if let Err(err) = self.osc.send(osc_msg.as_str(), value) {
-                eprintln!("Error qzn3t_gui: Sending OSC: {osc_msg}  Value: {value}  err: {err}");
-            }
+            let osc_msg = "/M/{}";
+            send_f32_osc(&self.osc, osc_msg, value);
         }
         self.pressed = is_down;
     }
@@ -437,11 +435,7 @@ impl TouchRectFn for AdjButton {
             let new_value = new_value.clamp(0.0, 1.0);
             *self.target.value.borrow_mut() = new_value;
             let osc_msg = format!("/v/{}", self.target.idx);
-            if let Err(err) = self.target.osc.send(osc_msg.as_str(), new_value) {
-                eprintln!(
-                    "Error qzn3t_gui: Sending OSC: {osc_msg}  Value: {new_value}  err: {err}"
-                );
-            }
+            send_f32_osc(&self.target.osc, osc_msg.as_str(), new_value);
         }
         self.pressed = is_down;
     }
@@ -656,10 +650,8 @@ impl Slider {
         assert!(mouse_v > 0.0);
         let delta_v = mouse_v - value;
         let new_v = value + delta_v / 2.0;
-        eprintln!(
-            "DBG gui: Slider{}.handle_click({x:0.2}, {y:0.2}) value: {value:0.2}  delta_v: {delta_v:0.2} new_v: {new_v:0.2} cnr_y: {cnr_y:0.2} mouse_v: {mouse_v:0.2}",
-            self.idx_selected.borrow().idx,
-        );
+        let osc_msg = format!("/v/{}", self.slider_state.idx);
+        send_f32_osc(&self.slider_state.osc, &osc_msg, new_v);
         *self.slider_state.value.borrow_mut() = new_v;
     }
 }
@@ -1433,4 +1425,12 @@ fn pedals_dir() -> PathBuf {
     let mut pedals_dir = env::current_dir().expect("Failed to get current dir");
     pedals_dir.push("../PEDALS");
     pedals_dir.canonicalize().expect("Failed to resolve path")
+}
+
+/// Send an OSC message
+fn send_f32_osc(osc: &Rc<OscSender>, msg: &str, value: f32) {
+    //eprintln!("DBG gui: send_f32_osc: msg: {msg} value: {value:0.4}");
+    if let Err(err) = osc.send(msg, value) {
+        eprintln!("Error gui: OSC send failed: msg: {msg} value: {value}.  Error: {err}");
+    }
 }
