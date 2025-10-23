@@ -36,8 +36,6 @@ use tuner::TunerNote;
 use tuner::get_results;
 mod send_osc;
 mod tuner_support;
-
-/// Colours
 const COLOUR_BLUE: [u8; 4] = [0, 0, 0xff, 0xff];
 const COLOUR_GREEN: [u8; 4] = [0, 0xff, 0, 0xff];
 const COLOUR_RED: [u8; 4] = [0xff, 0, 0, 0xff];
@@ -166,6 +164,7 @@ impl TouchRectFn for TunerDisplay {
     fn point_inside(&self, _x: f32, _y: f32) -> bool {
         false
     }
+    // TunerDisplay
     fn paint(&mut self, app: &mut App) {
         let (x, y, w, h) = pixel_boundary(self.corners, app);
 
@@ -444,6 +443,7 @@ impl TouchRectFn for AdjButton {
         point_inside_corners(x, y, self.corners)
     }
 
+    // AdjButton
     fn paint(&mut self, app: &mut App) {
         let w = self.corners[2];
         let h = self.corners[3];
@@ -955,6 +955,8 @@ impl TouchRectFn for MainCommandRect {
     fn point_inside(&self, x: f32, y: f32) -> bool {
         point_inside_corners(x, y, self.corners)
     }
+
+    // MainCommandRect
     fn paint(&mut self, app: &mut App) {
         let valid = match self.mode {
             CommandMode::LiveMode => self.qzn3t_beacon.load(Ordering::Relaxed),
@@ -1376,6 +1378,9 @@ fn qzn3t_running() -> bool {
     c.contains("jack_midi") && c.contains("translate_midi") && c.contains("read_midi")
 }
 
+/// Turn the `corners` array or 0..1 coordinates to pixel coordinates
+/// TODO: Could the output be all unsigned because the input is on the
+/// unit rectangle.
 fn pixel_boundary(corners: [f32; 4], app: &App) -> (i32, i32, u32, u32) {
     let x = corners[0];
     let y = corners[1];
