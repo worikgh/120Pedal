@@ -1,7 +1,8 @@
+//! The outer structure
 use crate::Rect;
 use std::io::Read;
 use std::{collections::HashMap, fs::File};
-/// The outer structure
+
 pub struct App {
     pub window: simple::Window,
     pub width: u16,
@@ -9,9 +10,12 @@ pub struct App {
     pub fonts: HashMap<String, Vec<u8>>,
 }
 impl App {
+    /// Sized
     pub fn new(name: &str, width: u16, height: u16) -> Self {
         Self::new_inner(name, Some((width, height)))
     }
+
+    /// Full screen
     pub fn new_fullscreen(name: &str) -> Self {
         Self::new_inner(name, None)
     }
@@ -30,7 +34,6 @@ impl App {
             window
         };
         let font_fn = "assets/DejaVuSerif-Bold.ttf";
-
         let font = match File::open(font_fn) {
             Ok(mut f) => {
                 let mut v: Vec<u8> = Vec::new();
@@ -48,12 +51,15 @@ impl App {
             fonts,
         }
     }
+
+    /// The colour the next drawing operation will use
     pub fn set_colour(&mut self, colour: &[u8; 4]) {
         self.window
             .set_color(colour[0], colour[1], colour[2], colour[3]);
     }
 
-    /// Wrapper around `simple.window.fill_rect`
+    /// Wrapper around `simple.window.fill_rect`.  Fills in the
+    /// current colour.
     pub fn fill_rect(&mut self, r: Rect) {
         self.window.fill_rect(r);
     }
