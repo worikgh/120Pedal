@@ -9,6 +9,7 @@ use notify::{Config, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use pedal_state::PedalState;
 use pedal_state::read_state;
 use pedal_state::write_state;
+use rand::random;
 use send_osc::OscSender;
 use simple::{Event, Rect};
 use std::cell::RefCell;
@@ -69,17 +70,31 @@ trait TouchRectFn {
 }
 
 /// The tuner display
+type TunerDataMutex = Arc<Mutex<Option<TunerData>>>;
 #[derive(Debug)]
 struct TunerDisplay {
+    kill_flag: Arc<AtomicBool>,
     corners: [f32; 4],
-    _handle: JoinHandle<()>,
-    tuner_data: Arc<Mutex<Option<TunerData>>>,
+    this_handle: Option<JoinHandle<()>>,
+    get_result_handle: Option<JoinHandle<()>>,
+    tuner_data: TunerDataMutex,
 }
 impl TunerDisplay {
-    fn new(x: f32, y: f32, w: f32, h: f32, tuner_args: &TunerArgs) -> Self {
+    fn start_tuner() -> (
+        JoinHandle<()>,
+        JoinHandle<()>,
+        Arc<AtomicBool>,
+        TunerDataMutex,
+    ) {
+        let tuner_args = TunerArgs {
+            connect_port: Some("system:capture_1".to_string()),
+        };
         let (tx, rx) = mpsc::channel::<TunerData>();
-        let _ = get_results(tuner_args, tx);
+        let kill_flag = Arc::new(AtomicBool::new(false));
+        let kill_flag_ret = kill_flag.clone();
         let tuner_data = Arc::new(Mutex::new(None));
+        let tuner_data_ret = tuner_data.clone();
+        let gr_handle = get_results(&tuner_args, tx, kill_flag.clone());
         let tuner_data_arc = tuner_data.clone();
 
         let handle = thread::spawn(move || {
@@ -107,10 +122,16 @@ impl TunerDisplay {
                 thread::sleep(Duration::from_millis(100));
             }
         });
+        (handle, gr_handle, kill_flag_ret, tuner_data_ret)
+    }
+    fn new(x: f32, y: f32, w: f32, h: f32) -> Self {
+        let (handle, gr_handle, kill_flag, tuner_data) = Self::start_tuner();
         Self {
             corners: [x, y, w, h],
-            _handle: handle,
+            this_handle: Some(handle),
+            get_result_handle: Some(gr_handle),
             tuner_data,
+            kill_flag,
         }
     }
 }
@@ -118,148 +139,200 @@ impl TouchRectFn for TunerDisplay {
     fn tick(&mut self, app: &mut App) {
         self.paint(app);
     }
-    fn event(&mut self, _is_down: bool, _x: f32, _y: f32) {}
-    fn point_inside(&self, _x: f32, _y: f32) -> bool {
-        false
+    fn event(&mut self, is_down: bool, _x: f32, _y: f32) {
+        eprintln!("DBG Woo hoo {is_down}");
+        if !is_down {
+            let state = self.kill_flag.load(Ordering::SeqCst);
+            let kill_flag_state = !state;
+            self.kill_flag.store(kill_flag_state, Ordering::SeqCst);
+            if kill_flag_state {
+                if let Some(h) = self.this_handle.take() {
+                    _ = h.join();
+                }
+                if let Some(h) = self.get_result_handle.take() {
+                    _ = h.join();
+                }
+            } else {
+                let r = Self::start_tuner();
+                self.this_handle = Some(r.0);
+                self.get_result_handle = Some(r.1);
+                self.kill_flag = r.2;
+                self.tuner_data = r.3;
+            }
+        }
+    }
+    fn point_inside(&self, x: f32, y: f32) -> bool {
+        point_inside_corners(x, y, self.corners)
     }
     // TunerDisplay
     fn paint(&mut self, app: &mut App) {
         let (x, y, w, h) = pixel_boundary(self.corners, app);
+        let killed = self.kill_flag.load(Ordering::SeqCst);
+        if killed {
+            // app.set_colour(&COLOUR_BLACK);
+            // let fr = Rect::new(x, y, w, h);
+            // app.fill_rect(fr);
+            let x = (self.corners[0] * app.width as f32) as i32;
+            let y = (self.corners[1] * app.height as f32) as i32;
+            let w = (self.corners[2] * app.width as f32) as u32;
+            let h = (self.corners[3] * app.height as f32) as u32;
+            for _ in 0..100 {
+                // Pick a random colour...
+                let c: f32 = random();
+                let c = (c * 4.0).trunc() as usize;
+                let colour = match c {
+                    0 => COLOUR_BLUE,
+                    1 => COLOUR_GREEN,
+                    2 => COLOUR_RED,
+                    3 => COLOUR_BLACK,
+                    _ => panic!("{c}"),
+                };
+                app.set_colour(&colour);
 
-        match &*self.tuner_data.lock().unwrap() {
-            None => {
-                // No data to display yet.
-                app.set_colour(&COLOUR_BLACK);
-                let fr = Rect::new(x, y, w, h);
+                // A random pixel
+                let tx = (random::<f32>() * w as f32) as i32;
+                let ty = (random::<f32>() * h as f32) as i32;
+
+                // Fill it
+                let fr = Rect::new(tx + x, ty + y, 1, 1);
                 app.fill_rect(fr);
             }
-            Some(data) => {
-                // Got some data to display.
-
-                app.set_colour(&COLOUR_WHITE);
-                app.fill_rect(Rect::new(x, y, w, h));
-
-                // The bounding boxes
-                // Rectangle for note and rect for modifier
-                let ww = 2 * w / 3;
-                let hh = 2 * h / 3;
-                let margin = 5;
-                // The note letter
-                let note_rect = {
-                    let xx = x + margin;
-                    let yy = y + h as i32 / 3;
-                    Rect::new(xx, yy, ww, hh)
-                };
-                // The sharp symbol
-                let mod_rect = {
-                    let xx = x + w as i32 / 3;
-                    let yy = margin + y + h as i32 / 3 - hh as i32 / 2;
-                    Rect::new(xx, yy, ww, hh)
-                };
-                // The octave
-                let oct_rect = {
-                    let ww = w / 3;
-                    let hh = h / 3;
-                    Rect::new(x + margin, y + margin, ww, hh)
-                };
-                // The cents scale
-                let cents_rect = {
-                    let xx = x + w as i32 / 4;
-                    let yy = y;
-                    let hh = h;
-                    let ww = 3 * w / 4;
-                    Rect::new(xx, yy, ww, hh)
-                };
-                let tuner_note = data.note.clone();
-                let note: char = match tuner_note {
-                    TunerNote::A | TunerNote::ASharp => 'A',
-                    TunerNote::B => 'B',
-                    TunerNote::C | TunerNote::CSharp => 'C',
-                    TunerNote::D | TunerNote::DSharp => 'D',
-                    TunerNote::E => 'E',
-                    TunerNote::F | TunerNote::FSharp => 'F',
-                    TunerNote::G | TunerNote::GSharp => 'G',
-                };
-                let modifier = if tuner_note == TunerNote::A
-                    || tuner_note == TunerNote::B
-                    || tuner_note == TunerNote::C
-                    || tuner_note == TunerNote::D
-                    || tuner_note == TunerNote::E
-                    || tuner_note == TunerNote::F
-                    || tuner_note == TunerNote::G
-                {
-                    None
-                } else {
-                    Some('#')
-                };
-                let octave = data.octave;
-                let octave = if (0..=9).contains(&octave) {
-                    (data.octave as u8 + 0x0030) as char
-                } else {
-                    '?'
-                };
-
-                let cents = data.cents_offset.round().clamp(-100.0, 100.0);
-
-                // The size of the bar that indicates if below or
-                // above tuned.
-                let cents_display_min = CENTS_MIN_DISPLAY * h as f32;
-                let cents_display_max = h as f32;
-                let hh = if cents.abs() > CENTS_LIMIT {
-                    // If cents.abs() > CENTS_LIMIT then it is 100% There is
-                    // no point distinguishing levels if worse than
-                    // that
-                    cents_display_max
-                } else if cents.abs() < CENTS_TOLERANCE {
-                    // The minimum that is displayed before it is "in tune"
-                    // Use about a third of the display
-                    cents_display_min
-                } else {
-                    // Linearly interpolate
-
-                    // Proportion of visible area occupied
-                    let numerator = cents - CENTS_TOLERANCE;
-                    let denominator = CENTS_LIMIT - CENTS_TOLERANCE;
-                    let proportion: f32 = numerator / denominator;
-
-                    // Calculate how much of the area available to fill with colour
-                    cents_display_min + proportion * (cents_display_max - cents_display_min)
-                } / 2.0; // It is two halves, so half the calculated size
-
-                if cents < -CENTS_TOLERANCE {
-                    // Flat
-                    let x = cents_rect.x;
-                    let y = cents_rect.h / 2;
-                    let h = hh as u32;
-                    let w = cents_rect.w as u32;
-                    let fill_rect = Rect::new(x, y, w, h);
-                    app.set_colour(&COLOUR_RED);
-                    app.fill_rect(fill_rect);
-                } else if cents > 10.0 {
-                    // Sharp
-                    let x = cents_rect.x;
-                    let y = cents_rect.height() as i32 / 2 - hh as i32;
-                    let h = hh as u32;
-                    let w = cents_rect.w as u32;
-                    let fill_rect = Rect::new(x, y, w, h);
-                    app.set_colour(&COLOUR_BLUE);
-                    app.fill_rect(fill_rect);
-                } else {
-                    // In tune
-                    let fill_rect = Rect::new(x, y, w, h);
-                    app.set_colour(&COLOUR_GREEN);
-                    app.fill_rect(fill_rect);
+        } else {
+            match &*self.tuner_data.lock().unwrap() {
+                None => {
+                    // No data to display yet.
+                    app.set_colour(&COLOUR_BLACK);
+                    let fr = Rect::new(x, y, w, h);
+                    app.fill_rect(fr);
                 }
+                Some(data) => {
+                    // Got some data to display.
 
-                // Draw the octave
-                draw_char(&oct_rect, octave, app, &COLOUR_BLACK);
+                    app.set_colour(&COLOUR_WHITE);
+                    app.fill_rect(Rect::new(x, y, w, h));
 
-                // Draw the note
-                draw_char(&note_rect, note, app, &COLOUR_BLACK);
+                    // The bounding boxes
+                    // Rectangle for note and rect for modifier
+                    let ww = 2 * w / 3;
+                    let hh = 2 * h / 3;
+                    let margin = 5;
+                    // The note letter
+                    let note_rect = {
+                        let xx = x + margin;
+                        let yy = y + h as i32 / 3;
+                        Rect::new(xx, yy, ww, hh)
+                    };
+                    // The sharp symbol
+                    let mod_rect = {
+                        let xx = x + w as i32 / 3;
+                        let yy = margin + y + h as i32 / 3 - hh as i32 / 2;
+                        Rect::new(xx, yy, ww, hh)
+                    };
+                    // The octave
+                    let oct_rect = {
+                        let ww = w / 3;
+                        let hh = h / 3;
+                        Rect::new(x + margin, y + margin, ww, hh)
+                    };
+                    // The cents scale
+                    let cents_rect = {
+                        let xx = x + w as i32 / 4;
+                        let yy = y;
+                        let hh = h;
+                        let ww = 3 * w / 4;
+                        Rect::new(xx, yy, ww, hh)
+                    };
+                    let tuner_note = data.note.clone();
+                    let note: char = match tuner_note {
+                        TunerNote::A | TunerNote::ASharp => 'A',
+                        TunerNote::B => 'B',
+                        TunerNote::C | TunerNote::CSharp => 'C',
+                        TunerNote::D | TunerNote::DSharp => 'D',
+                        TunerNote::E => 'E',
+                        TunerNote::F | TunerNote::FSharp => 'F',
+                        TunerNote::G | TunerNote::GSharp => 'G',
+                    };
+                    let modifier = if tuner_note == TunerNote::A
+                        || tuner_note == TunerNote::B
+                        || tuner_note == TunerNote::C
+                        || tuner_note == TunerNote::D
+                        || tuner_note == TunerNote::E
+                        || tuner_note == TunerNote::F
+                        || tuner_note == TunerNote::G
+                    {
+                        None
+                    } else {
+                        Some('#')
+                    };
+                    let octave = data.octave;
+                    let octave = if (0..=9).contains(&octave) {
+                        (data.octave as u8 + 0x0030) as char
+                    } else {
+                        '?'
+                    };
 
-                if let Some(m) = modifier {
-                    // Draw the modifier
-                    draw_char(&mod_rect, m, app, &COLOUR_BLACK);
+                    let cents = data.cents_offset.round().clamp(-100.0, 100.0);
+
+                    // The size of the bar that indicates if below or
+                    // above tuned.
+                    let cents_display_min = CENTS_MIN_DISPLAY * h as f32;
+                    let cents_display_max = h as f32;
+                    let hh = if cents.abs() > CENTS_LIMIT {
+                        // If cents.abs() > CENTS_LIMIT then it is 100% There is
+                        // no point distinguishing levels if worse than
+                        // that
+                        cents_display_max
+                    } else if cents.abs() < CENTS_TOLERANCE {
+                        // The minimum that is displayed before it is "in tune"
+                        // Use about a third of the display
+                        cents_display_min
+                    } else {
+                        // Linearly interpolate
+
+                        // Proportion of visible area occupied
+                        let numerator = cents - CENTS_TOLERANCE;
+                        let denominator = CENTS_LIMIT - CENTS_TOLERANCE;
+                        let proportion: f32 = numerator / denominator;
+
+                        // Calculate how much of the area available to fill with colour
+                        cents_display_min + proportion * (cents_display_max - cents_display_min)
+                    } / 2.0; // It is two halves, so half the calculated size
+
+                    if cents < -CENTS_TOLERANCE {
+                        // Flat
+                        let x = cents_rect.x;
+                        let y = cents_rect.h / 2;
+                        let h = hh as u32;
+                        let w = cents_rect.w as u32;
+                        let fill_rect = Rect::new(x, y, w, h);
+                        app.set_colour(&COLOUR_RED);
+                        app.fill_rect(fill_rect);
+                    } else if cents > 10.0 {
+                        // Sharp
+                        let x = cents_rect.x;
+                        let y = cents_rect.height() as i32 / 2 - hh as i32;
+                        let h = hh as u32;
+                        let w = cents_rect.w as u32;
+                        let fill_rect = Rect::new(x, y, w, h);
+                        app.set_colour(&COLOUR_BLUE);
+                        app.fill_rect(fill_rect);
+                    } else {
+                        // In tune
+                        let fill_rect = Rect::new(x, y, w, h);
+                        app.set_colour(&COLOUR_GREEN);
+                        app.fill_rect(fill_rect);
+                    }
+
+                    // Draw the octave
+                    draw_char(&oct_rect, octave, app, &COLOUR_BLACK);
+
+                    // Draw the note
+                    draw_char(&note_rect, note, app, &COLOUR_BLACK);
+
+                    if let Some(m) = modifier {
+                        // Draw the modifier
+                        draw_char(&mod_rect, m, app, &COLOUR_BLACK);
+                    }
                 }
             }
         }
@@ -304,6 +377,7 @@ impl TouchRectFn for MuteButton {
         self.pressed = is_down;
     }
 
+    // Mute button
     fn paint(&mut self, app: &mut App) {
         let colour = if !self.pressed {
             if self.muted {
@@ -1143,22 +1217,9 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         Err(err) => panic!("Error gui: {err:?}: Failed to create OSC: {osc_addr:?}"),
     };
     let osc = Rc::new(osc);
-    let tuner_args = TunerArgs {
-        interval: args.tuner_interval,
-        buffer_size: 2_048_000,
-        max_vol_min: args.max_vol,
-        mean_min: 0.1,
-        connect_port: Some("system:capture_1".to_string()),
-        verbose: args.tuner_verbose,
-    };
 
-    let tuner_display = TunerDisplay::new(
-        0.5 - BUTTON_WIDTH / 2.0,
-        0.0,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-        &tuner_args,
-    );
+    let tuner_display =
+        TunerDisplay::new(0.5 - BUTTON_WIDTH / 2.0, 0.0, BUTTON_WIDTH, BUTTON_HEIGHT);
 
     // Mute button
     let mute_button = MuteButton::new(
@@ -1204,10 +1265,10 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     // Main screen
     let mut tsc = TouchScreenCtl {
         rects: vec![
-            Box::new(tuner_display),
             Box::new(main_button),
             Box::new(effects_mixer),
             Box::new(mute_button),
+            Box::new(tuner_display),
         ],
         width: app.width,
         height: app.height,
@@ -1361,7 +1422,6 @@ fn pedals_dir() -> PathBuf {
 
 /// Send an OSC message
 fn send_f32_osc(osc: &Rc<OscSender>, msg: &str, value: f32) {
-    //eprintln!("DBG gui: send_f32_osc: msg: {msg} value: {value:0.4}");
     if let Err(err) = osc.send(msg, value) {
         eprintln!("Error gui: OSC send failed: msg: {msg} value: {value}.  Error: {err}");
     }
