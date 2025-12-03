@@ -1133,10 +1133,14 @@ struct CmdArgs {
 
     // Command that starts the qzn3t pedals
     // or mod-ui
-    #[arg(short, long, help = "Command that starts the qzn3t pedals or mod-ui")]
+    #[arg(
+        short = 'c',
+        long,
+        help = "Command that starts the qzn3t pedals or mod-ui"
+    )]
     pub cmd: String,
 
-    // If None then full screen, else the width ad height of the main
+    // If None then full screen, else the width and height of the main
     // window
     #[arg(short = 'x')]
     width: Option<u16>,
