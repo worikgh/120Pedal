@@ -31,6 +31,7 @@ impl App {
             let (w, h) = window.drawable_size();
             width = w as u16;
             height = h as u16;
+            eprintln!("DBG gui: WxH {w}x{h}");
             window
         };
         let font_fn = "assets/DejaVuSerif-Bold.ttf";

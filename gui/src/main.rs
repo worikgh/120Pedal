@@ -11,8 +11,10 @@ use pedal_state::read_state;
 use pedal_state::write_state;
 use rand::random;
 use send_osc::OscSender;
+use simple::event::MouseEventType;
 use simple::{Event, Rect};
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::env;
 use std::error::Error;
@@ -63,10 +65,17 @@ const CENTS_LIMIT: f32 = 20.0;
 const CENTS_MIN_DISPLAY: f32 = 1.0 / 3.0;
 
 trait TouchRectFn {
-    fn event(&mut self, is_down: bool, x: f32, y: f32);
+    fn event(&mut self, event_type: simple::event::MouseEventType, x: f32, y: f32);
     fn point_inside(&self, x: f32, y: f32) -> bool;
     fn paint(&mut self, app: &mut App);
     fn tick(&mut self, _app: &mut App) {}
+    // Buttons need to know if the mouse has been released out of the
+    // objects area, so they can note it is no longer "pressed".
+    fn mouse_released(&mut self, _x: f32, _y: f32) {}
+    // Buttons, and TouchRects that contain buttons, implement this so
+    // than while "pressed" if mouse moves out, they can turn off the
+    // "colour_pressed" and turn that colour on if it moves in
+    fn mouse_at(&mut self, _x: f32, _y: f32) {}
 }
 
 /// The tuner display
@@ -139,9 +148,8 @@ impl TouchRectFn for TunerDisplay {
     fn tick(&mut self, app: &mut App) {
         self.paint(app);
     }
-    fn event(&mut self, is_down: bool, _x: f32, _y: f32) {
-        eprintln!("DBG Woo hoo {is_down}");
-        if !is_down {
+    fn event(&mut self, event_type: MouseEventType, _x: f32, _y: f32) {
+        if event_type == MouseEventType::Up {
             let state = self.kill_flag.load(Ordering::SeqCst);
             let kill_flag_state = !state;
             self.kill_flag.store(kill_flag_state, Ordering::SeqCst);
@@ -350,6 +358,7 @@ struct MuteButton {
     muted: bool,
     osc: Rc<OscSender>, // Shared OSC transmitter
     pressed: bool,
+    mouse_in: bool,
 }
 impl MuteButton {
     fn new(osc: Rc<OscSender>, x: f32, y: f32, w: f32, h: f32) -> Self {
@@ -361,33 +370,37 @@ impl MuteButton {
             pressed: false,
             muted: false,
             osc,
+            mouse_in: false,
         }
     }
 }
 impl TouchRectFn for MuteButton {
-    fn event(&mut self, is_down: bool, _x: f32, _y: f32) {
-        if self.pressed && !is_down {
-            // Take action
-
-            self.muted = !self.muted;
-            let value = if self.muted { 0.0 } else { 1.0 };
-            let osc_msg = "/M/{}";
-            send_f32_osc(&self.osc, osc_msg, value);
+    fn event(&mut self, event_type: MouseEventType, _x: f32, _y: f32) {
+        self.mouse_in = true;
+        if event_type == MouseEventType::Up {
+            if self.pressed {
+                // Take action
+                self.muted = !self.muted;
+                let value = if self.muted { 0.0 } else { 1.0 };
+                let osc_msg = "/M/{}";
+                send_f32_osc(&self.osc, osc_msg, value);
+            }
+            self.pressed = false;
+        } else if event_type == MouseEventType::Down {
+            self.pressed = true;
         }
-        self.pressed = is_down;
     }
 
     // Mute button
     fn paint(&mut self, app: &mut App) {
-        let colour = if !self.pressed {
-            if self.muted {
-                self.colour_muted
-            } else {
-                self.colour_unmuted
-            }
-        } else {
+        let colour = if self.pressed && self.mouse_in {
             self.colour_pressed
+        } else if self.muted {
+            self.colour_muted
+        } else {
+            self.colour_unmuted
         };
+
         app.set_colour(&colour);
         let x = self.corners[0];
         let y = self.corners[1];
@@ -403,6 +416,15 @@ impl TouchRectFn for MuteButton {
     fn point_inside(&self, x: f32, y: f32) -> bool {
         point_inside_corners(x, y, self.corners)
     }
+
+    fn mouse_at(&mut self, x: f32, y: f32) {
+        self.mouse_in = self.point_inside(x, y);
+    }
+    fn mouse_released(&mut self, x: f32, y: f32) {
+        if self.pressed && !self.point_inside(x, y) {
+            self.pressed = false;
+        }
+    }
 }
 
 /// Button that is highlighted while pressed, and is used to add (or
@@ -414,6 +436,7 @@ struct AdjButton {
     colour: [u8; 4],
     colour_pressed: [u8; 4],
     pressed: bool,
+    mouse_in: bool,
     target: Rc<SliderState>,
     value: ButtonIncrement, // Add (or subtract) this value
 }
@@ -455,20 +478,24 @@ impl AdjButton {
             colour_pressed: COLOUR_RED,
             pressed: false,
             target,
+            mouse_in: false,
         }
     }
 }
 impl TouchRectFn for AdjButton {
-    fn event(&mut self, is_down: bool, _x: f32, _y: f32) {
-        if self.pressed && !is_down {
+    fn event(&mut self, event_type: MouseEventType, _x: f32, _y: f32) {
+        self.mouse_in = true;
+        if self.pressed && event_type == MouseEventType::Up {
             let old_value = *self.target.value.borrow();
             let new_value = old_value + (self.value.value() as f32 / 127.0);
             let new_value = new_value.clamp(0.0, 1.0);
             *self.target.value.borrow_mut() = new_value;
             let osc_msg = format!("/v/{}", self.target.idx);
             send_f32_osc(&self.target.osc, osc_msg.as_str(), new_value);
+            self.pressed = false;
+        } else if event_type == MouseEventType::Down {
+            self.pressed = true;
         }
-        self.pressed = is_down;
     }
 
     fn point_inside(&self, x: f32, y: f32) -> bool {
@@ -487,7 +514,7 @@ impl TouchRectFn for AdjButton {
         let h = (h * app.height as f32) as u32;
         let fill_rect = Rect::new(x, y, w, h);
         // For now plus/sub one is blue and plus/sub ten is green
-        if self.pressed {
+        if self.pressed && self.mouse_in {
             app.set_colour(&self.colour_pressed);
         } else {
             app.set_colour(&self.colour);
@@ -523,6 +550,15 @@ impl TouchRectFn for AdjButton {
             let diff_h = w.saturating_sub(h); // Make horizontal same as vertical
             let rect = Rect::new(x + diff_h as i32 / 2, y1, w - diff_h, thickness as u32);
             app.fill_rect(rect);
+        }
+    }
+
+    fn mouse_at(&mut self, x: f32, y: f32) {
+        self.mouse_in = self.point_inside(x, y);
+    }
+    fn mouse_released(&mut self, x: f32, y: f32) {
+        if self.pressed && !self.point_inside(x, y) {
+            self.pressed = false;
         }
     }
 }
@@ -688,7 +724,7 @@ impl Slider {
     }
 }
 impl TouchRectFn for Slider {
-    fn event(&mut self, is_down: bool, x: f32, y: f32) {
+    fn event(&mut self, event_type: MouseEventType, x: f32, y: f32) {
         // Set this if a button handles this, so the slider itself
         // does not move the thumb towards the mouse event
         let mut handled = false;
@@ -701,12 +737,12 @@ impl TouchRectFn for Slider {
             &mut self.sub_ten,
         ] {
             if b.point_inside(x, y) {
-                b.event(is_down, x, y);
+                b.event(event_type, x, y);
                 handled = true;
             }
         }
 
-        if !handled && !is_down && self.point_inside_slider(x, y) {
+        if !handled && event_type == MouseEventType::Up && self.point_inside_slider(x, y) {
             self.handle_click(x, y);
         }
     }
@@ -765,6 +801,19 @@ impl TouchRectFn for Slider {
             app.fill_rect(rect);
         }
     }
+
+    fn mouse_at(&mut self, x: f32, y: f32) {
+        self.add_one.mouse_at(x, y);
+        self.add_ten.mouse_at(x, y);
+        self.sub_one.mouse_at(x, y);
+        self.sub_ten.mouse_at(x, y);
+    }
+    fn mouse_released(&mut self, x: f32, y: f32) {
+        self.add_one.mouse_released(x, y);
+        self.add_ten.mouse_released(x, y);
+        self.sub_one.mouse_released(x, y);
+        self.sub_ten.mouse_released(x, y);
+    }
 }
 
 #[derive(Debug)]
@@ -792,12 +841,12 @@ impl EffectContainer {
     fn init(&self) {}
 }
 impl TouchRectFn for EffectContainer {
-    fn event(&mut self, is_down: bool, x: f32, y: f32) {
+    fn event(&mut self, event_type: MouseEventType, x: f32, y: f32) {
         // Pass to sliders
         let mut dirty = false;
         for s in self.sliders.iter_mut() {
             if s.point_inside(x, y) {
-                s.event(is_down, x, y);
+                s.event(event_type, x, y);
                 dirty = true;
                 break;
             }
@@ -888,6 +937,17 @@ impl TouchRectFn for EffectContainer {
             }
         }
     }
+
+    fn mouse_at(&mut self, x: f32, y: f32) {
+        for s in self.sliders.iter_mut() {
+            s.mouse_at(x, y);
+        }
+    }
+    fn mouse_released(&mut self, x: f32, y: f32) {
+        for s in self.sliders.iter_mut() {
+            s.mouse_released(x, y);
+        }
+    }
 }
 
 /// The "button" that switches between `EditMode` where the pedal has
@@ -903,14 +963,16 @@ struct MainCommandRect {
     command: String,
     /// x,y,w,h in 0..1
     corners: [f32; 4],
-    /// Was the last event a 'mouse_down'
-    down: bool,
+    /// True when mouse is pressed
+    pressed: bool,
     /// This is effectively a toggle
     mode: CommandMode,
     /// If there are errors `valid` is false
     valid: bool,
     // jh: JoinHandle<()>,
     qzn3t_beacon: Arc<AtomicBool>,
+    // True when the mouse pointer is in the button
+    mouse_in: bool,
 }
 impl MainCommandRect {
     /// This runs the command from MainTouchRect.  The command takes
@@ -953,7 +1015,7 @@ impl MainCommandRect {
 
         Self {
             corners: [0.0, 0.0, width, height],
-            down: false,
+            pressed: false,
             state_colour: [255, 0, 0, 255],
             not_state_colour: [0, 0, 255, 255],
             command,
@@ -961,27 +1023,34 @@ impl MainCommandRect {
             valid: true,
             //jh,
             qzn3t_beacon: qzn3t_beacon_read,
+            mouse_in: false,
         }
     }
 }
 impl TouchRectFn for MainCommandRect {
     /// Touch events toggle between `mod-ui` and `qzn3t`
-    fn event(&mut self, is_down: bool, _x: f32, _y: f32) {
-        if self.down != is_down {
-            if !is_down {
-                // Released. Take action
-                let dbg_state = self.mode.clone();
-                self.mode = match self.mode {
-                    CommandMode::EditMode => CommandMode::LiveMode,
-                    CommandMode::LiveMode => CommandMode::EditMode,
-                };
-                self.run_command();
-                eprintln!(
-                    "DBG gui qzn3t_gui: BoolCommandRect State change: {dbg_state:?} -> {:?}",
-                    self.mode
-                );
+    fn event(&mut self, event_type: MouseEventType, x: f32, y: f32) {
+        match event_type {
+            MouseEventType::Up => {
+                // Check: Is point inside tested up the stack?
+                if self.point_inside(x, y) && self.pressed {
+                    // Released. Take action
+                    let dbg_state = self.mode.clone();
+                    self.mode = match self.mode {
+                        CommandMode::EditMode => CommandMode::LiveMode,
+                        CommandMode::LiveMode => CommandMode::EditMode,
+                    };
+                    self.run_command();
+                    eprintln!(
+                        "DBG gui qzn3t_gui: BoolCommandRect State change: {dbg_state:?} -> {:?}",
+                        self.mode
+                    );
+                }
+
+                self.pressed = false;
             }
-            self.down = is_down;
+            MouseEventType::Down => self.pressed = true,
+            MouseEventType::Move => (),
         }
     }
     fn point_inside(&self, x: f32, y: f32) -> bool {
@@ -995,7 +1064,7 @@ impl TouchRectFn for MainCommandRect {
             CommandMode::EditMode => true,
         };
 
-        let colour: [u8; 4] = if self.down {
+        let colour: [u8; 4] = if self.mouse_in && self.pressed {
             COLOUR_BLACK
         } else {
             match self.mode {
@@ -1059,6 +1128,15 @@ impl TouchRectFn for MainCommandRect {
         }
         self.paint(app);
     }
+
+    fn mouse_at(&mut self, x: f32, y: f32) {
+        self.mouse_in = self.point_inside(x, y);
+    }
+    fn mouse_released(&mut self, x: f32, y: f32) {
+        if self.pressed && !self.point_inside(x, y) {
+            self.pressed = false;
+        }
+    }
 }
 
 /// The command modes for MainCommandRect
@@ -1083,18 +1161,25 @@ impl TouchScreenCtl {
         if let Event::Mouse {
             mouse_x,
             mouse_y,
-            is_down,
+            event_type,
             ..
         } = *e
         {
-            for i in self.rects.iter_mut() {
+            for i in 0..self.rects.len() {
+                let touch_rect = &mut self.rects[i];
                 let (x, y) = {
                     let x = mouse_x as f32 / self.width as f32;
                     let y = mouse_y as f32 / self.height as f32;
                     (x, y)
                 };
-                if i.point_inside(x, y) {
-                    i.event(is_down, x, y);
+                if touch_rect.point_inside(x, y) {
+                    touch_rect.event(event_type, x, y);
+                }
+
+                if event_type == MouseEventType::Move {
+                    touch_rect.mouse_at(x, y);
+                } else if event_type == MouseEventType::Up {
+                    touch_rect.mouse_released(x, y);
                 }
             }
         }
@@ -1267,13 +1352,19 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     effects_mixer.init();
 
     // Main screen
+    let rects: Vec<Box<dyn TouchRectFn>> = vec![
+        Box::new(main_button),
+        Box::new(effects_mixer),
+        Box::new(mute_button),
+        Box::new(tuner_display),
+    ];
+    let mut inside = HashMap::new();
+    for i in 0..rects.len() {
+        inside.insert(i, false);
+    }
+
     let mut tsc = TouchScreenCtl {
-        rects: vec![
-            Box::new(main_button),
-            Box::new(effects_mixer),
-            Box::new(mute_button),
-            Box::new(tuner_display),
-        ],
+        rects,
         width: app.width,
         height: app.height,
     };
