@@ -25,6 +25,10 @@ A system to control simulated guitar pedals using a MIDI foot controller. Design
 - Compatible audio interface
 - MIDI foot controller
 
+### 7-Inch Touch
+
+
+
 ## Installation
 
 ### Recommended OS: Patchbox OS

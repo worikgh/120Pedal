@@ -16,6 +16,7 @@ use simple::{Event, Rect};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::env;
 use std::error::Error;
 use std::fs::metadata;
@@ -1165,12 +1166,34 @@ impl TouchScreenCtl {
             ..
         } = *e
         {
+            eprintln!("DBG Mouse event: {mouse_x}/{mouse_y} {event_type:?}");
+            // The touch screen is not translating touch into coordinates properly
+            // The mouse pointer is not where the screen is touched
+            // 1280x720 size of screen
+            // At pixel 640x360 is the centre and the pointer and touch agree
+            // Touch high X (right) low y (top) => pointer goes low x / low y
+            // Touch high X / high y => high X / low y
+            //       Low X / High Y => High X / High Y
+            //       Low X / Low Y => High Y / Low X
+            // | x    | y   |    | x    | y   |
+            // | 0    | 0   | => | 0    | 720 |
+            // | 0    | 720 | => | 1280 | 720 |
+            // | 1280 | 720 | => | 1280 | 0   |
+            // | 1280 | 0   | => | 0    | 0   |
+            // Rotation: (x,y)→(y,−x)
             for i in 0..self.rects.len() {
                 let touch_rect = &mut self.rects[i];
                 let (x, y) = {
-                    let x = mouse_x as f32 / self.width as f32;
-                    let y = mouse_y as f32 / self.height as f32;
-                    (x, y)
+                    // let x = mouse_x as f32 / self.width as f32;
+                    // let y = mouse_y as f32 / self.height as f32;
+                    // Implement rotation
+                    // Normalise x/y
+                    let x_n = mouse_x as f32 / self.width as f32;
+                    let y_n = mouse_y as f32 / self.height as f32;
+                    assert!((0.0..=1.0).contains(&x_n));
+                    assert!((0.0..=1.0).contains(&y_n));
+                    eprintln!("DBG ({x_n:0.2}x{y_n:0.2}) => ({y_n:0.2}x{:0.2})", 1.0 - x_n);
+                    (y_n, 1.0 - x_n)
                 };
                 if touch_rect.point_inside(x, y) {
                     touch_rect.event(event_type, x, y);
@@ -1381,10 +1404,46 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     // Doing about 60 frames a second.  Arrange a `tick()` every 100ms
     let tick_interval = Duration::from_millis(100);
     let mut last_tick_time = Instant::now() - tick_interval;
-
+    let mut spoints: VecDeque<(i32, i32, Instant)> = VecDeque::new();
     while app.window.next_frame() {
         while app.window.has_event() {
             let e = app.window.next_event();
+            if let Event::Mouse {
+                mouse_x,
+                mouse_y,
+                event_type,
+                ..
+            } = e
+                && event_type == MouseEventType::Move
+            {
+                let now = Instant::now();
+                app.window.set_color(
+                    COLOUR_BACKGROUND[0],
+                    COLOUR_BACKGROUND[1],
+                    COLOUR_BACKGROUND[2],
+                    COLOUR_BACKGROUND[3],
+                );
+                for i in spoints.iter() {
+                    let fr = simple::Rect::new(i.0, i.1, 1, 1);
+                    app.window.fill_rect(fr);
+                }
+                while !spoints.is_empty() {
+                    if spoints[0].2.elapsed() >= Duration::from_millis(1_000) {
+                        _ = spoints.pop_front();
+                    } else {
+                        break;
+                    }
+                }
+                spoints.push_back((mouse_x, mouse_y, now));
+                app.window
+                    .set_color(COLOUR_RED[0], COLOUR_RED[1], COLOUR_RED[2], COLOUR_RED[3]);
+                for i in spoints.iter() {
+                    let fr = simple::Rect::new(i.0, i.1, 1, 1);
+                    eprintln!("DBG fill_rect: {fr:?}");
+                    app.window.fill_rect(fr);
+                }
+            }
+
             tsc.event(&e);
             paint_screen(&mut app, &mut tsc);
         }
