@@ -1,5 +1,5 @@
 midi_driver/target/
 PEDALS/*
 midi_driver/examples/*
-Presentation*
-BU*
+Presentation/*
+BU/*
