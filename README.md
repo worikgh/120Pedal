@@ -27,6 +27,22 @@ A system to control simulated guitar pedals using a MIDI foot controller. Design
 
 ### 7-Inch Touch
 
+Fucking screen will not rotate into portrait with the
+* Debian package: `xserver-xorg-input-evdev`
+```
+~$ cat /etc/X11/xorg.conf.d/99-calibration.conf
+Section "InputClass"
+		Identifier      "calibration"
+		MatchProduct    "10-005d Goodix Capacitive TouchScreen"
+		Option  "MinX"  "18628"
+		Option  "MaxX"  "18696"
+		Option  "MinY"  "57093"
+		Option  "MaxY"  "56911"
+		Option  "SwapXY"        "1" # unless it was already set to 1
+		Option  "InvertX"       "0"  # unless it was already set
+		Option  "InvertY"       "0"  # unless it was already set
+EndSection
+```
 
 
 ## Installation
