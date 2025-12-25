@@ -15,7 +15,6 @@ use simple::{Event, Rect, event::MouseEventType};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::collections::VecDeque;
 use std::env;
 use std::error::Error;
 use std::fs::metadata;
@@ -180,10 +179,10 @@ impl TouchRectFn for TunerDisplay {
             // app.set_colour(&COLOUR_BLACK);
             // let fr = Rect::new(x, y, w, h);
             // app.fill_rect(fr);
-            let x = (self.corners[0] * app.width as f32) as i32;
-            let y = (self.corners[1] * app.height as f32) as i32;
-            let w = (self.corners[2] * app.width as f32) as u32;
-            let h = (self.corners[3] * app.height as f32) as u32;
+            let x = (self.corners[0] * app.model_width as f32) as i32;
+            let y = (self.corners[1] * app.model_height as f32) as i32;
+            let w = (self.corners[2] * app.model_width as f32) as u32;
+            let h = (self.corners[3] * app.model_height as f32) as u32;
             for _ in 0..100 {
                 // Pick a random colour...
                 let c: f32 = random();
@@ -406,10 +405,10 @@ impl TouchRectFn for MuteButton {
         let y = self.corners[1];
         let w = self.corners[2];
         let h = self.corners[3];
-        let x = (x * app.width as f32) as i32;
-        let y = (y * app.height as f32) as i32;
-        let w = (w * app.width as f32) as u32;
-        let h = (h * app.height as f32) as u32;
+        let x = (x * app.model_width as f32) as i32;
+        let y = (y * app.model_height as f32) as i32;
+        let w = (w * app.model_width as f32) as u32;
+        let h = (h * app.model_height as f32) as u32;
         let fill_rect = Rect::new(x, y, w, h);
         app.fill_rect(fill_rect);
     }
@@ -508,10 +507,10 @@ impl TouchRectFn for AdjButton {
         let h = self.corners[3];
         let x = self.corners[0];
         let y = self.corners[1];
-        let x = (x * app.width as f32) as i32;
-        let y = (y * app.height as f32) as i32;
-        let w = (w * app.width as f32) as u32;
-        let h = (h * app.height as f32) as u32;
+        let x = (x * app.model_width as f32) as i32;
+        let y = (y * app.model_height as f32) as i32;
+        let w = (w * app.model_width as f32) as u32;
+        let h = (h * app.model_height as f32) as u32;
         let fill_rect = Rect::new(x, y, w, h);
         // For now plus/sub one is blue and plus/sub ten is green
         if self.pressed && self.mouse_in {
@@ -765,10 +764,10 @@ impl TouchRectFn for Slider {
             let x = self.corners[0] - w / 2.0;
             let y = self.corners[1];
 
-            let x = (x * app.width as f32) as i32;
-            let y = (y * app.height as f32) as i32;
-            let w = (w * app.width as f32) as u32;
-            let h = (h * app.height as f32) as u32;
+            let x = (x * app.model_width as f32) as i32;
+            let y = (y * app.model_height as f32) as i32;
+            let w = (w * app.model_width as f32) as u32;
+            let h = (h * app.model_height as f32) as u32;
             let fill_rect = Rect::new(x, y, w, h);
             let selected: bool = self.idx_selected.borrow().selected;
             if selected {
@@ -792,9 +791,9 @@ impl TouchRectFn for Slider {
             // let y = 1.0 - y;
             let w = self.corners[2];
 
-            let x = (x * app.width as f32) as i32;
-            let y = (y * app.height as f32) as i32;
-            let w = (w * app.width as f32) as u32;
+            let x = (x * app.model_width as f32) as i32;
+            let y = (y * app.model_height as f32) as i32;
+            let w = (w * app.model_width as f32) as u32;
             let h = 2;
             let rect = Rect::new(x, y, w, h);
             app.set_colour(&COLOUR_THUMB);
@@ -864,10 +863,10 @@ impl TouchRectFn for EffectContainer {
         let y = self.corners[1];
         let w = self.corners[2];
         let h = self.corners[3];
-        let x = (x * app.width as f32) as i32;
-        let y = (y * app.height as f32) as i32;
-        let w = (w * app.width as f32) as u32;
-        let h = (h * app.height as f32) as u32;
+        let x = (x * app.model_width as f32) as i32;
+        let y = (y * app.model_height as f32) as i32;
+        let w = (w * app.model_width as f32) as u32;
+        let h = (h * app.model_height as f32) as u32;
         let fill_area = simple::Rect::new(x, y, w, h);
         app.set_colour(&COLOUR_BACKGROUND);
         app.fill_rect(fill_area);
@@ -1002,6 +1001,7 @@ impl MainCommandRect {
     }
 
     fn new(width: f32, height: f32, command: String) -> Self {
+        eprintln!("new command button WxH: {width:0.3}x{height:0.3}");
         // Set up thread to monitor Qzn3t health
         let qzn3t_beacon_read = Arc::new(AtomicBool::new(false));
         let qzn3t_beacon_write = Arc::clone(&qzn3t_beacon_read);
@@ -1078,12 +1078,15 @@ impl TouchRectFn for MainCommandRect {
         let y = self.corners[1];
         let w = self.corners[2];
         let h = self.corners[3];
-        let x = (x * app.width as f32) as i32;
-        let y = (y * app.height as f32) as i32;
-        let w = (w * app.width as f32) as u32;
-        let h = (h * app.height as f32) as u32;
+        eprintln!("MainCommandRect Paint 1: {x:0.2} {y:0.2} {w:0.2} {h:0.2}");
+        let x = (x * app.model_width as f32) as i32;
+        let y = (y * app.model_height as f32) as i32;
+        let w = (w * app.model_width as f32) as u32;
+        let h = (h * app.model_height as f32) as u32;
+        eprintln!("MainCommandRect Paint 2: {x} {y} {w} {h} valid: {valid}");
 
         let fill_area = simple::Rect::new(x, y, w, h);
+        eprintln!("MainCommandRect Paint 3: fill_area: {fill_area:?}");
         if valid {
             app.set_colour(&colour);
             app.fill_rect(fill_area);
@@ -1358,6 +1361,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         Box::new(mute_button),
         Box::new(tuner_display),
     ];
+
     let mut inside = HashMap::new();
     for i in 0..rects.len() {
         inside.insert(i, false);
@@ -1365,8 +1369,8 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
 
     let mut tsc = TouchScreenCtl {
         rects,
-        width: app.width,
-        height: app.height,
+        width: app.model_width,
+        height: app.model_height,
     };
 
     let paint_screen = |app: &mut App, tsc: &mut TouchScreenCtl| {
@@ -1381,7 +1385,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     // Doing about 60 frames a second.  Arrange a `tick()` every 100ms
     let tick_interval = Duration::from_millis(100);
     let mut last_tick_time = Instant::now() - tick_interval;
-    let mut spoints: VecDeque<(i32, i32, Instant)> = VecDeque::new();
+
     while app.window.next_frame() {
         while app.window.has_event() {
             let e = app.window.next_event();
@@ -1500,10 +1504,10 @@ fn pixel_boundary(corners: [f32; 4], app: &App) -> (i32, i32, u32, u32) {
     let y = corners[1];
     let w = corners[2];
     let h = corners[3];
-    let x = (x * app.width as f32) as i32;
-    let y = (y * app.height as f32) as i32;
-    let w = (w * app.width as f32) as u32;
-    let h = (h * app.height as f32) as u32;
+    let x = (x * app.model_width as f32) as i32;
+    let y = (y * app.model_height as f32) as i32;
+    let w = (w * app.model_width as f32) as u32;
+    let h = (h * app.model_height as f32) as u32;
     (x, y, w, h)
 }
 

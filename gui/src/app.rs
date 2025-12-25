@@ -1,18 +1,20 @@
 //! The outer structure
+use simple::Window;
+
 use crate::Rect;
 use std::io::Read;
 use std::{collections::HashMap, fs::File};
 
 pub struct App {
     pub window: simple::Window,
-    pub width: u16,
-    pub height: u16,
+    pub model_width: u16,
+    pub model_height: u16,
     pub fonts: HashMap<String, Vec<u8>>,
 }
 impl App {
     /// Sized
-    pub fn new(name: &str, width: u16, height: u16) -> Self {
-        Self::new_inner(name, Some((width, height)))
+    pub fn new(name: &str, view_width: u16, view_height: u16) -> Self {
+        Self::new_inner(name, Some((view_width, view_height)))
     }
 
     /// Full screen
@@ -20,20 +22,20 @@ impl App {
         Self::new_inner(name, None)
     }
     fn new_inner(name: &str, dim: Option<(u16, u16)>) -> Self {
-        let width: u16;
-        let height: u16;
+        let view_width: u16;
+        let view_height: u16;
         let window = if let Some((w, h)) = dim {
-            width = w;
-            height = h;
-            simple::Window::new(name, width, height)
+            view_width = w;
+            view_height = h;
+            simple::Window::new(name, view_width, view_height)
         } else {
             let window = simple::Window::new_fullscreen(name);
             let (w, h) = window.drawable_size();
-            width = w as u16;
-            height = h as u16;
-            eprintln!("DBG gui: WxH {w}x{h}");
+            view_width = w as u16;
+            view_height = h as u16;
             window
         };
+        eprintln!("DBG gui: WxH {view_width}x{view_height}");
         let font_fn = "assets/DejaVuSerif-Bold.ttf";
         let font = match File::open(font_fn) {
             Ok(mut f) => {
@@ -45,9 +47,13 @@ impl App {
         };
         let mut fonts = HashMap::new();
         fonts.insert(font_fn.to_string(), font);
+
+        // Rotation
+        let model_width = view_height;
+        let model_height = view_height;
         Self {
-            width,
-            height,
+            model_width,
+            model_height,
             window,
             fonts,
         }
@@ -62,6 +68,13 @@ impl App {
     /// Wrapper around `simple.window.fill_rect`.  Fills in the
     /// current colour.
     pub fn fill_rect(&mut self, r: Rect) {
-        self.window.fill_rect(r);
+        let ds = self.window.drawable_size();
+        let view_w = ds.0;
+        let view_h = ds.1;
+        let (x, y) = Window::translate_model_90c(r.x(), r.y(), view_w, view_h);
+        let rect = Rect::new(x, y, r.height(), r.width());
+        self.window.fill_rect(rect);
+        eprintln!("fill_rect: {r:?} -> {rect:?} {view_w}x{view_h}");
+        // self.window.fill_rect(r);
     }
 }
