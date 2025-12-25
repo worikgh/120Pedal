@@ -1,5 +1,5 @@
 //! Send data to mixer about volume of effects
-use rosc::{encoder, OscMessage, OscPacket, OscType};
+use rosc::{OscMessage, OscPacket, OscType, encoder};
 use std::error::Error;
 use std::net::{SocketAddrV4, UdpSocket};
 use std::str::FromStr;

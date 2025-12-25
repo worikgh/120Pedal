@@ -1233,8 +1233,6 @@ struct CmdArgs {
     height: Option<u16>,
 }
 
-/// The starting point
-
 /// Monitor the PedalState file to see if the selected effect has been
 /// changed.  In which case send a message to the main thread to
 /// change the selected slider
@@ -1355,6 +1353,7 @@ fn send_f32_osc(osc: &Rc<OscSender>, msg: &str, value: f32) {
     }
 }
 
+/// The starting point
 fn inner_main() -> Result<(), Box<dyn Error>> {
     let _ = qzn3t_running();
 
