@@ -1496,20 +1496,13 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
 
     paint_screen(&mut app, &mut tsc);
 
-    // Doing about 60 frames a second.  Arrange a `tick()` every 100ms
-    let tick_interval = Duration::from_millis(100);
-    let mut last_tick_time = Instant::now() - tick_interval;
-
     while app.window.next_frame() {
         while app.window.has_event() {
             let e = app.window.next_event();
             tsc.event(&e);
             paint_screen(&mut app, &mut tsc);
         }
-        if last_tick_time.elapsed() >= tick_interval {
-            tsc.tick(&mut app);
-            last_tick_time = Instant::now();
-        }
+        tsc.tick(&mut app);
     }
     Ok(())
 }
