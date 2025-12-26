@@ -1356,11 +1356,9 @@ fn send_f32_osc(osc: &Rc<OscSender>, msg: &str, value: f32) {
 /// The starting point
 fn inner_main() -> Result<(), Box<dyn Error>> {
     let _ = qzn3t_running();
-
-    // The first argument is the command that starts the qzn3t pedals
-    // or mod-ui, the second and third are width and height
-    // let usage = || -> String { "Usage: gui <configuration file> [01]".to_string() };
     let args = CmdArgs::parse();
+
+    // The  command that starts the qzn3t pedals
     let command = args.cmd;
 
     // Check `command` is executable
@@ -1376,9 +1374,8 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
         exit(1);
     }
 
-    // If there are two arguments left they are the width and height
-    // of the window.  Other wise default to screen for 3.5 inch
-    // Raspberry Pi screen
+    // The width and height of the window, if supplied, otherwise
+    // default to full screen
     let dim: Option<(u16, u16)> = if args.width.is_some() && args.height.is_some() {
         // Passed width and height as arguments
         Some((args.width.unwrap(), args.height.unwrap()))
@@ -1403,8 +1400,9 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     let mut app = if let Some((width, height)) = dim {
         App::new("Qzn3t", width, height)
     } else {
-        App::new_fullscreen("Qzn3t")
+        App::new_fullscreen("Qzn3t-fs")
     };
+
     // The button that switches between `qzn3t` and `mod-ui`.  Width
     // and height are normalised.
     const BUTTON_WIDTH: f32 = 0.15; // 15%
@@ -1452,18 +1450,19 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
 
         // Scale for width of the drawn slider
         let w_f = 0.2;
-
-        // Top and bottom
-        let margin = 0.1;
-        let x_step = 1.0 / (1.0 + channels.len() as f32);
-        let y = y + h * margin;
-        let h = h - 2.0 * h * margin;
-        let mut idx: u8 = 1;
-        for c in channels.iter() {
-            let x = x + idx as f32 * x_step;
-            let slider = Slider::new(x, y, x_step, h, margin, w_f, c.1, idx, osc.clone());
-            sliders.push(slider);
-            idx += 1;
+        {
+            // Top and bottom
+            let margin = 0.1;
+            let x_step = 1.0 / (1.0 + channels.len() as f32);
+            let y = y + h * margin;
+            let h = h - 2.0 * h * margin;
+            let mut idx: u8 = 1;
+            for c in channels.iter() {
+                let x = x + idx as f32 * x_step;
+                let slider = Slider::new(x, y, x_step, h, margin, w_f, c.1, idx, osc.clone());
+                sliders.push(slider);
+                idx += 1;
+            }
         }
     }
     // The mixer that controls the volumes of the effects
