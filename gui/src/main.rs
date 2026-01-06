@@ -11,7 +11,7 @@ use pedal_state::read_state;
 use pedal_state::write_state;
 use rand::random;
 use send_osc::OscSender;
-use simple::{Event, Rect, event::MouseEventType};
+use simple::{Event, Rect, event::MouseEventType, hide_mouse};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -1402,7 +1402,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     } else {
         App::new_fullscreen("Qzn3t-fs")
     };
-
+    hide_mouse();
     // The button that switches between `qzn3t` and `mod-ui`.  Width
     // and height are normalised.
     const BUTTON_WIDTH: f32 = 0.15; // 15%
