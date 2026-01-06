@@ -58,23 +58,6 @@ sudo apt purge blokas-telemetry
 ```
 
 
-Remove Desktop Panel, Icons and Screensaver
----
-
-Qzn3t-gui will occupy the whole screen.
-
-* The panel takes up screen realestate that makes some of the buttons on Qzn3t-gui unusable
-* The icons (and wall paper) have no purpose, so deactivating them is optional
-* The screensaver will be an irritation, making the widgets on Qzn3t-gui invisible when the musician's hands are full.
-The LXDE desktop, default to Patchbox OS, takes up screen room for no purpose and can be disabled.
-
-1. Edit the file `/home/patch/.config/lxsession/LXDE/autostart` In testing this file did not exist....
-2. Remove the line `@lxpanel --profile LXDE` to disable the panel
-3. Remove the line `@pcmanfm --desktop --profile LXDE` to remove the icons and wall paper
-4. Remove the line `@xscreensaver -no-splash` to disable the screen saver.
-5. Remove the packages to make this permanent
-  * `sudo apt remove pcmanfm lxpanel`
-
 ### Other distributions
 
 To run LV2 simulators an LV2 host is required.  The host [`mod-host`](https://github.com/worikgh/mod-host) is recommended.
@@ -105,18 +88,28 @@ source ~/.profile
 
 ## Configuration
 
-### 3.5" Screen Driver
+### Creating a Desktop shortcut
 
-```sh
-git clone https://github.com/goodtft/LCD-show.git
-cd LCD-show
-sudo ./LCD35-show 180
+Create the file: `.local/share/applications/120Pedal.desktop`
+
+Contents
+```
+[Desktop Entry]
+Name=120Pedal GUI
+Exec=$HOME/120Pedal/gui/run.sh
+Icon=$HOME/120Pedal/gui/120Pedal.svg
+Terminal=false
+Type=Application
 ```
 
-That will reboot the computer
+Make executable: `chmod a+x ~/.local/share/applications/120Pedal.desktop`
 
-The configuration of the Raspberry Pi with the 3.5" screen make it convenient to rotate the screen 180 degrees.  Thisis what the argument `180` to `LCD-35-show` does
+Put on Desktop
 
+```
+cp ~/.local/share/applications/120Pedal.desktop ~/Desktop/
+chmod +x ~/Desktop/120Pedal.desktop
+```
 
 ### Auto-login for `patch`
 
