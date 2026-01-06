@@ -1499,8 +1499,41 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
     while app.window.next_frame() {
         while app.window.has_event() {
             let e = app.window.next_event();
-            tsc.event(&e);
-            paint_screen(&mut app, &mut tsc);
+
+            if let Event::Mouse {
+                mouse_x,
+                mouse_y,
+                event_type,
+                button,
+            } = e
+            {
+                // Transform x/y from mouse event
+                let width = app.window.drawable_size().0;
+                let height = app.window.drawable_size().1;
+                let x_p = height as f32 * mouse_x as f32 / width as f32;
+                let y_p = width as f32 * mouse_y as f32 / height as f32;
+                let x = (width as f32 - y_p).round() as i32;
+                let y = x_p.round() as i32;
+                let me = Event::Mouse {
+                    event_type,
+                    button,
+                    mouse_x: x,
+                    mouse_y: y,
+                };
+                eprintln!("GUI Transform event: {mouse_x}x{mouse_y} -> {x}x{y}");
+                tsc.event(&me);
+                paint_screen(&mut app, &mut tsc);
+                {
+                    app.window.set_color(255, 0, 0, 255);
+                    let r = Rect::new(x - 20, y - 2, 40, 4);
+                    app.window.fill_rect(r);
+                    let r = Rect::new(x - 2, y - 20, 4, 40);
+                    app.window.fill_rect(r);
+                }
+            } else {
+                tsc.event(&e);
+                paint_screen(&mut app, &mut tsc);
+            }
         }
         tsc.tick(&mut app);
     }
