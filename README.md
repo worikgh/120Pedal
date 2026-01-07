@@ -19,11 +19,14 @@ A system to control simulated guitar pedals using a MIDI foot controller. Design
 
 ## System Requirements
 - [Raspberry Pi](https://www.raspberrypi.com/) 4 or 5 (recommended)
-  - This will probably run an any computer using Linux.  It was developed for and on a Raspberry Pi
+  - This version is specifically adapted to Raspbery Pi **7-inch touch screen**
+    - There is a bug in the X11 interface where touch points are rotated from where the user touches.  This version compensates for that.
 - Debian 12 ([Patchbox OS](https://blokas.io/patchbox-os/))
   - Patchbox OS comes with the unessential but useful [Modep](https://blokas.io/modep/) software preinstalled.
 - Compatible audio interface
 - MIDI foot controller
+
+
 
 ## Installation
 
