@@ -1,0 +1,39 @@
+#!/bin/true
+
+## Write a user systemd file to start a programme:
+## `$HOME/.local/bin/gui` at boot/login time.  It must start after the
+## graphcs system is initialised and the user is logged in
+## # 
+##---
+## Here's a user systemd service file to start `gui` at login after graphics initialization:
+
+# ~/.config/systemd/user/120PedalGui.service
+[Unit]
+Description=GUI Application
+After=graphical-session.target
+Wants=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/120Pedal/gui/run.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+
+
+# **To enable and start it:**
+# ```bash
+# systemctl --user daemon-reload
+# systemctl --user enable --now gui.service
+# ```
+
+# **Key points:**
+# - `After=graphical-session.target` ensures graphics system is ready
+# - User service runs in your user session after login
+# - `WantedBy=default.target` starts with user session
+# - `Restart=on-failure` provides resilience
+# - Service file location: `~/.config/systemd/user/`
+
+# The service will automatically start on subsequent logins after enabling.
