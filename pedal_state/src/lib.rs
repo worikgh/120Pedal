@@ -45,6 +45,9 @@ pub fn write_state(state: &PedalState, pedal_dir: &Path) -> io::Result<()> {
     file.write_all(&json.into_bytes())?;
     Ok(())
 }
+
+/// FIXME: Why return Result<Option<..>,..>?  Why not just
+/// `Result<PedalState, Error>`?
 pub fn read_state(pedal_dir: &Path) -> io::Result<Option<PedalState>> {
     match OpenOptions::new().read(true).open(get_sf_path(pedal_dir)) {
         Ok(mut file) => {

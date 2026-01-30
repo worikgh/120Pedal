@@ -1267,10 +1267,9 @@ pub fn monitor_pedal_state(
                 // Check selected slider has changed
                 let new_state = match read_state(path) {
                     Ok(state) => state,
-                    Err(e) => {
+                    Err(err) => {
                         eprintln!(
-                            "DBG qzn3t_gui: State file event: {modify_kind:?}. Read error:  state: {}",
-                            e
+                            "DBG qzn3t_gui: State file event: {modify_kind:?}. Read error:  state: {err}",
                         );
                         continue;
                     }
@@ -1520,7 +1519,7 @@ fn inner_main() -> Result<(), Box<dyn Error>> {
                     mouse_x: x,
                     mouse_y: y,
                 };
-                eprintln!("GUI Transform event: {mouse_x}x{mouse_y} -> {x}x{y}");
+                // eprintln!("GUI Transform event: {mouse_x}x{mouse_y} -> {x}x{y}");
                 tsc.event(&me);
                 paint_screen(&mut app, &mut tsc);
                 {
